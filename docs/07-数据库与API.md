@@ -50,13 +50,50 @@ CREATE TABLE edit_version (
 );
 ```
 
-### 16.4 edit_operation
+### 16.4 edit_session
+
+每次用户打开一个产品窗口进入编辑，后端创建一个 session。草稿期间所有操作绑定 session_id 而非 version_id。保存版本时 session 关联到新生成的 version_id。
+
+```sql
+CREATE TABLE edit_session (
+    session_id TEXT PRIMARY KEY,
+    window_id TEXT NOT NULL,
+    base_version_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'editing',
+    started_at TEXT NOT NULL,
+    saved_version_id TEXT,
+    ended_at TEXT
+);
+```
+
+| 字段 | 说明 |
+|---|---|
+| session_id | 唯一标识，如 `sess_20260101_001` |
+| base_version_id | 进入编辑时的基线版本（首次编辑为 `v000_original`） |
+| status | `editing`：草稿编辑中；`saved`：已保存为正式版本；`discarded`：用户放弃草稿 |
+| saved_version_id | 保存后回填的正式版本 ID，`editing` / `discarded` 时为 NULL |
+
+生命周期：
+
+```text
+打开窗口 → 创建 session (status=editing, base_version_id=当前最新版本)
+    ↓
+操作/撤销/重做 → edit_operation 绑定 session_id
+    ↓
+保存版本 → 生成 version_id, session.saved_version_id = version_id, status=saved
+    ↓
+或 放弃 → status=discarded, ended_at=now
+```
+
+### 16.5 edit_operation
 
 ```sql
 CREATE TABLE edit_operation (
     operation_id TEXT PRIMARY KEY,
-    version_id TEXT NOT NULL,
+    session_id TEXT NOT NULL,
     window_id TEXT NOT NULL,
+    sequence_no INTEGER NOT NULL,
     tool_name TEXT NOT NULL,
     variable_name TEXT NOT NULL,
     operation_type TEXT NOT NULL,
@@ -64,12 +101,18 @@ CREATE TABLE edit_operation (
     mask_path TEXT,
     before_stats_json TEXT,
     after_stats_json TEXT,
-    created_by TEXT,
+    is_undone INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
 );
 ```
 
-### 16.5 review_field
+与原表差异：
+- `version_id` → `session_id`：草稿操作不再挂到虚拟 "draft" 版本
+- 新增 `sequence_no`：操作在 session 内的顺序号，支撑撤销/重做的栈定位
+- 新增 `is_undone`：0=生效，1=已撤销。重做时改回 0。保存版本时只归档 `is_undone=0` 的操作
+- 移除 `created_by`：用户信息已在 session 层记录
+
+### 16.6 review_field
 
 ```sql
 CREATE TABLE review_field (
@@ -88,7 +131,7 @@ CREATE TABLE review_field (
 );
 ```
 
-### 16.6 review_product
+### 16.7 review_product
 
 ```sql
 CREATE TABLE review_product (
@@ -100,6 +143,14 @@ CREATE TABLE review_product (
     plot_config_path TEXT,
     plot_input_manifest_path TEXT,
     plot_code_version TEXT,
+    plot_status TEXT NOT NULL DEFAULT 'pending',
+    plot_started_at TEXT,
+    plot_finished_at TEXT,
+    total_panels INTEGER,
+    success_panels INTEGER,
+    skipped_panels INTEGER,
+    missing_fields_json TEXT,
+    error_log_path TEXT,
     created_at TEXT NOT NULL
 );
 ```
@@ -131,18 +182,10 @@ GET /api/windows?case_id=2026010108&accum_hours=24
 }
 ```
 
-### 17.2 加载窗口数据
+### 17.2 开始编辑（创建 session）
 
 ```http
-GET /api/window/{window_id}/load
-```
-
-返回当前 qpf、ptype 的数据摘要和图片路径。
-
-### 17.3 编辑预览
-
-```http
-POST /api/edit/preview
+POST /api/session/start
 ```
 
 请求：
@@ -150,7 +193,44 @@ POST /api/edit/preview
 ```json
 {
   "window_id": "2026010108_ACC24_024_048",
-  "version_id": "draft",
+  "user_id": "forecaster_001"
+}
+```
+
+返回：
+
+```json
+{
+  "session_id": "sess_20260101_001",
+  "window_id": "2026010108_ACC24_024_048",
+  "base_version_id": "v002",
+  "status": "editing"
+}
+```
+
+后端逻辑：查找该 window 最新已保存版本作为 base_version_id（首次编辑为 `v000_original`），加载其 qpf/ptype 数组到内存作为编辑起点。
+
+### 17.3 加载窗口数据
+
+```http
+GET /api/session/{session_id}/load
+```
+
+返回当前 session 的 qpf、ptype 数据摘要和图片路径。若 session 已有未撤销的操作，返回的是操作叠加后的状态。
+
+### 17.4 编辑预览
+
+```http
+POST /api/edit/preview
+```
+
+预览**不改变**服务端草稿状态，只计算并缓存结果，返回 `preview_id` 供后续 apply 引用。
+
+请求：
+
+```json
+{
+  "session_id": "sess_20260101_001",
   "tool": "polygon",
   "variable": "qpf",
   "operation": "increase",
@@ -169,8 +249,10 @@ POST /api/edit/preview
 
 ```json
 {
+  "preview_id": "prev_20260101_001_007",
   "affected_grid_count": 286,
   "affected_area_km2": 7150,
+  "area_mode": "approximate_25km2",
   "before_stats": {
     "min": 0.2,
     "max": 8.5,
@@ -187,22 +269,67 @@ POST /api/edit/preview
 }
 ```
 
-### 17.4 应用编辑
+后端逻辑：
+1. 基于 session 当前草稿数组和请求中的 mask/parameters 计算结果数组和统计量
+2. 将计算结果（含已栅格化的 mask、参数快照、结果数组）缓存到 `preview_id` 下
+3. 不修改 session 的草稿数组
+4. 同一 session 新的 preview 请求会覆盖上一次未 apply 的缓存
+
+### 17.5 应用编辑
 
 ```http
 POST /api/edit/apply
 ```
 
-作用：把预览结果写入当前草稿，并记录一条操作日志。
+请求：
 
-### 17.5 撤销 / 重做
+```json
+{
+  "session_id": "sess_20260101_001",
+  "preview_id": "prev_20260101_001_007"
+}
+```
+
+返回：
+
+```json
+{
+  "operation_id": "op_000023",
+  "sequence_no": 3,
+  "applied": true
+}
+```
+
+后端逻辑：
+1. 通过 `preview_id` 取回缓存的 mask、参数、结果数组——**不重新计算**，确保与预览完全一致
+2. 将结果写入 session 草稿数组
+3. 记录一条 edit_operation（session_id、sequence_no、mask_path 指向持久化的 mask）
+4. 清除该 preview 缓存
+
+约束：
+- `preview_id` 必须属于同一 `session_id`，否则返回 400
+- `preview_id` 已被 apply 或已过期（被新 preview 覆盖）时返回 409 Conflict
+- 前端可多次 preview 但只能 apply 最近一次有效的 preview
+
+### 17.6 撤销 / 重做
 
 ```http
 POST /api/edit/undo
 POST /api/edit/redo
 ```
 
-### 17.6 保存版本
+请求：
+
+```json
+{
+  "session_id": "sess_20260101_001"
+}
+```
+
+撤销：将当前 session 最后一条 `is_undone=0` 的操作标记为 `is_undone=1`，重算数组状态。
+重做：将当前 session 最后一条 `is_undone=1` 的操作标记为 `is_undone=0`，重算数组状态。
+
+### 17.7 保存版本
 
 ```http
 POST /api/version/save
@@ -212,8 +339,7 @@ POST /api/version/save
 
 ```json
 {
-  "window_id": "2026010108_ACC24_024_048",
-  "user": "forecaster_001",
+  "session_id": "sess_20260101_001",
   "generate_review": true
 }
 ```
@@ -222,6 +348,7 @@ POST /api/version/save
 
 ```json
 {
+  "session_id": "sess_20260101_001",
   "version_id": "v003",
   "before_image": "images/before_product.png",
   "after_image": "images/after_product.png",
@@ -229,7 +356,28 @@ POST /api/version/save
 }
 ```
 
-### 17.7 生成复盘图
+后端逻辑：
+1. 生成新 version_id，持久化当前数组为 qpf_after / ptype_after / delta / mask 文件
+2. 归档 session 中 `is_undone=0` 的操作到该版本
+3. 更新 session：`saved_version_id = v003`，`status = saved`，`ended_at = now`
+
+### 17.7.1 放弃草稿
+
+```http
+POST /api/session/discard
+```
+
+请求：
+
+```json
+{
+  "session_id": "sess_20260101_001"
+}
+```
+
+后端逻辑：`status = discarded`，`ended_at = now`。操作记录保留（供审计），但不生成版本。
+
+### 17.8 生成复盘图
 
 ```http
 POST /api/review/generate
@@ -244,6 +392,31 @@ POST /api/review/generate
   "template_id": "snow_phase_review_v1"
 }
 ```
+
+返回（异步任务提交后轮询）：
+
+```json
+{
+  "review_id": "rev_20260101_003",
+  "plot_status": "partial_success",
+  "total_panels": 8,
+  "success_panels": 7,
+  "skipped_panels": 1,
+  "missing_fields": [
+    {
+      "name": "rh",
+      "level_type": "pressure",
+      "level_value": 700,
+      "lead_hour": 72,
+      "reason": "file_not_found"
+    }
+  ],
+  "image_path": "images/review_composite.png",
+  "error_log": null
+}
+```
+
+`plot_status` 取值：`pending`（排队中）、`running`（执行中）、`success`（全部面板成功）、`partial_success`（部分面板因数据缺失跳过）、`failed`（绘图代码异常）。
 
 ---
 
