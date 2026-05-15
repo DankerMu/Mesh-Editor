@@ -34,6 +34,8 @@ CREATE TABLE edit_version (
     version_id TEXT PRIMARY KEY,
     window_id TEXT NOT NULL,
     version_no INTEGER NOT NULL,
+    base_version_id TEXT,
+    session_id TEXT,
     qpf_after_path TEXT NOT NULL,
     ptype_after_path TEXT NOT NULL,
     delta_qpf_path TEXT NOT NULL,
@@ -49,6 +51,11 @@ CREATE TABLE edit_version (
     created_at TEXT NOT NULL
 );
 ```
+
+| 字段 | 说明 |
+|---|---|
+| base_version_id | 本版本基于哪个版本订正而来；`v000_original` 表示首次编辑，形成版本链 `v000→v001→v002→...` |
+| session_id | 产生本版本的编辑会话；session 归档后版本仍可独立追溯来源 |
 
 ### 16.4 edit_session
 
@@ -98,7 +105,8 @@ CREATE TABLE edit_operation (
     variable_name TEXT NOT NULL,
     operation_type TEXT NOT NULL,
     parameters_json TEXT,
-    mask_path TEXT,
+    mask_geometry_json TEXT,
+    mask_raster_path TEXT,
     before_stats_json TEXT,
     after_stats_json TEXT,
     is_undone INTEGER NOT NULL DEFAULT 0,
@@ -110,6 +118,22 @@ CREATE TABLE edit_operation (
 - `version_id` → `session_id`：草稿操作不再挂到虚拟 "draft" 版本
 - 新增 `sequence_no`：操作在 session 内的顺序号，支撑撤销/重做的栈定位
 - 新增 `is_undone`：0=生效，1=已撤销。重做时改回 0。保存版本时只归档 `is_undone=0` 的操作
+- `mask_path` → `mask_geometry_json` + `mask_raster_path`：同时保存用户绘制的原始几何和栅格化结果
+
+`mask_geometry_json` 格式按工具类型：
+
+```json
+// 多边形
+{"type": "polygon", "coordinates": [[lon1, lat1], [lon2, lat2], ...]}
+
+// 绘制笔（带宽度线缓冲区）
+{"type": "line_buffer", "width_grid": 2, "coordinates": [[lon1, lat1], [lon2, lat2], ...]}
+
+// 笔刷（轨迹点序列）
+{"type": "brush_path", "radius_grid": 3, "points": [[lon1, lat1], [lon2, lat2], ...]}
+```
+
+> geometry 复现用户画了什么，raster mask 复现实际影响了哪些格点。两者独立保存，互不依赖。
 - 移除 `created_by`：用户信息已在 session 层记录
 
 ### 16.6 review_field
@@ -275,6 +299,19 @@ POST /api/edit/preview
 3. 不修改 session 的草稿数组
 4. 同一 session 新的 preview 请求会覆盖上一次未 apply 的缓存
 
+Preview 缓存策略：
+
+| 阶段 | 存储方式 | 路径 |
+|---|---|---|
+| 原型 | 内存字典 + 临时目录 | `tmp/previews/{session_id}/{preview_id}.npz` |
+| 生产 | 可升级为 Redis 元信息 + 临时 npz | 同上，元信息迁入 Redis |
+
+清理规则：
+- TTL = 10 分钟，超时自动清理
+- apply 成功后立即删除对应 preview 缓存
+- session 结束（saved / discarded）时清理该 session 下所有残留 preview
+- preview 只作为短期计算缓存，不进入正式版本或复盘包
+
 ### 17.5 应用编辑
 
 ```http
@@ -303,7 +340,7 @@ POST /api/edit/apply
 后端逻辑：
 1. 通过 `preview_id` 取回缓存的 mask、参数、结果数组——**不重新计算**，确保与预览完全一致
 2. 将结果写入 session 草稿数组
-3. 记录一条 edit_operation（session_id、sequence_no、mask_path 指向持久化的 mask）
+3. 记录一条 edit_operation（session_id、sequence_no、mask_geometry_json 保存原始几何、mask_raster_path 指向持久化的栅格 mask）
 4. 清除该 preview 缓存
 
 约束：
@@ -358,8 +395,9 @@ POST /api/version/save
 
 后端逻辑：
 1. 生成新 version_id，持久化当前数组为 qpf_after / ptype_after / delta / mask 文件
-2. 归档 session 中 `is_undone=0` 的操作到该版本
-3. 更新 session：`saved_version_id = v003`，`status = saved`，`ended_at = now`
+2. 写入 edit_version 记录：`base_version_id = session.base_version_id`，`session_id = session.session_id`
+3. 归档 session 中 `is_undone=0` 的操作到该版本
+4. 更新 session：`saved_version_id = v003`，`status = saved`，`ended_at = now`
 
 ### 17.7.1 放弃草稿
 
