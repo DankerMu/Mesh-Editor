@@ -1,0 +1,18 @@
+{
+  "role": ["admin", "reviewer", "forecaster", "viewer"],
+  "accum_hours": [24, 48, 168],
+  "window_status": ["pending", "available", "partial", "invalid", "archived"],
+  "qc_status": ["unchecked", "pass", "warn", "fail"],
+  "version_status": ["original", "draft", "submitted", "approved", "rejected", "released", "superseded"],
+  "session_status": ["editing", "saved", "discarded", "expired"],
+  "release_status": ["active", "superseded"],
+  "plot_status": ["pending", "running", "success", "partial_success", "failed", "permanently_failed"],
+  "scan_type": ["manual", "scheduled", "startup"],
+  "ptype": [0, 1, 2, 3],
+  "edit_tool": ["polygon", "line_buffer", "brush"],
+  "edit_variable": ["qpf", "ptype"],
+  "edit_operation": ["set_value", "increase", "decrease", "multiply", "clear", "set_ptype", "screen_clear"],
+  "mask_type": ["polygon", "line_buffer", "brush_path"],
+  "review_action": ["approve", "reject"],
+  "missing_reason": ["file_not_found", "read_error", "dimension_mismatch"]
+}

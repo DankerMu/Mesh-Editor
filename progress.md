@@ -49,10 +49,11 @@ Mesh-Editor-dev-design-pack/  ← 设计补全包原始文件（已合并到 doc
 
 - 投影统一 EPSG:4326，前后端和绘图全链路一致
 - qpf = tp(end_lead) - tp(start_lead) 差分计算
-- ptype 由多个 3h ptype 文件合成，取最后一次有效相态
+- ptype 由窗口内多个 3h ptype 文件合成：读取 (start_lead, end_lead] 内各 3h 时效；仅 qpf_step > qpf_threshold 的时效参与；逐格点统计 has_rain / has_snow；雨=1，雪=2，雨雪均出现=3，无有效降水=0
 - 编辑只处理 qpf + ptype，IFS 多要素仅进入复盘绘图
 - 角色四类：admin / reviewer / forecaster / viewer
 - 绘图三层架构：原始脚本(只读) → plotter 纯函数 → 任务服务
+- 中文产品：全界面中文，不做国际化，API message 中文，TDesign zh-CN，北京时间 UTC+8
 
 ## 当前阶段
 
@@ -84,4 +85,17 @@ Mesh-Editor-dev-design-pack/  ← 设计补全包原始文件（已合并到 doc
 
 | 日期 | 变更 |
 |---|---|
+| 2026-05-15 | docs/11 §11.10.1 补充数据库索引（含 partial index）和 §11.10.2 迁移策略；v000_original 定义为真实版本（docs/07/16/enums）；docs/09 §25.3 扩展为成品级性能目标 + §25.4 运维验收 |
+| 2026-05-15 | 新增 schemas/enums.json（16 类枚举），docs/10 更新共享枚举规则为生成而非手抄 |
+| 2026-05-15 | docs/13 §13.4/§13.5 补充 qpf_build_manifest.json 和 ptype_source_manifest.json（含 schema），归档目录同步 |
+| 2026-05-15 | error_codes.json 与 docs/16 §16.10 完全同步（42 码），补齐 PREVIEW_CONFLICT/FIELD_NOT_AVAILABLE/NEW_PRECIP_NEEDS_PTYPE/CONSISTENCY_VIOLATION |
+| 2026-05-15 | docs/13 §13.8.1 定义发布产物契约 product_manifest.json（fields/derived/images/review + txt 输出），更新 docs/07/11 |
+| 2026-05-15 | 并发策略冻结为 single_editing_session_per_window，docs/11 §11.10 和 docs/16 §16.8 删除 multi_session 推荐/可选 |
+| 2026-05-15 | docs/13 §13.5 PtypeBuilder 中间 tp QC 规则（缺失/负值/NaN），PtypeBuildResult 增加诊断字段；docs/03 §8.2.3 同步 |
+| 2026-05-15 | 新增降水落区 ptype 强制规则（三层防护：preview→apply→save），docs/14 §14.8.1，新增错误码 NEW_PRECIP_NEEDS_PTYPE / CONSISTENCY_VIOLATION |
+| 2026-05-15 | ptype_transition 拆分为 op_ptype_transition（操作级）+ version_ptype_transition（版本级），docs/14 §14.9.2 重写 |
+| 2026-05-15 | edit_mask 拆分为 touched_mask + changed_mask（12 个文件全量重命名，docs/14 §14.11.1 补充计算规则）|
+| 2026-05-15 | docs/17 §17.8.1 新增 Grid Field Binary API（逐字段 flat binary 传输协议）；更新 docs/07 session/load 描述 |
+| 2026-05-15 | 修复 progress.md ptype 合成规则描述（对齐 docs/03 §8.2.3）|
+| 2026-05-15 | docs/03 §7.1.1 补充 start_lead 枚举规则（统一 24h 步进滑动窗口，23 窗口/case）；新增 schemas/product_config.json |
 | 2026-05-15 | 初始文档 01-09 完成；设计补全包 10-20 合并；建设方案升级 V2.0 |

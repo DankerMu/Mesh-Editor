@@ -30,7 +30,7 @@
 }
 ```
 
-后端所有接口统一返回该结构，文件下载接口除外。
+后端所有接口统一返回该结构，文件下载接口除外。`message` 字段使用中文（本产品面向中国气象业务用户，不做国际化）。
 
 ---
 
@@ -181,7 +181,9 @@ class EditPreviewResponse(BaseModel):
     area_mode: str
     before_stats: dict
     after_stats: dict
-    ptype_transition: dict[str, int] | None = None
+    op_ptype_transition: dict[str, int] | None = None
+    new_precip_needs_ptype: bool = False
+    new_precip_count: int = 0
     warnings: list[dict] = []
     preview_image: str | None = None
 ```
@@ -193,6 +195,130 @@ class EditPreviewResponse(BaseModel):
 审计：不写 audit_log。
 
 错误码：`SESSION_NOT_FOUND`, `SESSION_NOT_EDITING`, `MASK_OUT_OF_BOUNDS`, `INVALID_OPERATION_PARAM`。
+
+---
+
+## 17.8.1 字段数据传输协议（Grid Field Binary API）
+
+### 设计决策
+
+501×821 = 411,321 格点，JSON 传输不可接受（qpf Float32 JSON ≈ 4MB+，解析开销大）。采用 **逐字段 flat binary** 方案：
+
+- 后端 `ndarray.astype(dtype).tobytes()` 输出行优先（C order）原始字节
+- 前端 `new Float32Array(arrayBuffer)` / `new Uint8Array(arrayBuffer)` 零拷贝构造
+- HTTP gzip 压缩后：qpf ~300-500KB，ptype/mask ~50-100KB
+- 直接可用于 WebGL DataTileSource，无需二次解码
+
+### 接口定义
+
+```http
+GET /api/session/{session_id}/field/{field_name}
+```
+
+路径参数：
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| session_id | string | 编辑会话 ID |
+| field_name | enum | 见下表 |
+
+field_name 枚举：
+
+| field_name | dtype | 字节数 | 说明 |
+|---|---|---:|---|
+| qpf_before | float32 | 1,645,284 | 订正前累计降水 |
+| qpf_after | float32 | 1,645,284 | 订正后累计降水（含已 apply 操作） |
+| ptype_before | uint8 | 411,321 | 订正前累计相态 |
+| ptype_after | uint8 | 411,321 | 订正后累计相态 |
+| touched_mask | uint8 | 411,321 | 用户操作曾影响过的格点（所有 operation_mask 并集） |
+| changed_mask | uint8 | 411,321 | 最终 after 与 before 实际不同的格点（保存后可用） |
+| invalid_mask | uint8 | 411,321 | 无效格点标记（QC 不合格） |
+
+响应：
+
+```text
+Content-Type: application/octet-stream
+Content-Encoding: gzip
+X-Grid-Rows: 501
+X-Grid-Cols: 821
+X-Grid-Dtype: float32 | uint8
+X-Grid-Order: C
+
+Body: raw bytes, row-major, shape=(501, 821)
+```
+
+前端使用示例：
+
+```ts
+const res = await fetch(`/api/session/${sid}/field/qpf_after`)
+const buf = await res.arrayBuffer()
+const qpfAfter = new Float32Array(buf) // length === 411321
+```
+
+### 预览字段接口
+
+编辑预览产生的临时字段，preview 过期后不可访问：
+
+```http
+GET /api/preview/{preview_id}/field/{field_name}
+```
+
+field_name 限 `qpf_preview` | `ptype_preview`，格式与 session 字段接口一致。
+
+### 版本字段接口（只读回看）
+
+```http
+GET /api/version/{version_id}/field/{field_name}
+```
+
+field_name 限 `qpf_after` | `ptype_after` | `touched_mask` | `changed_mask`。用于审核页面和复盘回看。
+
+### 原始窗口字段接口
+
+未进入编辑会话时查看原始数据：
+
+```http
+GET /api/window/{window_id}/field/{field_name}
+```
+
+field_name 限 `qpf_before` | `ptype_before` | `invalid_mask`。
+
+### Session Load 接口补充
+
+`GET /api/session/{session_id}/load` 返回元数据和字段 URL 列表，**不内联字段数据**：
+
+```python
+class SessionLoadResponse(BaseModel):
+    session_id: str
+    window_id: str
+    base_version_id: str
+    status: Literal['editing']
+    grid_rows: int = 501
+    grid_cols: int = 821
+    operation_count: int
+    can_undo: bool
+    can_redo: bool
+    field_urls: dict[str, str]
+    # 示例: {"qpf_before": "/api/session/sess_001/field/qpf_before", ...}
+    before_image: str | None = None
+    after_image: str | None = None
+```
+
+前端 `loadSession()` 后并行 fetch 所需字段：
+
+```ts
+const meta = await api.loadSession(sessionId)
+const [qpfBuf, ptypeBuf] = await Promise.all([
+  fetch(meta.field_urls.qpf_after).then(r => r.arrayBuffer()),
+  fetch(meta.field_urls.ptype_after).then(r => r.arrayBuffer()),
+])
+editorStore.qpfAfter = new Float32Array(qpfBuf)
+editorStore.ptypeAfter = new Uint8Array(ptypeBuf)
+```
+
+权限：与 session 接口一致（admin/reviewer/forecaster）。
+
+错误码：`SESSION_NOT_FOUND`, `FIELD_NOT_AVAILABLE`（preview 过期或字段尚未生成）。
 
 ---
 

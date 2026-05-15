@@ -1,0 +1,20 @@
+{
+  "max_lead_hours": 240,
+  "lead_step_hours": 3,
+  "window_step_hours": 24,
+  "init_times": ["08Z", "20Z"],
+  "accum_products": {
+    "24": {
+      "accum_hours": 24,
+      "allowed_start_leads": [0, 24, 48, 72, 96, 120, 144, 168, 192, 216]
+    },
+    "48": {
+      "accum_hours": 48,
+      "allowed_start_leads": [0, 24, 48, 72, 96, 120, 144, 168, 192]
+    },
+    "168": {
+      "accum_hours": 168,
+      "allowed_start_leads": [0, 24, 48, 72]
+    }
+  }
+}

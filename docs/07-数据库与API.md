@@ -95,12 +95,15 @@ CREATE TABLE edit_version (
     ptype_after_path TEXT NOT NULL,
     delta_qpf_path TEXT NOT NULL,
     change_ptype_path TEXT NOT NULL,
-    edit_mask_path TEXT NOT NULL,
+    touched_mask_path TEXT NOT NULL,
+    changed_mask_path TEXT NOT NULL,
+    version_ptype_transition_path TEXT,
     before_image_path TEXT,
     after_image_path TEXT,
     delta_qpf_image_path TEXT,
     change_ptype_image_path TEXT,
-    edit_mask_image_path TEXT,
+    touched_mask_image_path TEXT,
+    changed_mask_image_path TEXT,
     review_image_path TEXT,
     created_by TEXT,
     created_at TEXT NOT NULL
@@ -136,8 +139,27 @@ rejected ──(开新 session 修订后保存)──→ 产生新 draft 版本
 
 | 字段 | 说明 |
 |---|---|
-| base_version_id | 本版本基于哪个版本订正而来；`v000_original` 表示首次编辑，形成版本链 `v000→v001→v002→...` |
-| session_id | 产生本版本的编辑会话；session 归档后版本仍可独立追溯来源 |
+| base_version_id | 本版本基于哪个版本订正而来，形成版本链 `v000→v001→v002→...` |
+| session_id | 产生本版本的编辑会话；session 归档后版本仍可独立追溯来源；v000 的 session_id 为 NULL |
+
+#### v000_original 规则
+
+DataScanService 构建窗口数据后，在 edit_version 表中插入一条真实记录作为原始版本：
+
+```sql
+INSERT INTO edit_version (
+    version_id, window_id, version_no, base_version_id, session_id, status,
+    qpf_after_path, ptype_after_path, ...
+) VALUES (
+    '{window_id}_v000', window_id, 0, NULL, NULL, 'original',
+    'original/qpf_before.npz', 'original/ptype_before.npz', ...
+);
+```
+
+- `version_no = 0`，`status = 'original'`，`base_version_id = NULL`，`session_id = NULL`
+- `qpf_after_path` / `ptype_after_path` 指向 `original/` 目录下的原始数据
+- 首次编辑时 `session.base_version_id = '{window_id}_v000'`
+- VersionService 查询最新版本、EditSession 加载基线、复盘回溯版本链均不需要特殊处理 v000
 
 ### 16.4 edit_session
 
@@ -206,6 +228,7 @@ CREATE TABLE release_product (
     window_id TEXT NOT NULL,
     release_status TEXT NOT NULL DEFAULT 'active',
     product_path TEXT,
+    manifest_path TEXT,
     released_by TEXT NOT NULL,
     released_at TEXT NOT NULL,
     superseded_at TEXT
@@ -215,7 +238,8 @@ CREATE TABLE release_product (
 | 字段 | 说明 |
 |---|---|
 | release_status | `active`（当前有效发布）/ `superseded`（已被新版本替代） |
-| product_path | 发布产品的归档路径 |
+| product_path | 发布产品的归档根路径 |
+| manifest_path | product_manifest.json 路径（详见 docs/13 §13.8.1） |
 | superseded_at | 被替代的时间，`active` 时为 NULL |
 
 ### 16.5 edit_operation
@@ -309,7 +333,7 @@ CREATE TABLE review_product (
 #### 16.8.1 user
 
 ```sql
-CREATE TABLE user (
+CREATE TABLE app_user (
     user_id TEXT PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
     display_name TEXT NOT NULL,
@@ -528,7 +552,7 @@ POST /api/session/start
 GET /api/session/{session_id}/load
 ```
 
-返回当前 session 的 qpf、ptype 数据摘要和图片路径。若 session 已有未撤销的操作，返回的是操作叠加后的状态。
+返回当前 session 的元数据、操作状态和字段 URL 列表（不内联网格数据）。前端通过返回的 `field_urls` 并行请求 `/api/session/{session_id}/field/{field_name}` 获取 flat binary 格点数据（详见 `docs/17` §17.8.1）。若 session 已有未撤销的操作，字段接口返回的是操作叠加后的状态。
 
 ### 17.4 编辑预览
 
@@ -788,7 +812,8 @@ POST /api/version/release
   "version_id": "v003",
   "window_id": "2026010108_ACC24_024_048",
   "release_status": "active",
-  "product_path": "archive/2026010108/ACC24_024_048/released/v003/"
+  "product_path": "archive/2026010108/ACC24_024_048/released/v003/",
+  "manifest_path": "archive/2026010108/ACC24_024_048/released/v003/product_manifest.json"
 }
 ```
 
