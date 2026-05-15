@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.model.dao.ModelInfoMapper">
+    <select id="queryModelInfoLike" parameterType="com.model.pojo.ModelInfoParams" resultType="com.model.pojo.ModelInfoEntity">
+        select * from public.model_info_tab where model_name like Concat('%',#{params.modelName},'%')
+    </select>
+
+    <select id="queryModelInfo" parameterType="com.model.pojo.ModelInfoParams" resultType="com.model.pojo.ModelInfoEntity">
+        select * from public.model_info_tab where model_name like Concat('%',#{params.modelName},'%')
+    </select>
+
+    <select id="queryModelInfoById" parameterType="com.model.pojo.ModelInfoParams" resultType="com.model.pojo.ModelInfoEntity">
+        select * from public.model_info_tab where model_id = #{params.modelId}
+    </select>
+
+    <delete id="deleteModelById" parameterType="com.model.pojo.ModelInfoParams">
+        delete from public.model_info_tab where model_id = #{params.modelId}
+    </delete>
+
+    <insert id="addModelInfo" parameterType="com.model.pojo.ModelInfoEntity">
+        insert into public.model_info_tab ("model_name", "model_version", "publisher", "valid_time", "create_time",
+                                           "params", "model", "modeltype")
+        values (#{params.modelName}, #{params.modelVersion}, #{params.publisher}, #{params.validTime}, #{params.createTime},
+                #{params.params}, #{params.model}, #{params.modelType})
+    </insert>
+
+    <select id="queryUseableModelList" parameterType="com.model.pojo.ModelInfoEntity" resultType="com.model.pojo.ModelInfoEntity">
+        select * from public.model_info_tab
+    </select>
+
+    <select id="queryModelManagerList" resultType="com.model.pojo.ModelManagerEntity">
+        select * from public.model_manager_tab where used = 0 order by index
+    </select>
+
+    <select id="queryModelByModelId" parameterType="com.model.pojo.ModelManagerParams" resultType="com.model.pojo.ModelManagerEntity">
+        select * from public.model_manager_tab where id = #{id}
+    </select>
+
+    <update id="updateModelStatus" parameterType="com.model.pojo.ModelManagerParams">
+        update public.model_manager_tab set latestupdatetime = #{latestUpdateTime}, nextupdatetime = #{nextUpdateTime}, author = #{author}, status = #{status} where id = #{id}
+    </update>
+
+    <select id="queryModelUpgradeStatusById" parameterType="com.model.pojo.ModelManagerParams" resultType="com.model.pojo.ModelManagerEntity">
+        select * from public.model_manager_tab where id = #{id}
+    </select>
+    
+    <select id="queryGribUsedModel" parameterType="com.model.pojo.ModelManagerParams" resultType="com.model.pojo.ModelManagerEntity">
+    	select * from public.model_manager_grib_details_tab where used = 0 and enabled = 0
+    </select>
+
+    <select id="queryModelManagerListDetail" parameterType="com.model.pojo.ModelManagerParams" resultType="com.model.pojo.ModelManagerDetailEntity">
+        select id,stationname,stationnum,model,status,replacetime,author,used,managerid from public.model_manager_details_tab 
+        			where enabled = 0 and managerid = #{params.id} and used = 0 
+        			order by id desc
+    </select>
+
+    <select id="queryModelManagerDetailById" parameterType="com.model.pojo.ModelManagerParams" resultType="com.model.pojo.ModelManagerDetailEntity">
+        select id,stationname,stationnum,model,status,replacetime,author,used,managerid from public.model_manager_details_tab 
+        			where id = #{params.id} 
+    </select>
+
+    <select id="queryGribModelManagerDetailById" parameterType="com.model.pojo.ModelManagerParams" resultType="com.model.pojo.ModelManagerDetailEntity">
+        select id,stationname,stationnum,model,status,replacetime,author,used,managerid from public.model_manager_grib_details_tab 
+        			where id = #{params.id} 
+    </select>
+
+    <select id="queryGribModelManagerListDetail" parameterType="com.model.pojo.ModelManagerParams" resultType="com.model.pojo.GribModelManagerDetailEntity">
+        select id,stationname,model,status,replacetime,author,used,managerid from public.model_manager_grib_details_tab 
+        			where enabled = 0
+    </select>
+
+    <select id="queryModelReplaceStatus" parameterType="com.model.pojo.ModelManagerParams" resultType="com.model.pojo.ModelManagerEntity">
+        select * from public.model_manager_details_tab where managerid = #{id} and status = 0
+    </select>
+
+    <select id="queryModelBuilderStatus" parameterType="com.model.pojo.ModelManagerParams" resultType="com.model.pojo.ModelManagerEntity">
+        select * from public.model_manager_details_tab where managerid = #{id} and status = 2
+    </select>
+
+    <select id="queryModelReplaceList" parameterType="com.model.pojo.ModelManagerParams" resultType="com.model.pojo.ModelManagerDetailEntity">
+        select * from public.model_manager_details_tab where stationnum = #{stationNum} and used = 1
+    </select>
+
+    <select id="queryGribModelReplaceList" parameterType="com.model.pojo.ModelManagerParams" resultType="com.model.pojo.ModelManagerDetailEntity">
+        select * from public.model_manager_grib_details_tab where used = 1 and enabled = 0
+    </select>
+
+    <select id="queryModelDetailListLike" parameterType="com.model.pojo.ModelManagerParams" resultType="com.model.pojo.ModelManagerDetailEntity">
+        select * from public.model_manager_details_tab
+        <where>
+            <if test="stationName != null">
+                stationname like Concat('%',#{stationName},'%')
+            </if>
+            <if test="stationNum != null">
+                stationnum like Concat('%',#{stationNum},'%')
+            </if>
+            and managerid = #{id} and used = 0 and enabled = 0 
+            order by stationname,stationnum
+        </where>
+    </select>
+
+    <select id="queryGribModelDetailListLike" parameterType="com.model.pojo.ModelManagerParams" resultType="com.model.pojo.ModelManagerDetailEntity">
+        select * from public.model_manager_grib_details_tab
+        <where>
+            <if test="stationName != null">
+                stationname like Concat('%',#{stationName},'%')
+            </if>
+            <if test="stationNum != null">
+                stationnum like Concat('%',#{stationNum},'%')
+            </if>
+            and managerid = #{id} and used = 0 and enabled = 0 
+            order by stationname,stationnum
+        </where>
+    </select>
+
+	<select id="queryStationInfo" parameterType="com.station.pojo.StationInfoEntity" resultType="com.station.pojo.StationInfoEntity">
+		select * from ${tableName} where station_id_d = #{stationNumStr}
+	</select>
+	
+	<insert id="updateStationInfoTrans" parameterType="com.station.pojo.StationInfoEntity">
+		insert into ${transName} ("station_id_c", "station_id_d", "station_name", "lon", "lat", "zone", "zone2", "enabled") 
+        values (#{stationIdC}, #{stationIdD}, #{stationName}, #{lon}, #{lat}, #{zone}, #{zone2}, #{enabled})
+        on conflict (station_id_d) do update set 
+		"enabled" = #{enabled}
+	</insert>
+
+    <update id="updateStationInfoAllEnabled" parameterType="com.model.pojo.ModelManagerParams">
+        update public.station_info_tab_all set enabled = 0 where station_id_d = #{stationNum}
+    </update>
+
+    <update id="updateStationModelEnabled" parameterType="com.model.pojo.ModelManagerParams">
+        update ${tableName} set enabled = 1 where station_id_d = #{stationNum}
+    </update>
+
+    <update id="updateStationModelEnabledInt" parameterType="com.model.pojo.ModelManagerParams">
+        update ${tableName} set enabled = 1 where station_id_d = #{stationInt}
+    </update>
+    
+    
+    <update id="updateStationModelEnabledModelDetailTabById" parameterType="com.model.pojo.ModelManagerParams">
+        update public.model_manager_details_tab set enabled = 1 where id = #{id}
+    </update>
+    
+    <update id="updateGribModelEnabledModelDetailTabById" parameterType="com.model.pojo.ModelManagerParams">
+        update public.model_manager_grib_details_tab set enabled = 1 where id = #{id}
+    </update>
+
+
+    <update id="updateModelReplaceStatus" parameterType="com.model.pojo.ModelManagerParams">
+        update public.model_manager_details_tab set status = 0, author = #{author}, used = 0, replacetime = #{replaceTime} where id = #{id}
+    </update>
+    <update id="updateModelReplaceStatusChange" parameterType="com.model.pojo.ModelManagerParams">
+        update public.model_manager_details_tab set used = 1, replacetime = #{replaceTime} where stationnum = #{stationNum} and used = 0
+    </update>
+
+    <update id="updateGribModelReplaceStatus" parameterType="com.model.pojo.ModelManagerParams">
+        update public.model_manager_grib_details_tab set status = 1, author = #{author}, used = 0, replacetime = #{replaceTime} where id = #{id}
+    </update>
+    <update id="updateGribModelReplaceStatusChange" parameterType="com.model.pojo.ModelManagerParams">
+        update public.model_manager_grib_details_tab set used = 1, replacetime = #{replaceTime} where used = 0
+    </update>
+    
+    <select id="queryGribModelAll" resultType="com.model.pojo.ModelManagerDetailEntity">
+    	select * from public.model_manager_grib_details_tab order by id
+    </select>
+
+</mapper>

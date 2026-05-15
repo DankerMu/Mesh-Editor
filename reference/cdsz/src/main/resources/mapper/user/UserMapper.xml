@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.user.dao.UserMapper">
+
+    <!-- 根据用户名查找用户 -->
+    <select id="findByUsername" resultType="com.user.pojo.User">
+        SELECT *
+        FROM sys_users
+        WHERE username = #{username}
+    </select>
+
+    <select id="queryUsers" resultType="com.user.pojo.User">
+        SELECT *
+        FROM sys_users
+        WHERE username like Concat('%',#{userName},'%')
+    </select>
+
+    <select id="queryRoleByUserId" resultType="com.user.pojo.Role">
+        select * from sys_roles where id = #{id}
+    </select>
+
+    <select id="queryUserByName" resultType="com.user.pojo.User">
+        select * from sys_users where username = #{username}
+    </select>
+
+    <select id="queryUser" parameterType="com.user.pojo.UserParams" resultType="com.user.pojo.User">
+        SELECT u.id, u.username, u.loginname, u.enabled,r.rolename
+        FROM sys_users u
+        LEFT JOIN
+        sys_user_roles ur ON u.id = ur.user_id
+        LEFT JOIN
+        sys_roles r ON ur.role_id = r.id
+        where 1=1
+        <if test="params.username != null">
+            or username like Concat('%',#{params.username},'%')
+        </if>
+        <if test="params.loginname != null">
+            or loginname like Concat('%',#{params.loginname},'%')
+        </if>
+        <if test="params.role != null">
+            or role like Concat('%',#{params.role},'%')
+        </if>
+        <if test="params.enabled != null">
+            or enabled = #{params.enabled}
+        </if>
+    </select>
+
+    <select id="queryUserLike" parameterType="com.user.pojo.UserParams" resultType="com.user.pojo.User">
+        SELECT u.id, u.username, u.loginname, u.password, u.enabled, u.email, u.phone, r.rolename
+        FROM sys_users u
+        LEFT JOIN
+        sys_user_roles ur ON u.id = ur.user_id
+        LEFT JOIN
+        sys_roles r ON ur.role_id = r.id
+        <where>
+            <choose>
+                <when test="params.username != null and params.username != ''">
+                    u.username like Concat('%', #{params.username}, '%')
+                </when>
+                <otherwise>
+                    1 = 1
+                </otherwise>
+            </choose>
+            <if test="params.loginname != null and params.loginname != ''">
+                <choose>
+                    <when test="params.username != null and params.username != ''">
+                        OR u.loginname like Concat('%', #{params.loginname}, '%')
+                    </when>
+                    <otherwise>
+                        and u.loginname like Concat('%', #{params.loginname}, '%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.role != null and params.role != ''">
+                <choose>
+                    <when test="(params.username != null and params.username != '') or (params.loginname != null and params.loginname != '')">
+                        OR r.rolename like Concat('%', #{params.role}, '%')
+                    </when>
+                    <otherwise>
+                       and r.rolename like Concat('%', #{params.role}, '%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.enabled != null and params.enabled != ''">
+                <choose>
+                    <when test="(params.username != null and params.username != '') or (params.loginname != null and params.loginname != '') or (params.role != null and params.role != '')">
+                        OR u.enabled = #{params.enabled}
+                    </when>
+                    <otherwise>
+                        and u.enabled = #{params.enabled}
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </select>
+
+    <select id="queryUserByPage" parameterType="com.user.pojo.UserParams" resultType="com.user.pojo.User">
+        SELECT u.id, u.username, u.password, u.loginname, u.enabled, u.email, u.phone, r.rolename
+        FROM sys_users u
+        LEFT JOIN
+        sys_user_roles ur ON u.id = ur.user_id
+        LEFT JOIN
+        sys_roles r ON ur.role_id = r.id
+        <where>
+            <choose>
+                <when test="params.username != null and params.username != ''">
+                    u.username like Concat('%', #{params.username}, '%')
+                </when>
+                <otherwise>
+                    1 = 1
+                </otherwise>
+            </choose>
+            <if test="params.loginname != null and params.loginname != ''">
+                <choose>
+                    <when test="params.username != null and params.username != ''">
+                        OR u.loginname like Concat('%', #{params.loginname}, '%')
+                    </when>
+                    <otherwise>
+                        and u.loginname like Concat('%', #{params.loginname}, '%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.role != null and params.role != ''">
+                <choose>
+                    <when test="(params.username != null and params.username != '') or (params.loginname != null and params.loginname != '')">
+                        OR r.rolename like Concat('%', #{params.role}, '%')
+                    </when>
+                    <otherwise>
+                        and r.rolename like Concat('%', #{params.role}, '%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="params.enabled != null and params.enabled != ''">
+                <choose>
+                    <when test="(params.username != null and params.username != '') or (params.loginname != null and params.loginname != '') or (params.role != null and params.role != '')">
+                        OR u.enabled = #{params.enabled}
+                    </when>
+                    <otherwise>
+                        and u.enabled = #{params.enabled}
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </select>
+
+    <insert id="addUser" parameterType="com.user.pojo.User">
+        insert into sys_users (username,password,loginname,enabled,email,phone)
+        values (#{params.username},#{params.password},#{params.loginname},#{params.enabled},#{params.email},#{params.phone})
+    </insert>
+
+    <insert id="addUserRole" parameterType="com.user.pojo.UserRole">
+        insert into sys_user_roles (user_id,role_id) values (#{params.userId}, #{params.roleId})
+    </insert>
+
+    <delete id="deleteUserById">
+        delete from sys_users where id = #{userId}
+    </delete>
+
+    <delete id="deleteUserRoleByUserId">
+        delete from sys_user_roles where user_id = #{userId}
+    </delete>
+
+    <update id="updateUser" parameterType="com.user.pojo.UserParams">
+        update sys_users set username = #{params.username}, loginname = #{params.loginname}, enabled = #{params.enabled},
+                             email = #{params.email}, phone = #{params.phone}
+        where id = #{params.id}
+    </update>
+
+    <update id="updateUserRole" parameterType="com.user.pojo.UserRole">
+        update sys_user_roles set role_id = #{params.roleId} where user_id = #{params.userId}
+    </update>
+
+    <select id="queryRoleByRoleName" parameterType="com.user.pojo.RoleParams" resultType="com.user.pojo.Role">
+        select * from sys_roles where rolename = #{params.roleName}
+    </select>
+
+    <select id="queryAllRoles" resultType="com.user.pojo.Role">
+        select * from sys_roles
+    </select>
+
+    <select id="queryRoles" parameterType="com.user.pojo.RoleParams" resultType="com.user.pojo.Role">
+        select r.id, r.rolename, p.id, p.perm_name
+        from sys_roles r
+        join sys_role_permissions rp on r.id = rp.role_id
+        join sys_permissions p on rp.perm_id = p.id
+        <where>
+            <if test="params.roleName != null and params.roleName != ''">
+                r.rolename like Concat('%', #{params.roleName}, '%')
+            </if>
+            <if test="params.paramName != null and params.paramName != ''">
+                <choose>
+                    <when test="params.roleName != null and params.roleName != ''">
+                        or p.perm_name like Concat('%', #{params.paramName}, '%')
+                    </when>
+                    <otherwise>
+                        p.perm_name like Concat('%', #{params.paramName}, '%')
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </select>
+
+    <select id="queryRoleByRoleId" parameterType="com.user.pojo.Role" resultType="com.user.pojo.Role">
+        select * from sys_roles where id = #{params.id}
+    </select>
+
+    <select id="queryRoleByPage" parameterType="com.user.pojo.RoleParams" resultType="com.user.pojo.Role">
+        select * from sys_roles
+        <where>
+            <if test="params.roleName != null and params.roleName != ''">
+                rolename like Concat('%', #{params.roleName}, '%')
+            </if>
+        </where>
+    </select>
+    
+    <select id="queryRoleUser" parameterType="com.user.pojo.Role" resultType="com.user.pojo.UserRole">
+    	select user_id as userID, role_id as roleId from sys_user_roles where role_id = #{params.id}
+    </select>
+
+<!--    <select id="queryRoleByPage" parameterType="com.user.pojo.RoleParams" resultType="com.user.pojo.Role">-->
+<!--        select r.id, r.rolename, p.id, p.perm_name-->
+<!--        from sys_roles r-->
+<!--        join sys_role_permissions rp on r.id = rp.role_id-->
+<!--        join sys_permissions p on rp.perm_id = p.id-->
+<!--        <where>-->
+<!--            <if test="params.roleName != null and params.roleName != ''">-->
+<!--                r.rolename like Concat('%', #{params.roleName}, '%')-->
+<!--            </if>-->
+<!--            <if test="params.paramName != null and params.paramName != ''">-->
+<!--                <choose>-->
+<!--                    <when test="params.roleName != null and params.roleName != ''">-->
+<!--                        or p.perm_name like Concat('%', #{params.paramName}, '%')-->
+<!--                    </when>-->
+<!--                    <otherwise>-->
+<!--                        p.perm_name like Concat('%', #{params.paramName}, '%')-->
+<!--                    </otherwise>-->
+<!--                </choose>-->
+<!--            </if>-->
+<!--        </where>-->
+<!--    </select>-->
+
+    <insert id="addRole" parameterType="com.user.pojo.Role">
+        insert into sys_roles (rolename, role_key, role_desc) values (#{params.roleName}, #{params.roleKey}, #{params.roleDesc})
+    </insert>
+
+    <insert id="addRolePermission" parameterType="com.user.pojo.RolePermission">
+        insert into sys_role_permissions (role_id, perm_id) values (#{params.roleId}, #{params.permissionId})
+    </insert>
+
+    <delete id="deleteRoleById">
+        delete from sys_roles where id = #{roleId}
+    </delete>
+
+    <delete id="deleteRolePermissionById">
+        delete from sys_role_permissions where role_id = #{roleId}
+    </delete>
+
+    <update id="updateRole" parameterType="com.user.pojo.RoleParams">
+        update sys_roles set
+        <if test="params.roleName != null and params.roleName != ''">
+            rolename = #{params.roleName}
+        </if>
+        <choose>
+            <when test="params.roleName != null and params.roleName != ''">
+                , role_desc = #{params.roleDesc}
+            </when>
+            <otherwise>
+                role_desc = #{params.roleDesc}
+            </otherwise>
+        </choose>
+
+
+        where id = #{params.id}
+    </update>
+
+    <select id="queryPermissionByRoleId" parameterType="com.user.pojo.RoleParams" resultType="com.authorize.pojo.Permission">
+        select * from public.sys_permissions where id in (select perm_id from public.sys_role_permissions where role_id = #{params.id})
+    </select>
+
+    <select id="queryRoleIdByUserName" parameterType="com.user.pojo.UserParams" resultType="com.user.pojo.Role">
+        SELECT ur.role_id as id
+        FROM sys_users u
+        LEFT JOIN sys_user_roles ur ON u.id = ur.user_id
+        where u.username = #{params.username}
+    </select>
+
+    <update id="modifyPassword">
+        update sys_users set password = #{password} where username = #{username}
+    </update>
+
+    <select id="queryAllPermissById" parameterType="com.authorize.pojo.Permission" resultType="com.authorize.pojo.Permission">
+        select * from public.sys_permissions where id = #{params.id}
+    </select>
+
+    <select id="queryAllPermisss" resultType="com.authorize.pojo.Permission">
+        select * from public.sys_permissions
+    </select>
+
+</mapper>

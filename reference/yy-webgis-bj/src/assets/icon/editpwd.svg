@@ -1,0 +1,12 @@
+<svg width="16.000000" height="16.000000" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<desc>
+			Created with Pixso.
+	</desc>
+	<defs>
+		<pattern id="pattern_2_40" patternContentUnits="objectBoundingBox" width="1.000000" height="1.000000">
+			<use xlink:href="#image2_4_0" transform="matrix(0.0625,0,0,0.0625,0,0)"/>
+		</pattern>
+		<image id="image2_4_0" width="16.000000" height="16.000000" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAANFJREFUOI3dkTEKwkAURN8GCwNibW5h4SEUC7UJscwNcgMvYZ/SqE0EwfUG3iQpLCyEpJFv4QoxRjAKFk45uzP7/l/4UqrKjLSMgADoGesAzL2+2pTvWmVjuZcZEANdhK0I2hTF5uw1wULLUMFWQOcJE99XOcBqJa1Lm7WCPjAukliltgA45RnTexjAddU5T5iIcDSjPRJEO0lQdKr28VJC6g2UY5maeuFC5mmJdfUHBY0qM0uwi98IEIbStB2y3xDYDlmk5a2CG4GQ1n76k0yVrrPSQhLDrGooAAAAAElFTkSuQmCC"/>
+	</defs>
+	<rect id="editpwd.png" width="16.000000" height="16.000000" fill="url(#pattern_2_40)" fill-opacity="1.000000"/>
+</svg>

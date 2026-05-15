@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.station.dao.StationInfoMapper">
+    <select id="queryStationInfo" parameterType="com.station.pojo.StationInfoParams" resultType="com.station.pojo.StationInfoEntity">
+        select * from public.station_info_tab
+        <where>
+            <if test="stationName != null">
+                station_name like Concat('%',#{stationName},'%')
+            </if>
+            <if test="stationCode != null">
+                station_id_d like Concat('%',#{stationCode},'%')
+            </if>
+            and enabled = 0
+        </where>
+    </select>
+    <select id="queryStationInfoZj" parameterType="com.station.pojo.StationInfoParams" resultType="com.station.pojo.StationInfoEntity">
+        select * from public.station_info_tab_zj
+        <where>
+            <if test="stationName != null">
+                station_name like Concat('%',#{stationName},'%')
+            </if>
+            <if test="stationCode != null">
+                station_id_c like Concat('%',#{stationCode},'%')
+            </if>
+            and enabled = 0
+        </where>
+    </select>
+    <select id="queryStationInfoUpload" parameterType="com.station.pojo.StationInfoParams" resultType="com.station.pojo.StationInfoEntity">
+        select * from public.station_info_tab_upload
+        <where>
+            <if test="stationName != null">
+                station_name like Concat('%',#{stationName},'%')
+            </if>
+            <if test="stationCode != null">
+                station_id_c like Concat('%',#{stationCode},'%')
+            </if>
+            and enabled = 0
+        </where>
+    </select>
+    <select id="queryStationInfoZd" parameterType="com.station.pojo.StationInfoParams" resultType="com.station.pojo.StationInfoEntity">
+        select * from public.station_info_tab_all
+        <where>
+            <if test="stationName != null">
+                station_name like Concat('%',#{stationName},'%')
+            </if>
+            <if test="stationCode != null">
+                station_id_d like Concat('%',#{stationCode},'%')
+            </if>
+            and enabled = 0
+        </where>
+    </select>
+    <select id="queryStationInfoNotModel" parameterType="com.station.pojo.StationInfoParams" resultType="com.station.pojo.StationInfoEntity">
+        select * from public.station_info_tab_all
+        <where>
+            <if test="stationName != null">
+                station_name like Concat('%',#{stationName},'%')
+            </if>
+            <if test="stationCode != null">
+                station_id_d like Concat('%',#{stationCode},'%')
+            </if>
+        </where>
+    </select>
+    <select id="queryAllStations" parameterType="com.station.pojo.StationInfoParams" resultType="com.station.pojo.StationInfoEntity">
+        select * from public.station_info_tab where enabled = 0
+    </select>
+
+    <select id="queryAllStationsZj" parameterType="com.station.pojo.StationInfoParams" resultType="com.station.pojo.StationInfoEntity">
+        select * from public.station_info_tab_zj where enabled = 0
+    </select>
+
+    <select id="queryAllStationsUpload" parameterType="com.station.pojo.StationInfoParams" resultType="com.station.pojo.StationInfoEntity">
+        select * from public.station_info_tab_upload where enabled = 0
+    </select>
+
+    <select id="queryAllStationsNotModel" parameterType="com.station.pojo.StationInfoParams" resultType="com.station.pojo.StationInfoEntity">
+        select * from public.station_info_tab_all where enabled = 0
+    </select>
+
+    <insert id="addZjStation" parameterType="com.station.pojo.StationInfoEntity">
+        insert into public.station_info_tab_zj("station_id_c", "station_id_d", "station_name", "lon", "lat", "enabled") 
+        values (#{stationIdC}, #{stationIdD}, #{stationName}, #{lon}, #{lat}, #{enabled}) 
+        on conflict (lon,lat) do update set 
+		"enabled" = #{enabled}
+    </insert>
+    <select id="queryZjStationByStationName" parameterType="com.station.pojo.StationInfoEntity" resultType="com.station.pojo.StationInfoEntity">
+        select * from public.station_info_tab_zj where station_name = #{stationName}
+    </select>
+    <insert id="addWzdModel" parameterType="com.model.pojo.ModelManagerDetailEntity">
+        insert into public.model_manager_details_tab("stationname", "stationnum", "model", "status", "author", "used", "managerid", "enabled", "inserttime")
+        values (#{stationName}, #{stationNum}, #{model}, #{status}, #{author}, #{used}, #{managerId}, #{enabled}, #{insertTime})
+        on conflict (stationnum,model) do update set
+        "used" = #{used},
+        "managerid" = #{managerId},
+        "enabled" = #{enabled},
+        "inserttime" = #{insertTime}
+    </insert>
+    <insert id="addYzdModel" parameterType="com.model.pojo.ModelManagerDetailEntity">
+        insert into public.model_manager_details_tab("stationname", "stationnum", "model", "status", "author", "used", "managerid", "enabled", "inserttime")
+        values (#{stationName}, #{stationNum}, #{model}, #{status}, #{author}, #{used}, #{managerId}, #{enabled}, #{insertTime})
+        on conflict (stationnum,model) do update set
+        "used" = #{used},
+        "managerid" = #{managerId},
+        "enabled" = #{enabled},
+        "inserttime" = #{insertTime}
+    </insert>
+
+    <insert id="addStation" parameterType="com.station.pojo.StationInfoEntity">
+        insert into public.station_info_tab("station_id_c", "station_id_d", "station_name", "lon", "lat", "zone", "zone2", "enabled", "bfz") 
+        values (#{stationIdC}, #{stationIdD}, #{stationName}, #{lon}, #{lat}, #{zone}, #{zone2}, #{enabled}, #{bfz})
+        on conflict (station_id_d) do update set 
+        "station_id_c" = #{stationIdC},
+		"station_id_d" = #{stationIdD},
+		"station_name" = #{stationName},
+		"lon" = #{lon},
+		"lat" = #{lat},
+		"enabled" = #{enabled},
+		"bfz" = #{bfz}
+    </insert>
+    
+    <select id="queryStationInfoByNum" parameterType="com.station.pojo.StationInfoEntity" resultType="com.station.pojo.StationInfoEntity">
+    	select * from public.station_info_tab where station_id_d = #{stationIdC}
+    </select>
+
+    <insert id="addUploadStation" parameterType="com.station.pojo.StationInfoEntity">
+        insert into public.station_info_tab_upload("station_id_c", "station_id_d", "station_name", "lon", "lat", "enabled") 
+        values (#{stationIdC}, #{stationIdD}, #{stationName}, #{lon}, #{lat}, #{enabled})
+        on conflict (station_name) do update set 
+		"enabled" = #{enabled}
+        
+    </insert>
+
+    <update id="updateStationNotModelStatus" parameterType="com.station.pojo.StationInfoParams">
+        update public.station_info_tab_all set enabled = 1 where station_id_d in <foreach collection="stationsNum" item="id" open="(" separator="," close=")">
+                                                                                    #{id}
+                                                                                </foreach>
+    </update>
+
+    <select id="queryStationsNotModelByNum" parameterType="com.station.pojo.StationInfoParams" resultType="com.station.pojo.StationInfoEntity">
+        select * from public.station_info_tab_all where station_id_d in <foreach collection="stationsNum" item="id" open="(" separator="," close=")">
+                                                                            #{id}
+                                                                        </foreach>
+    </select>
+
+    <select id="queryMaxStationNum" resultType="com.station.pojo.StationInfoEntity">
+        select max(station_id_d) as maxNum from public.station_info_tab_zj
+    </select>
+
+    <select id="queryStationByLonLat" resultType="com.station.pojo.StationInfoEntity">
+        select station_id_d as maxNum from public.station_info_tab_zj where lon = #{lon} and lat = #{lat}
+    </select>
+
+    <select id="queryMaxUploadStationNum" resultType="com.station.pojo.StationInfoEntity">
+        select max(station_id_d) as maxNum from public.station_info_tab_upload
+    </select>
+    
+    <select id="queryUploadStationInfo" resultType="com.station.pojo.StationInfoEntity">
+    	select station_id_d as stationIdD,station_name as stationName from public.station_info_tab_upload
+    </select>
+    
+    
+    <insert id="addTaskList" parameterType="com.station.pojo.TaskListEntity">
+    	insert into public.task_list_tab (taskname,enabled,inserttime) values(#{taskName},#{enabled},#{inserttime})
+    </insert>
+    
+    <select id="queryTaskList" resultType="com.station.pojo.TaskListEntity">
+    	select id,taskname from public.task_list_tab order by inserttime desc
+    </select>
+    
+    <select id="queryTaskListAndStationsByPage" parameterType="com.station.pojo.TaskListEntity" resultType="com.station.pojo.TaskListEntity">
+    	select id,taskname from public.task_list_tab order by inserttime desc
+    </select>
+    
+    <update id="updateTaskName" parameterType="com.station.pojo.TaskListEntity">
+    	update public.task_list_tab set taskname = #{taskName} where id = #{id}
+    </update>
+    
+    <select id="queryTaskName" resultType="com.station.pojo.TaskListEntity">
+    	select id,taskname from public.task_list_tab where taskname = #{taskName}
+    </select>
+    
+    <select id="queryTaskStations" parameterType="com.station.pojo.TaskListEntity" resultType="com.station.pojo.TaskStationEntity">
+    	select taskid,station,stationname,lon,lat,flag,station as stationidd from public.task_station_tab where taskid = #{id} order by index
+    </select>
+    
+    <insert id="addTaskStation" parameterType="com.station.pojo.TaskStationEntity">
+    	insert into public.task_station_tab(taskid,station,stationname,lon,lat,enabled,inserttime,flag,index)
+    								 values(#{taskId},#{station},#{stationName},#{lon},#{lat},0,#{inserttime},#{flag},#{index})
+    </insert>
+    
+    <delete id="deleteTaskStation" parameterType="com.station.pojo.TaskStationEntity">
+    	delete from public.task_station_tab where taskid = #{taskId} and station = #{station}
+    </delete>
+    
+    <delete id="deleteTaskStationsByTaskId" parameterType="com.station.pojo.TaskListEntity">
+    	delete from public.task_station_tab where taskid = #{id}
+    </delete>
+    
+    <delete id="deleteTask" parameterType="com.station.pojo.TaskListEntity">
+    	delete from public.task_list_tab where id = #{id}
+    </delete>
+    
+    
+    
+    
+
+    <select id="queryProvince" resultType="com.station.pojo.Province">
+        select * from public.province_tab
+    </select>
+
+    <select id="queryCityById" resultType="com.station.pojo.City">
+        select * from public.city_tab where provinceid = #{id}
+    </select>
+
+    <select id="queryCntyById" resultType="com.station.pojo.Cnty">
+        select * from public.cnty_tab where provinceid = #{provinceId} and cityId = #{id}
+    </select>
+
+    <select id="queryStations" resultType="com.station.pojo.StationEntity">
+        select * from public.stations_tab where provinceid = #{provinceId} and cityid = #{cityId} and cntyid = #{id}
+    </select>
+
+    <select id="queryForcastStations" resultType="com.station.pojo.StationInfoEntity">
+        select * from public.station_forcast_tab where enabled = 0
+    </select>
+
+    <select id="queryForcastStationsByTaskId" parameterType="com.station.pojo.TaskParam" resultType="com.station.pojo.StationInfoEntity">
+        select station as stationidd,lon,lat,stationname,flag,index from public.task_station_tab where taskid = #{taskId} order by index
+    </select>
+    
+    <select id="queryYyzdStationByStationName"  resultType="com.station.pojo.StationEntity">
+    	select station_id_d as station from public.station_info_tab_upload where station_name = #{stationName}
+    </select>
+
+</mapper>

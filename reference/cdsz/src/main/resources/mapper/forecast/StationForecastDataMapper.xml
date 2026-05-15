@@ -1,0 +1,1169 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.forecast.dao.StationForecastDataMapper">
+    <select id="queryStationForecastByPage" parameterType="com.forecast.pojo.StationForecastDataParams" resultType="com.forecast.pojo.StationForecastDataEntity">
+        select * from public.surf_fc_tab
+                 where station = #{params.station} and datatime = #{params.dataTime} and validdate >= #{params.startDateTime}
+    </select>
+
+    <select id="queryStationForecast" parameterType="com.forecast.pojo.StationForecastDataParams" resultType="com.forecast.pojo.StationForecastDataEntity">
+        select * from public.surf_fc_tab
+                 where station = #{station} and datatime = #{dataTime} and validdate &lt;= #{endDateTime}
+                 order by datatime,validdate
+    </select>
+
+    <select id="queryStationForecastDownload" parameterType="com.forecast.pojo.StationForecastDataParams" resultType="com.forecast.pojo.StationForecastDataEntity">
+        select * from public.surf_fc_tab
+                 where station
+                       in <foreach collection="stations" item="id" open="(" separator="," close=")">
+                              #{id}
+                          </foreach>
+                       and datatime = #{dataTime} 
+                       and validdate > #{startDateTime} and validdate &lt;= #{endDateTime} 
+                       order by vti
+    </select>
+    
+    <select id="queryFcDateTime" resultType="com.forecast.pojo.FcDateTimeEntity">
+    	select distinct(datatime) from public.surf_fc_datatime_tab order by datatime desc
+    </select>
+
+    <select id="queryOrgStationForecast" parameterType="com.forecast.pojo.StationForecastDataParams" resultType="com.forecast.pojo.StationForecastDataEntity">
+        select station,datatime,validdate,vti,t2 as at, wd10 as wd, ws10 as ws,vis, tcc as n,lcc, tp as rain24 from ${tableName}
+                 where station = #{station} and datatime = #{dataTime} and validdate &lt;= #{endDateTime}
+                 order by datatime,validdate
+    </select>
+
+    <select id="queryForecastStations" parameterType="com.check.pojo.CheckDataParams" resultType="com.station.pojo.StationEntity">
+        SELECT * FROM public.stations_tab
+        <where>
+            <if test="params.provinceId != null">
+                provinceid in <foreach collection="params.provinceId" item="id" open="(" separator="," close=")">
+                                    #{id}
+                               </foreach>
+            </if>
+            <if test="params.cityId != null">
+                and cityid in <foreach collection="params.cityId" item="id" open="(" separator="," close=")">
+                                #{id}
+                           </foreach>
+            </if>
+            <if test="params.cntyId != null">
+                and cntyid in <foreach collection="params.cntyId" item="id" open="(" separator="," close=")">
+                               #{id}
+                           </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="queryForecastAllStations" parameterType="com.check.pojo.CheckDataParams" resultType="com.station.pojo.StationEntity">
+        SELECT station_id_d as station FROM public.station_info_tab where enabled = 0
+    </select>
+
+    <select id="queryForecastAllWzdStations" parameterType="com.check.pojo.CheckDataParams" resultType="com.station.pojo.StationEntity">
+        SELECT station_id_d as station FROM public.station_info_tab_zj where enabled = 0
+    </select>
+
+    <select id="queryForecastStationsByZone" parameterType="com.check.pojo.CheckDataParams" resultType="com.station.pojo.StationEntity">
+        SELECT station_id_d as station FROM public.station_info_tab where zone = #{params.zone} or zone2 = #{params.zone}
+    </select>
+
+    <select id="queryForecastStationsByZone3" parameterType="com.check.pojo.CheckDataParams" resultType="com.station.pojo.StationEntity">
+        SELECT station_id_d as station FROM public.station_info_tab where zone3 = #{params.zone}
+    </select>
+
+    <select id="queryForecastAllStationsLonLat" parameterType="com.check.pojo.CheckDataParams" resultType="com.station.pojo.StationEntity">
+        SELECT station_id_d as station, lon, lat FROM public.station_info_tab
+    </select>
+
+
+
+    <select id="queryStationForecastCheck" parameterType="com.check.pojo.CheckDataParams" resultType="com.forecast.pojo.StationForecastDataEntity">
+        select station,datatime,validdate,vti,at,at_min,at_max,wd,ws,vis,n as tcc,lcc,rain24 from public.surf_fc_tab
+                 where
+                 validdate >= #{startValidDate} and validdate &lt;= #{endValidDate}
+                 and hour = #{hour}
+                 and station
+                       in <foreach collection="stations" item="id" open="(" separator="," close=")">
+                              #{id}
+                          </foreach>
+                 order by datatime,validdate
+    </select>
+
+    <select id="queryStationForecastCheckRain" parameterType="com.check.pojo.CheckDataParams" resultType="com.forecast.pojo.StationForecastDataEntity">
+        select station,datatime,validdate,vti,at,at_min,at_max,wd,ws,vis,n as tcc,lcc,rain24 from public.surf_fc_tab
+                 where
+                 validdate >= #{startValidDate} and validdate &lt;= #{endValidDate}
+                 and hour = #{hour}
+                 and vti in <foreach collection="vtis" item="id" open="(" separator="," close=")">
+                              #{id}
+                          </foreach>
+                 and station
+                       in <foreach collection="stations" item="id" open="(" separator="," close=")">
+                              #{id}
+                          </foreach>
+                 order by datatime,validdate
+    </select>
+    
+    <select id="queryOrgStationForecastCheck" parameterType="com.check.pojo.CheckDataParams" resultType="com.forecast.pojo.StationForecastDataEntity">
+    	select station,datatime,validdate,vti,t2 as at, wd10 as wd, ws10 as ws,vis, tcc, lcc, tp as rain24 from ${tableName}
+	             where
+	             validdate >= #{startValidDate} and validdate &lt;= #{endValidDate}
+	             and hour = #{hour}
+	             and station
+	                   in <foreach collection="stations" item="id" open="(" separator="," close=")">
+	                          #{id}
+	                      </foreach>
+             	order by datatime,validdate
+    </select>
+
+    <select id="queryStationForecastCheckDay" parameterType="com.check.pojo.CheckDataParams" resultType="com.forecast.pojo.StationForecastDataEntity">
+        select station,datatime,validdate,vti,at,at_min,at_max,wd,ws,vis,n as tcc,lcc,rain24 from public.surf_fc_tab
+                 where
+                 vti > #{startVti} and vti &lt;= #{endVti}
+                 and validdate >= #{startValidDate} and validdate &lt;= #{endValidDate}
+                 and hour = #{hour}
+                 and station
+                       in <foreach collection="stations" item="id" open="(" separator="," close=")">
+                              #{id}
+                          </foreach>
+                 order by datatime,validdate
+    </select>
+
+    <select id="queryStationForecastCheckDayRain" parameterType="com.check.pojo.CheckDataParams" resultType="com.forecast.pojo.StationForecastDataEntity">
+        select station,datatime,validdate,vti,at,at_min,at_max,wd,ws,vis,n as tcc,lcc,rain24 from public.surf_fc_tab
+                 where
+                 vti in <foreach collection="vtis" item="id" open="(" separator="," close=")">
+                              #{id}
+                          </foreach>
+                 and validdate >= #{startValidDate} and validdate &lt;= #{endValidDate}
+                 and hour = #{hour}
+                 and station
+                       in <foreach collection="stations" item="id" open="(" separator="," close=")">
+                              #{id}
+                          </foreach>
+                 order by datatime,validdate
+    </select>
+
+    <select id="queryOrgStationForecastCheckDay" parameterType="com.check.pojo.CheckDataParams" resultType="com.forecast.pojo.StationForecastDataEntity">
+        select station,datatime,validdate,vti,t2 as at, wd10 as wd, ws10 as ws,vis, tcc, lcc, tp as rain24 from ${tableName}
+                 where
+                 validdate > #{startValidDate} and validdate &lt;= #{endValidDate}
+                 and hour = #{hour}
+                 and vti > #{startVti} and vti &lt;= #{endVti}
+                 and station
+                       in <foreach collection="stations" item="id" open="(" separator="," close=")">
+                              #{id}
+                          </foreach>
+                 order by datatime,validdate
+    </select>
+
+    <select id="queryOrgStationForecastCheckDayRain" parameterType="com.check.pojo.CheckDataParams" resultType="com.forecast.pojo.StationForecastDataEntity">
+        select station,datatime,validdate,vti,t2 as at, wd10 as wd, ws10 as ws,vis, tcc, lcc, tp as rain24 from ${tableName}
+                 where
+                 validdate >= #{startValidDate} and validdate &lt;= #{endValidDate}
+                 and hour = #{hour}
+                 and vti in <foreach collection="vtis" item="id" open="(" separator="," close=")">
+                              #{id}
+                          </foreach>
+                 and station
+                       in <foreach collection="stations" item="id" open="(" separator="," close=")">
+                              #{id}
+                          </foreach>
+                 order by datatime,validdate
+    </select>
+
+    <select id="queryOrgNafpDatas" parameterType="com.check.pojo.OrgNafpDataParams" resultType="com.check.pojo.OrgNafpDataEntity">
+        select datatime, filepath from ${params.tableName} where datatime = #{params.dataTime}
+    </select>
+    
+    <select id="queryStationCheckHourDataFromDb" parameterType="com.check.pojo.CheckDataParams" resultType="com.check.pojo.CheckDataIndbEntity">
+    	select station,datatime,datasource,${fieldsName} from public.station_check_value_tab where datatime >= #{startValidDate} and datatime &lt;= #{endValidDate} 
+    														and station in <foreach collection="stations" item="id" open="(" separator="," close=")">
+												                               #{id}
+												                           </foreach>
+    														and datasource in <foreach collection="dataSources" item="id" open="(" separator="," close=")">
+													                              #{id}
+													                          </foreach>
+													        and hour in (8,20)
+    </select>
+    
+    <select id="queryStationCheckHourDataFromDbHour" parameterType="com.check.pojo.CheckDataParams" resultType="com.check.pojo.CheckDataIndbEntity">
+    	select station,datatime,datasource,${fieldsName} from public.station_check_value_tab where datatime >= #{startValidDate} and datatime &lt;= #{endValidDate} 
+    														and station in <foreach collection="stations" item="id" open="(" separator="," close=")">
+												                               #{id}
+												                           </foreach>
+    														and datasource in <foreach collection="dataSources" item="id" open="(" separator="," close=")">
+													                              #{id}
+													                          </foreach>
+													        and hour = #{hour}
+    </select>
+    
+    <select id="queryCheckValue" parameterType="com.check.pojo.CheckDataIndbEntity" resultType="com.check.pojo.CheckDataIndbEntity">
+    	select station from public.station_check_value_tab where datatime = #{dataTime} and station = #{station} and datasource = #{dataSource} and hour = #{hour}
+    </select>
+    
+    <insert id="addCheckValue" parameterType="com.check.pojo.CheckDataIndbEntity">
+    	insert into public.station_check_value_tab (station,
+													dataTime,
+													inserttime,
+													dataSource,
+													hour,
+													zone,
+													zone2,
+													atmae24,
+													atrsme24,
+													atcorr24,
+													atrate24,
+													atmaxmae24,
+													atmaxrsme24,
+													atmaxcorr24,
+													atmaxrate24,
+													atminmae24,
+													atminrsme24,
+													atmincorr24,
+													atminrate24,
+													rain24h24,
+													rain24tn24,
+													rain24m24,
+													rain24f24,
+													wsmae24,
+													wsrsme24,
+													wscorr24,
+													wsrate24,
+													atmae48,
+													atrsme48,
+													atcorr48,
+													atrate48,
+													atmaxmae48,
+													atmaxrsme48,
+													atmaxcorr48,
+													atmaxrate48,
+													atminmae48,
+													atminrsme48,
+													atmincorr48,
+													atminrate48,
+													rain24h48,
+													rain24tn48,
+													rain24m48,
+													rain24f48,
+													wsmae48,
+													wsrsme48,
+													wscorr48,
+													wsrate48,
+													atmae72,
+													atrsme72,
+													atcorr72,
+													atrate72,
+													atmaxmae72,
+													atmaxrsme72,
+													atmaxcorr72,
+													atmaxrate72,
+													atminmae72,
+													atminrsme72,
+													atmincorr72,
+													atminrate72,
+													rain24h72,
+													rain24tn72,
+													rain24m72,
+													rain24f72,
+													wsmae72,
+													wsrsme72,
+													wscorr72,
+													wsrate72,
+													atmae96,
+													atrsme96,
+													atcorr96,
+													atrate96,
+													atmaxmae96,
+													atmaxrsme96,
+													atmaxcorr96,
+													atmaxrate96,
+													atminmae96,
+													atminrsme96,
+													atmincorr96,
+													atminrate96,
+													rain24h96,
+													rain24tn96,
+													rain24m96,
+													rain24f96,
+													wsmae96,
+													wsrsme96,
+													wscorr96,
+													wsrate96,
+													atmae120,
+													atrsme120,
+													atcorr120,
+													atrate120,
+													atmaxmae120,
+													atmaxrsme120,
+													atmaxcorr120,
+													atmaxrate120,
+													atminmae120,
+													atminrsme120,
+													atmincorr120,
+													atminrate120,
+													rain24h120,
+													rain24tn120,
+													rain24m120,
+													rain24f120,
+													wsmae120,
+													wsrsme120,
+													wscorr120,
+													wsrate120,
+													atmae144,
+													atrsme144,
+													atcorr144,
+													atrate144,
+													atmaxmae144,
+													atmaxrsme144,
+													atmaxcorr144,
+													atmaxrate144,
+													atminmae144,
+													atminrsme144,
+													atmincorr144,
+													atminrate144,
+													rain24h144,
+													rain24tn144,
+													rain24m144,
+													rain24f144,
+													wsmae144,
+													wsrsme144,
+													wscorr144,
+													wsrate144,
+													atmae168,
+													atrsme168,
+													atcorr168,
+													atrate168,
+													atmaxmae168,
+													atmaxrsme168,
+													atmaxcorr168,
+													atmaxrate168,
+													atminmae168,
+													atminrsme168,
+													atmincorr168,
+													atminrate168,
+													rain24h168,
+													rain24tn168,
+													rain24m168,
+													rain24f168,
+													wsmae168,
+													wsrsme168,
+													wscorr168,
+													wsrate168,
+													atmae192,
+													atrsme192,
+													atcorr192,
+													atrate192,
+													atmaxmae192,
+													atmaxrsme192,
+													atmaxcorr192,
+													atmaxrate192,
+													atminmae192,
+													atminrsme192,
+													atmincorr192,
+													atminrate192,
+													rain24h192,
+													rain24tn192,
+													rain24m192,
+													rain24f192,
+													wsmae192,
+													wsrsme192,
+													wscorr192,
+													wsrate192,
+													atmae216,
+													atrsme216,
+													atcorr216,
+													atrate216,
+													atmaxmae216,
+													atmaxrsme216,
+													atmaxcorr216,
+													atmaxrate216,
+													atminmae216,
+													atminrsme216,
+													atmincorr216,
+													atminrate216,
+													rain24h216,
+													rain24tn216,
+													rain24m216,
+													rain24f216,
+													wsmae216,
+													wsrsme216,
+													wscorr216,
+													wsrate216,
+													atmae240,
+													atrsme240,
+													atcorr240,
+													atrate240,
+													atmaxmae240,
+													atmaxrsme240,
+													atmaxcorr240,
+													atmaxrate240,
+													atminmae240,
+													atminrsme240,
+													atmincorr240,
+													atminrate240,
+													rain24h240,
+													rain24tn240,
+													rain24m240,
+													rain24f240,
+													wsmae240,
+													wsrsme240,
+													wscorr240,
+													wsrate240)
+											values( #{station},
+													#{dataTime},
+													#{inserttime},
+													#{dataSource},
+													#{hour},
+													#{zone},
+													#{zone2},
+													#{atmae24},
+													#{atrsme24},
+													#{atcorr24},
+													#{atrate24},
+													#{atmaxmae24},
+													#{atmaxrsme24},
+													#{atmaxcorr24},
+													#{atmaxrate24},
+													#{atminmae24},
+													#{atminrsme24},
+													#{atmincorr24},
+													#{atminrate24},
+													#{rain24h24},
+													#{rain24tn24},
+													#{rain24m24},
+													#{rain24f24},
+													#{wsmae24},
+													#{wsrsme24},
+													#{wscorr24},
+													#{wsrate24},
+													#{atmae48},
+													#{atrsme48},
+													#{atcorr48},
+													#{atrate48},
+													#{atmaxmae48},
+													#{atmaxrsme48},
+													#{atmaxcorr48},
+													#{atmaxrate48},
+													#{atminmae48},
+													#{atminrsme48},
+													#{atmincorr48},
+													#{atminrate48},
+													#{rain24h48},
+													#{rain24tn48},
+													#{rain24m48},
+													#{rain24f48},
+													#{wsmae48},
+													#{wsrsme48},
+													#{wscorr48},
+													#{wsrate48},
+													#{atmae72},
+													#{atrsme72},
+													#{atcorr72},
+													#{atrate72},
+													#{atmaxmae72},
+													#{atmaxrsme72},
+													#{atmaxcorr72},
+													#{atmaxrate72},
+													#{atminmae72},
+													#{atminrsme72},
+													#{atmincorr72},
+													#{atminrate72},
+													#{rain24h72},
+													#{rain24tn72},
+													#{rain24m72},
+													#{rain24f72},
+													#{wsmae72},
+													#{wsrsme72},
+													#{wscorr72},
+													#{wsrate72},
+													#{atmae96},
+													#{atrsme96},
+													#{atcorr96},
+													#{atrate96},
+													#{atmaxmae96},
+													#{atmaxrsme96},
+													#{atmaxcorr96},
+													#{atmaxrate96},
+													#{atminmae96},
+													#{atminrsme96},
+													#{atmincorr96},
+													#{atminrate96},
+													#{rain24h96},
+													#{rain24tn96},
+													#{rain24m96},
+													#{rain24f96},
+													#{wsmae96},
+													#{wsrsme96},
+													#{wscorr96},
+													#{wsrate96},
+													#{atmae120},
+													#{atrsme120},
+													#{atcorr120},
+													#{atrate120},
+													#{atmaxmae120},
+													#{atmaxrsme120},
+													#{atmaxcorr120},
+													#{atmaxrate120},
+													#{atminmae120},
+													#{atminrsme120},
+													#{atmincorr120},
+													#{atminrate120},
+													#{rain24h120},
+													#{rain24tn120},
+													#{rain24m120},
+													#{rain24f120},
+													#{wsmae120},
+													#{wsrsme120},
+													#{wscorr120},
+													#{wsrate120},
+													#{atmae144},
+													#{atrsme144},
+													#{atcorr144},
+													#{atrate144},
+													#{atmaxmae144},
+													#{atmaxrsme144},
+													#{atmaxcorr144},
+													#{atmaxrate144},
+													#{atminmae144},
+													#{atminrsme144},
+													#{atmincorr144},
+													#{atminrate144},
+													#{rain24h144},
+													#{rain24tn144},
+													#{rain24m144},
+													#{rain24f144},
+													#{wsmae144},
+													#{wsrsme144},
+													#{wscorr144},
+													#{wsrate144},
+													#{atmae168},
+													#{atrsme168},
+													#{atcorr168},
+													#{atrate168},
+													#{atmaxmae168},
+													#{atmaxrsme168},
+													#{atmaxcorr168},
+													#{atmaxrate168},
+													#{atminmae168},
+													#{atminrsme168},
+													#{atmincorr168},
+													#{atminrate168},
+													#{rain24h168},
+													#{rain24tn168},
+													#{rain24m168},
+													#{rain24f168},
+													#{wsmae168},
+													#{wsrsme168},
+													#{wscorr168},
+													#{wsrate168},
+													#{atmae192},
+													#{atrsme192},
+													#{atcorr192},
+													#{atrate192},
+													#{atmaxmae192},
+													#{atmaxrsme192},
+													#{atmaxcorr192},
+													#{atmaxrate192},
+													#{atminmae192},
+													#{atminrsme192},
+													#{atmincorr192},
+													#{atminrate192},
+													#{rain24h192},
+													#{rain24tn192},
+													#{rain24m192},
+													#{rain24f192},
+													#{wsmae192},
+													#{wsrsme192},
+													#{wscorr192},
+													#{wsrate192},
+													#{atmae216},
+													#{atrsme216},
+													#{atcorr216},
+													#{atrate216},
+													#{atmaxmae216},
+													#{atmaxrsme216},
+													#{atmaxcorr216},
+													#{atmaxrate216},
+													#{atminmae216},
+													#{atminrsme216},
+													#{atmincorr216},
+													#{atminrate216},
+													#{rain24h216},
+													#{rain24tn216},
+													#{rain24m216},
+													#{rain24f216},
+													#{wsmae216},
+													#{wsrsme216},
+													#{wscorr216},
+													#{wsrate216},
+													#{atmae240},
+													#{atrsme240},
+													#{atcorr240},
+													#{atrate240},
+													#{atmaxmae240},
+													#{atmaxrsme240},
+													#{atmaxcorr240},
+													#{atmaxrate240},
+													#{atminmae240},
+													#{atminrsme240},
+													#{atmincorr240},
+													#{atminrate240},
+													#{rain24h240},
+													#{rain24tn240},
+													#{rain24m240},
+													#{rain24f240},
+													#{wsmae240},
+													#{wsrsme240},
+													#{wscorr240},
+													#{wsrate240})
+    </insert>
+
+	<update id="updateCheckValue" parameterType="com.check.pojo.CheckDataIndbEntity">
+		update public.station_check_value_tab set   station = #{station},
+													dataTime = #{dataTime},
+													inserttime = #{inserttime},
+													dataSource = #{dataSource},
+													hour = #{hour},
+													zone = #{zone},
+													zone2 = #{zone2},
+													atmae24 = #{atmae24},
+													atrsme24 = #{atrsme24},
+													atcorr24 = #{atcorr24},
+													atrate24 = #{atrate24},
+													atmaxmae24 = #{atmaxmae24},
+													atmaxrsme24 = #{atmaxrsme24},
+													atmaxcorr24 = #{atmaxcorr24},
+													atmaxrate24 = #{atmaxrate24},
+													atminmae24 = #{atminmae24},
+													atminrsme24 = #{atminrsme24},
+													atmincorr24 = #{atmincorr24},
+													atminrate24 = #{atminrate24},
+													wsmae24 = #{wsmae24},
+													wsrsme24 = #{wsrsme24},
+													wscorr24 = #{wscorr24},
+													wsrate24 = #{wsrate24},
+													atmae48 = #{atmae48},
+													atrsme48 = #{atrsme48},
+													atcorr48 = #{atcorr48},
+													atrate48 = #{atrate48},
+													atmaxmae48 = #{atmaxmae48},
+													atmaxrsme48 = #{atmaxrsme48},
+													atmaxcorr48 = #{atmaxcorr48},
+													atmaxrate48 = #{atmaxrate48},
+													atminmae48 = #{atminmae48},
+													atminrsme48 = #{atminrsme48},
+													atmincorr48 = #{atmincorr48},
+													atminrate48 = #{atminrate48},
+													wsmae48 = #{wsmae48},
+													wsrsme48 = #{wsrsme48},
+													wscorr48 = #{wscorr48},
+													wsrate48 = #{wsrate48},
+													atmae72 = #{atmae72},
+													atrsme72 = #{atrsme72},
+													atcorr72 = #{atcorr72},
+													atrate72 = #{atrate72},
+													atmaxmae72 = #{atmaxmae72},
+													atmaxrsme72 = #{atmaxrsme72},
+													atmaxcorr72 = #{atmaxcorr72},
+													atmaxrate72 = #{atmaxrate72},
+													atminmae72 = #{atminmae72},
+													atminrsme72 = #{atminrsme72},
+													atmincorr72 = #{atmincorr72},
+													atminrate72 = #{atminrate72},
+													wsmae72 = #{wsmae72},
+													wsrsme72 = #{wsrsme72},
+													wscorr72 = #{wscorr72},
+													wsrate72 = #{wsrate72},
+													atmae96 = #{atmae96},
+													atrsme96 = #{atrsme96},
+													atcorr96 = #{atcorr96},
+													atrate96 = #{atrate96},
+													atmaxmae96 = #{atmaxmae96},
+													atmaxrsme96 = #{atmaxrsme96},
+													atmaxcorr96 = #{atmaxcorr96},
+													atmaxrate96 = #{atmaxrate96},
+													atminmae96 = #{atminmae96},
+													atminrsme96 = #{atminrsme96},
+													atmincorr96 = #{atmincorr96},
+													atminrate96 = #{atminrate96},
+													wsmae96 = #{wsmae96},
+													wsrsme96 = #{wsrsme96},
+													wscorr96 = #{wscorr96},
+													wsrate96 = #{wsrate96},
+													atmae120 = #{atmae120},
+													atrsme120 = #{atrsme120},
+													atcorr120 = #{atcorr120},
+													atrate120 = #{atrate120},
+													atmaxmae120 = #{atmaxmae120},
+													atmaxrsme120 = #{atmaxrsme120},
+													atmaxcorr120 = #{atmaxcorr120},
+													atmaxrate120 = #{atmaxrate120},
+													atminmae120 = #{atminmae120},
+													atminrsme120 = #{atminrsme120},
+													atmincorr120 = #{atmincorr120},
+													atminrate120 = #{atminrate120},
+													wsmae120 = #{wsmae120},
+													wsrsme120 = #{wsrsme120},
+													wscorr120 = #{wscorr120},
+													wsrate120 = #{wsrate120},
+													atmae144 = #{atmae144},
+													atrsme144 = #{atrsme144},
+													atcorr144 = #{atcorr144},
+													atrate144 = #{atrate144},
+													atmaxmae144 = #{atmaxmae144},
+													atmaxrsme144 = #{atmaxrsme144},
+													atmaxcorr144 = #{atmaxcorr144},
+													atmaxrate144 = #{atmaxrate144},
+													atminmae144 = #{atminmae144},
+													atminrsme144 = #{atminrsme144},
+													atmincorr144 = #{atmincorr144},
+													atminrate144 = #{atminrate144},
+													wsmae144 = #{wsmae144},
+													wsrsme144 = #{wsrsme144},
+													wscorr144 = #{wscorr144},
+													wsrate144 = #{wsrate144},
+													atmae168 = #{atmae168},
+													atrsme168 = #{atrsme168},
+													atcorr168 = #{atcorr168},
+													atrate168 = #{atrate168},
+													atmaxmae168 = #{atmaxmae168},
+													atmaxrsme168 = #{atmaxrsme168},
+													atmaxcorr168 = #{atmaxcorr168},
+													atmaxrate168 = #{atmaxrate168},
+													atminmae168 = #{atminmae168},
+													atminrsme168 = #{atminrsme168},
+													atmincorr168 = #{atmincorr168},
+													atminrate168 = #{atminrate168},
+													wsmae168 = #{wsmae168},
+													wsrsme168 = #{wsrsme168},
+													wscorr168 = #{wscorr168},
+													wsrate168 = #{wsrate168},
+													atmae192 = #{atmae192},
+													atrsme192 = #{atrsme192},
+													atcorr192 = #{atcorr192},
+													atrate192 = #{atrate192},
+													atmaxmae192 = #{atmaxmae192},
+													atmaxrsme192 = #{atmaxrsme192},
+													atmaxcorr192 = #{atmaxcorr192},
+													atmaxrate192 = #{atmaxrate192},
+													atminmae192 = #{atminmae192},
+													atminrsme192 = #{atminrsme192},
+													atmincorr192 = #{atmincorr192},
+													atminrate192 = #{atminrate192},
+													wsmae192 = #{wsmae192},
+													wsrsme192 = #{wsrsme192},
+													wscorr192 = #{wscorr192},
+													wsrate192 = #{wsrate192},
+													atmae216 = #{atmae216},
+													atrsme216 = #{atrsme216},
+													atcorr216 = #{atcorr216},
+													atrate216 = #{atrate216},
+													atmaxmae216 = #{atmaxmae216},
+													atmaxrsme216 = #{atmaxrsme216},
+													atmaxcorr216 = #{atmaxcorr216},
+													atmaxrate216 = #{atmaxrate216},
+													atminmae216 = #{atminmae216},
+													atminrsme216 = #{atminrsme216},
+													atmincorr216 = #{atmincorr216},
+													atminrate216 = #{atminrate216},
+													wsmae216 = #{wsmae216},
+													wsrsme216 = #{wsrsme216},
+													wscorr216 = #{wscorr216},
+													wsrate216 = #{wsrate216},
+													atmae240 = #{atmae240},
+													atrsme240 = #{atrsme240},
+													atcorr240 = #{atcorr240},
+													atrate240 = #{atrate240},
+													atmaxmae240 = #{atmaxmae240},
+													atmaxrsme240 = #{atmaxrsme240},
+													atmaxcorr240 = #{atmaxcorr240},
+													atmaxrate240 = #{atmaxrate240},
+													atminmae240 = #{atminmae240},
+													atminrsme240 = #{atminrsme240},
+													atmincorr240 = #{atmincorr240},
+													atminrate240 = #{atminrate240},
+													wsmae240 = #{wsmae240},
+													wsrsme240 = #{wsrsme240},
+													wscorr240 = #{wscorr240},
+													wsrate240 = #{wsrate240}
+											where datatime = #{dataTime} and station = #{station} and datasource = #{dataSource} and hour = #{hour}
+	</update>
+
+	<update id="updateStationCheckRainValue" parameterType="com.check.pojo.CheckDataIndbEntity">
+		update public.station_check_value_tab set   station = #{station},
+													dataTime = #{dataTime},
+													inserttime = #{inserttime},
+													dataSource = #{dataSource},
+													hour = #{hour},
+													zone = #{zone},
+													zone2 = #{zone2},
+													rain24h24 = #{rain24h24},
+													rain24tn24 = #{rain24tn24},
+													rain24m24 = #{rain24m24},
+													rain24f24 = #{rain24f24},
+													rain24h48 = #{rain24h48},
+													rain24tn48 = #{rain24tn48},
+													rain24m48 = #{rain24m48},
+													rain24f48 = #{rain24f48},
+													rain24h72 = #{rain24h72},
+													rain24tn72 = #{rain24tn72},
+													rain24m72 = #{rain24m72},
+													rain24f72 = #{rain24f72},
+													rain24h96 = #{rain24h96},
+													rain24tn96 = #{rain24tn96},
+													rain24m96 = #{rain24m96},
+													rain24f96 = #{rain24f96},
+													rain24h120 = #{rain24h120},
+													rain24tn120 = #{rain24tn120},
+													rain24m120 = #{rain24m120},
+													rain24f120 = #{rain24f120},
+													rain24h144 = #{rain24h144},
+													rain24tn144 = #{rain24tn144},
+													rain24m144 = #{rain24m144},
+													rain24f144 = #{rain24f144},
+													rain24h168 = #{rain24h168},
+													rain24tn168 = #{rain24tn168},
+													rain24m168 = #{rain24m168},
+													rain24f168 = #{rain24f168},
+													rain24h192 = #{rain24h192},
+													rain24tn192 = #{rain24tn192},
+													rain24m192 = #{rain24m192},
+													rain24f192 = #{rain24f192},
+													rain24h216 = #{rain24h216},
+													rain24tn216 = #{rain24tn216},
+													rain24m216 = #{rain24m216},
+													rain24f216 = #{rain24f216},
+													rain24h240 = #{rain24h240},
+													rain24tn240 = #{rain24tn240},
+													rain24m240 = #{rain24m240},
+													rain24f240 = #{rain24f240}
+											where datatime = #{dataTime} and station = #{station} and datasource = #{dataSource} and hour = #{hour}
+	</update>
+	
+	<select id="queryStationCheckDataDay" parameterType="com.check.pojo.CheckDataParams" resultType="com.check.pojo.CheckDataIndbEntity">
+		select * from station_check_value_tab where datatime >= #{startTime} and datatime &lt;= #{endTime}
+	</select>
+	
+	<insert id="addStationCheckValueMonth" parameterType="com.check.pojo.CheckDataIndbEntity">
+    	insert into public.station_check_value_month_tab (station,
+													dataTime,
+													inserttime,
+													dataSource,
+													hour,
+													zone,
+													zone2,
+													atmae24,atrsme24,atcorr24,atrate24,atmaxmae24,atmaxrsme24,atmaxcorr24,atmaxrate24,atminmae24,atminrsme24,atmincorr24,atminrate24,rain24h24,rain24tn24,rain24m24,rain24f24,wsmae24,wsrsme24,wscorr24,wsrate24,
+													atmae48,atrsme48,atcorr48,atrate48,atmaxmae48,atmaxrsme48,atmaxcorr48,atmaxrate48,atminmae48,atminrsme48,atmincorr48,atminrate48,rain24h48,rain24tn48,rain24m48,rain24f48,wsmae48,wsrsme48,wscorr48,wsrate48,
+													atmae72,atrsme72,atcorr72,atrate72,atmaxmae72,atmaxrsme72,atmaxcorr72,atmaxrate72,atminmae72,atminrsme72,atmincorr72,atminrate72,rain24h72,rain24tn72,rain24m72,rain24f72,wsmae72,wsrsme72,wscorr72,wsrate72,
+													atmae96,atrsme96,atcorr96,atrate96,atmaxmae96,atmaxrsme96,atmaxcorr96,atmaxrate96,atminmae96,atminrsme96,atmincorr96,atminrate96,rain24h96,rain24tn96,rain24m96,rain24f96,wsmae96,wsrsme96,wscorr96,wsrate96,
+													atmae120,atrsme120,atcorr120,atrate120,atmaxmae120,atmaxrsme120,atmaxcorr120,atmaxrate120,atminmae120,atminrsme120,atmincorr120,atminrate120,rain24h120,rain24tn120,rain24m120,rain24f120,wsmae120,wsrsme120,wscorr120,wsrate120,
+													atmae144,atrsme144,atcorr144,atrate144,atmaxmae144,atmaxrsme144,atmaxcorr144,atmaxrate144,atminmae144,atminrsme144,atmincorr144,atminrate144,rain24h144,rain24tn144,rain24m144,rain24f144,wsmae144,wsrsme144,wscorr144,wsrate144,
+													atmae168,atrsme168,atcorr168,atrate168,atmaxmae168,atmaxrsme168,atmaxcorr168,atmaxrate168,atminmae168,atminrsme168,atmincorr168,atminrate168,rain24h168,rain24tn168,rain24m168,rain24f168,wsmae168,wsrsme168,wscorr168,wsrate168,
+													atmae192,atrsme192,atcorr192,atrate192,atmaxmae192,atmaxrsme192,atmaxcorr192,atmaxrate192,atminmae192,atminrsme192,atmincorr192,atminrate192,rain24h192,rain24tn192,rain24m192,rain24f192,wsmae192,wsrsme192,wscorr192,wsrate192,
+													atmae216,atrsme216,atcorr216,atrate216,atmaxmae216,atmaxrsme216,atmaxcorr216,atmaxrate216,atminmae216,atminrsme216,atmincorr216,atminrate216,rain24h216,rain24tn216,rain24m216,rain24f216,wsmae216,wsrsme216,wscorr216,wsrate216,
+													atmae240,atrsme240,atcorr240,atrate240,atmaxmae240,atmaxrsme240,atmaxcorr240,atmaxrate240,atminmae240,atminrsme240,atmincorr240,atminrate240,rain24h240,rain24tn240,rain24m240,rain24f240,wsmae240,wsrsme240,wscorr240,wsrate240)
+											values( #{station},
+													#{dataTime},
+													#{inserttime},
+													#{dataSource},
+													#{hour},
+													#{zone},
+													#{zone2},
+													#{atmae24},#{atrsme24},#{atcorr24},#{atrate24},#{atmaxmae24},#{atmaxrsme24},#{atmaxcorr24},#{atmaxrate24},#{atminmae24},#{atminrsme24},#{atmincorr24},#{atminrate24},#{rain24h24},#{rain24tn24},#{rain24m24},#{rain24f24},#{wsmae24},#{wsrsme24},#{wscorr24},#{wsrate24},
+													#{atmae48},#{atrsme48},#{atcorr48},#{atrate48},#{atmaxmae48},#{atmaxrsme48},#{atmaxcorr48},#{atmaxrate48},#{atminmae48},#{atminrsme48},#{atmincorr48},#{atminrate48},#{rain24h48},#{rain24tn48},#{rain24m48},#{rain24f48},#{wsmae48},#{wsrsme48},#{wscorr48},#{wsrate48},
+													#{atmae72},#{atrsme72},#{atcorr72},#{atrate72},#{atmaxmae72},#{atmaxrsme72},#{atmaxcorr72},#{atmaxrate72},#{atminmae72},#{atminrsme72},#{atmincorr72},#{atminrate72},#{rain24h72},#{rain24tn72},#{rain24m72},#{rain24f72},#{wsmae72},#{wsrsme72},#{wscorr72},#{wsrate72},
+													#{atmae96},#{atrsme96},#{atcorr96},#{atrate96},#{atmaxmae96},#{atmaxrsme96},#{atmaxcorr96},#{atmaxrate96},#{atminmae96},#{atminrsme96},#{atmincorr96},#{atminrate96},#{rain24h96},#{rain24tn96},#{rain24m96},#{rain24f96},#{wsmae96},#{wsrsme96},#{wscorr96},#{wsrate96},
+													#{atmae120},#{atrsme120},#{atcorr120},#{atrate120},#{atmaxmae120},#{atmaxrsme120},#{atmaxcorr120},#{atmaxrate120},#{atminmae120},#{atminrsme120},#{atmincorr120},#{atminrate120},#{rain24h120},#{rain24tn120},#{rain24m120},#{rain24f120},#{wsmae120},#{wsrsme120},#{wscorr120},#{wsrate120},
+													#{atmae144},#{atrsme144},#{atcorr144},#{atrate144},#{atmaxmae144},#{atmaxrsme144},#{atmaxcorr144},#{atmaxrate144},#{atminmae144},#{atminrsme144},#{atmincorr144},#{atminrate144},#{rain24h144},#{rain24tn144},#{rain24m144},#{rain24f144},#{wsmae144},#{wsrsme144},#{wscorr144},#{wsrate144},
+													#{atmae168},#{atrsme168},#{atcorr168},#{atrate168},#{atmaxmae168},#{atmaxrsme168},#{atmaxcorr168},#{atmaxrate168},#{atminmae168},#{atminrsme168},#{atmincorr168},#{atminrate168},#{rain24h168},#{rain24tn168},#{rain24m168},#{rain24f168},#{wsmae168},#{wsrsme168},#{wscorr168},#{wsrate168},
+													#{atmae192},#{atrsme192},#{atcorr192},#{atrate192},#{atmaxmae192},#{atmaxrsme192},#{atmaxcorr192},#{atmaxrate192},#{atminmae192},#{atminrsme192},#{atmincorr192},#{atminrate192},#{rain24h192},#{rain24tn192},#{rain24m192},#{rain24f192},#{wsmae192},#{wsrsme192},#{wscorr192},#{wsrate192},
+													#{atmae216},#{atrsme216},#{atcorr216},#{atrate216},#{atmaxmae216},#{atmaxrsme216},#{atmaxcorr216},#{atmaxrate216},#{atminmae216},#{atminrsme216},#{atmincorr216},#{atminrate216},#{rain24h216},#{rain24tn216},#{rain24m216},#{rain24f216},#{wsmae216},#{wsrsme216},#{wscorr216},#{wsrate216},
+													#{atmae240},#{atrsme240},#{atcorr240},#{atrate240},#{atmaxmae240},#{atmaxrsme240},#{atmaxcorr240},#{atmaxrate240},#{atminmae240},#{atminrsme240},#{atmincorr240},#{atminrate240},#{rain24h240},#{rain24tn240},#{rain24m240},#{rain24f240},#{wsmae240},#{wsrsme240},#{wscorr240},#{wsrate240})
+											on conflict (station,dataTime,hour,dataSource) do update set
+													inserttime = #{inserttime},
+													atmae24 = #{atmae24},
+													atrsme24 = #{atrsme24},
+													atcorr24 = #{atcorr24},
+													atrate24 = #{atrate24},
+													atmaxmae24 = #{atmaxmae24},
+													atmaxrsme24 = #{atmaxrsme24},
+													atmaxcorr24 = #{atmaxcorr24},
+													atmaxrate24 = #{atmaxrate24},
+													atminmae24 = #{atminmae24},
+													atminrsme24 = #{atminrsme24},
+													atmincorr24 = #{atmincorr24},
+													atminrate24 = #{atminrate24},
+													wsmae24 = #{wsmae24},
+													wsrsme24 = #{wsrsme24},
+													wscorr24 = #{wscorr24},
+													wsrate24 = #{wsrate24},
+													atmae48 = #{atmae48},
+													atrsme48 = #{atrsme48},
+													atcorr48 = #{atcorr48},
+													atrate48 = #{atrate48},
+													atmaxmae48 = #{atmaxmae48},
+													atmaxrsme48 = #{atmaxrsme48},
+													atmaxcorr48 = #{atmaxcorr48},
+													atmaxrate48 = #{atmaxrate48},
+													atminmae48 = #{atminmae48},
+													atminrsme48 = #{atminrsme48},
+													atmincorr48 = #{atmincorr48},
+													atminrate48 = #{atminrate48},
+													wsmae48 = #{wsmae48},
+													wsrsme48 = #{wsrsme48},
+													wscorr48 = #{wscorr48},
+													wsrate48 = #{wsrate48},
+													atmae72 = #{atmae72},
+													atrsme72 = #{atrsme72},
+													atcorr72 = #{atcorr72},
+													atrate72 = #{atrate72},
+													atmaxmae72 = #{atmaxmae72},
+													atmaxrsme72 = #{atmaxrsme72},
+													atmaxcorr72 = #{atmaxcorr72},
+													atmaxrate72 = #{atmaxrate72},
+													atminmae72 = #{atminmae72},
+													atminrsme72 = #{atminrsme72},
+													atmincorr72 = #{atmincorr72},
+													atminrate72 = #{atminrate72},
+													wsmae72 = #{wsmae72},
+													wsrsme72 = #{wsrsme72},
+													wscorr72 = #{wscorr72},
+													wsrate72 = #{wsrate72},
+													atmae96 = #{atmae96},
+													atrsme96 = #{atrsme96},
+													atcorr96 = #{atcorr96},
+													atrate96 = #{atrate96},
+													atmaxmae96 = #{atmaxmae96},
+													atmaxrsme96 = #{atmaxrsme96},
+													atmaxcorr96 = #{atmaxcorr96},
+													atmaxrate96 = #{atmaxrate96},
+													atminmae96 = #{atminmae96},
+													atminrsme96 = #{atminrsme96},
+													atmincorr96 = #{atmincorr96},
+													atminrate96 = #{atminrate96},
+													wsmae96 = #{wsmae96},
+													wsrsme96 = #{wsrsme96},
+													wscorr96 = #{wscorr96},
+													wsrate96 = #{wsrate96},
+													atmae120 = #{atmae120},
+													atrsme120 = #{atrsme120},
+													atcorr120 = #{atcorr120},
+													atrate120 = #{atrate120},
+													atmaxmae120 = #{atmaxmae120},
+													atmaxrsme120 = #{atmaxrsme120},
+													atmaxcorr120 = #{atmaxcorr120},
+													atmaxrate120 = #{atmaxrate120},
+													atminmae120 = #{atminmae120},
+													atminrsme120 = #{atminrsme120},
+													atmincorr120 = #{atmincorr120},
+													atminrate120 = #{atminrate120},
+													wsmae120 = #{wsmae120},
+													wsrsme120 = #{wsrsme120},
+													wscorr120 = #{wscorr120},
+													wsrate120 = #{wsrate120},
+													atmae144 = #{atmae144},
+													atrsme144 = #{atrsme144},
+													atcorr144 = #{atcorr144},
+													atrate144 = #{atrate144},
+													atmaxmae144 = #{atmaxmae144},
+													atmaxrsme144 = #{atmaxrsme144},
+													atmaxcorr144 = #{atmaxcorr144},
+													atmaxrate144 = #{atmaxrate144},
+													atminmae144 = #{atminmae144},
+													atminrsme144 = #{atminrsme144},
+													atmincorr144 = #{atmincorr144},
+													atminrate144 = #{atminrate144},
+													wsmae144 = #{wsmae144},
+													wsrsme144 = #{wsrsme144},
+													wscorr144 = #{wscorr144},
+													wsrate144 = #{wsrate144},
+													atmae168 = #{atmae168},
+													atrsme168 = #{atrsme168},
+													atcorr168 = #{atcorr168},
+													atrate168 = #{atrate168},
+													atmaxmae168 = #{atmaxmae168},
+													atmaxrsme168 = #{atmaxrsme168},
+													atmaxcorr168 = #{atmaxcorr168},
+													atmaxrate168 = #{atmaxrate168},
+													atminmae168 = #{atminmae168},
+													atminrsme168 = #{atminrsme168},
+													atmincorr168 = #{atmincorr168},
+													atminrate168 = #{atminrate168},
+													wsmae168 = #{wsmae168},
+													wsrsme168 = #{wsrsme168},
+													wscorr168 = #{wscorr168},
+													wsrate168 = #{wsrate168},
+													atmae192 = #{atmae192},
+													atrsme192 = #{atrsme192},
+													atcorr192 = #{atcorr192},
+													atrate192 = #{atrate192},
+													atmaxmae192 = #{atmaxmae192},
+													atmaxrsme192 = #{atmaxrsme192},
+													atmaxcorr192 = #{atmaxcorr192},
+													atmaxrate192 = #{atmaxrate192},
+													atminmae192 = #{atminmae192},
+													atminrsme192 = #{atminrsme192},
+													atmincorr192 = #{atmincorr192},
+													atminrate192 = #{atminrate192},
+													wsmae192 = #{wsmae192},
+													wsrsme192 = #{wsrsme192},
+													wscorr192 = #{wscorr192},
+													wsrate192 = #{wsrate192},
+													atmae216 = #{atmae216},
+													atrsme216 = #{atrsme216},
+													atcorr216 = #{atcorr216},
+													atrate216 = #{atrate216},
+													atmaxmae216 = #{atmaxmae216},
+													atmaxrsme216 = #{atmaxrsme216},
+													atmaxcorr216 = #{atmaxcorr216},
+													atmaxrate216 = #{atmaxrate216},
+													atminmae216 = #{atminmae216},
+													atminrsme216 = #{atminrsme216},
+													atmincorr216 = #{atmincorr216},
+													atminrate216 = #{atminrate216},
+													wsmae216 = #{wsmae216},
+													wsrsme216 = #{wsrsme216},
+													wscorr216 = #{wscorr216},
+													wsrate216 = #{wsrate216},
+													atmae240 = #{atmae240},
+													atrsme240 = #{atrsme240},
+													atcorr240 = #{atcorr240},
+													atrate240 = #{atrate240},
+													atmaxmae240 = #{atmaxmae240},
+													atmaxrsme240 = #{atmaxrsme240},
+													atmaxcorr240 = #{atmaxcorr240},
+													atmaxrate240 = #{atmaxrate240},
+													atminmae240 = #{atminmae240},
+													atminrsme240 = #{atminrsme240},
+													atmincorr240 = #{atmincorr240},
+													atminrate240 = #{atminrate240},
+													wsmae240 = #{wsmae240},
+													wsrsme240 = #{wsrsme240},
+													wscorr240 = #{wscorr240},
+													wsrate240 = #{wsrate240},
+													rain24h24 = #{rain24h24},
+													rain24tn24 = #{rain24tn24},
+													rain24m24 = #{rain24m24},
+													rain24f24 = #{rain24f24},
+													rain24h48 = #{rain24h48},
+													rain24tn48 = #{rain24tn48},
+													rain24m48 = #{rain24m48},
+													rain24f48 = #{rain24f48},
+													rain24h72 = #{rain24h72},
+													rain24tn72 = #{rain24tn72},
+													rain24m72 = #{rain24m72},
+													rain24f72 = #{rain24f72},
+													rain24h96 = #{rain24h96},
+													rain24tn96 = #{rain24tn96},
+													rain24m96 = #{rain24m96},
+													rain24f96 = #{rain24f96},
+													rain24h120 = #{rain24h120},
+													rain24tn120 = #{rain24tn120},
+													rain24m120 = #{rain24m120},
+													rain24f120 = #{rain24f120},
+													rain24h144 = #{rain24h144},
+													rain24tn144 = #{rain24tn144},
+													rain24m144 = #{rain24m144},
+													rain24f144 = #{rain24f144},
+													rain24h168 = #{rain24h168},
+													rain24tn168 = #{rain24tn168},
+													rain24m168 = #{rain24m168},
+													rain24f168 = #{rain24f168},
+													rain24h192 = #{rain24h192},
+													rain24tn192 = #{rain24tn192},
+													rain24m192 = #{rain24m192},
+													rain24f192 = #{rain24f192},
+													rain24h216 = #{rain24h216},
+													rain24tn216 = #{rain24tn216},
+													rain24m216 = #{rain24m216},
+													rain24f216 = #{rain24f216},
+													rain24h240 = #{rain24h240},
+													rain24tn240 = #{rain24tn240},
+													rain24m240 = #{rain24m240},
+													rain24f240 = #{rain24f240}
+    </insert>
+    
+	<select id="queryGribCheckDataDay" parameterType="com.check.pojo.CheckDataParams" resultType="com.check.pojo.CheckDataIndbEntity">
+		select * from grib_check_value_tab where datatime >= #{startTime} and datatime &lt;= #{endTime}
+	</select>
+	
+	<insert id="addGribCheckValueMonth" parameterType="com.check.pojo.CheckDataIndbEntity">
+    	insert into public.grib_check_value_month_tab (station,
+													dataTime,
+													inserttime,
+													dataSource,
+													hour,
+													zone,
+													zone2,
+													rain24h24,rain24tn24,rain24m24,rain24f24,
+													rain24h48,rain24tn48,rain24m48,rain24f48,
+													rain24h72,rain24tn72,rain24m72,rain24f72,
+													rain24h96,rain24tn96,rain24m96,rain24f96,
+													rain24h120,rain24tn120,rain24m120,rain24f120,
+													rain24h144,rain24tn144,rain24m144,rain24f144,
+													rain24h168,rain24tn168,rain24m168,rain24f168,
+													rain24h192,rain24tn192,rain24m192,rain24f192,
+													rain24h216,rain24tn216,rain24m216,rain24f216,
+													rain24h240,rain24tn240,rain24m240,rain24f240)
+											values( #{station},
+													#{dataTime},
+													#{inserttime},
+													#{dataSource},
+													#{hour},
+													#{zone},
+													#{zone2},
+													#{rain24h24},#{rain24tn24},#{rain24m24},#{rain24f24},
+													#{rain24h48},#{rain24tn48},#{rain24m48},#{rain24f48},
+													#{rain24h72},#{rain24tn72},#{rain24m72},#{rain24f72},
+													#{rain24h96},#{rain24tn96},#{rain24m96},#{rain24f96},
+													#{rain24h120},#{rain24tn120},#{rain24m120},#{rain24f120},
+													#{rain24h144},#{rain24tn144},#{rain24m144},#{rain24f144},
+													#{rain24h168},#{rain24tn168},#{rain24m168},#{rain24f168},
+													#{rain24h192},#{rain24tn192},#{rain24m192},#{rain24f192},
+													#{rain24h216},#{rain24tn216},#{rain24m216},#{rain24f216},
+													#{rain24h240},#{rain24tn240},#{rain24m240},#{rain24f240})
+											on conflict (station,dataTime,hour,dataSource) do update set
+													inserttime = #{inserttime},
+													rain24h24 = #{rain24h24},
+													rain24tn24 = #{rain24tn24},
+													rain24m24 = #{rain24m24},
+													rain24f24 = #{rain24f24},
+													rain24h48 = #{rain24h48},
+													rain24tn48 = #{rain24tn48},
+													rain24m48 = #{rain24m48},
+													rain24f48 = #{rain24f48},
+													rain24h72 = #{rain24h72},
+													rain24tn72 = #{rain24tn72},
+													rain24m72 = #{rain24m72},
+													rain24f72 = #{rain24f72},
+													rain24h96 = #{rain24h96},
+													rain24tn96 = #{rain24tn96},
+													rain24m96 = #{rain24m96},
+													rain24f96 = #{rain24f96},
+													rain24h120 = #{rain24h120},
+													rain24tn120 = #{rain24tn120},
+													rain24m120 = #{rain24m120},
+													rain24f120 = #{rain24f120},
+													rain24h144 = #{rain24h144},
+													rain24tn144 = #{rain24tn144},
+													rain24m144 = #{rain24m144},
+													rain24f144 = #{rain24f144},
+													rain24h168 = #{rain24h168},
+													rain24tn168 = #{rain24tn168},
+													rain24m168 = #{rain24m168},
+													rain24f168 = #{rain24f168},
+													rain24h192 = #{rain24h192},
+													rain24tn192 = #{rain24tn192},
+													rain24m192 = #{rain24m192},
+													rain24f192 = #{rain24f192},
+													rain24h216 = #{rain24h216},
+													rain24tn216 = #{rain24tn216},
+													rain24m216 = #{rain24m216},
+													rain24f216 = #{rain24f216},
+													rain24h240 = #{rain24h240},
+													rain24tn240 = #{rain24tn240},
+													rain24m240 = #{rain24m240},
+													rain24f240 = #{rain24f240}
+    </insert>
+</mapper>

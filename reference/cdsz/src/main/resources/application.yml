@@ -1,0 +1,55 @@
+﻿spring:
+  application:
+    name: cdsz
+  profiles:
+    # dev 本地  sev 线上
+#    active: dev
+    active: sev1
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  servlet:
+    multipart:
+      max-file-size: 1024MB
+      max-request-size: 1024MB
+      enabled: true
+      location: files
+  web:
+    resources:
+      static-locations: file:${custom.images}
+custom:
+  images: /data/images/
+#  images: E:/fl/out/images/
+springfox:
+  documentation:
+    swagger:
+      v2:
+        enabled: true
+## 普通用户的角色id
+role:
+  ordinary: 3
+  admin: 1
+## 岗位基本名称
+position:
+  ordinary:
+    name: "基本用户"
+server:
+  # HTTPS端口（测试用8443，生产建议443）
+  port: 7088
+  servlet:
+    context-path: /cdsz
+# 日志文件配置信息
+logging:
+  level:
+    org:
+      mybatis:
+        #        SQL: INFO
+        type: INFO
+    com:
+      geovis:
+        receiver: INFO
+  file:
+    #    name: /receiver/log/vi.log
+    name: /data/logs/vi.log
+upload:
+  path: /data/upload/

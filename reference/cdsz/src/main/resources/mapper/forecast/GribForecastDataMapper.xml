@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.forecast.dao.GribForecastDataMapper">
+
+    <select id="queryGribForecastCheck" parameterType="com.check.pojo.CheckDataParams" resultType="com.forecast.pojo.GribForecastDataEntity">
+        select * from ${tableName} where datatime >= #{startTime} and datatime &lt;=#{endTime}
+    </select>
+
+    <select id="queryGribForecastRainCheckHour" parameterType="com.check.pojo.CheckDataParams" resultType="com.forecast.pojo.GribForecastRainValueEntity">
+        select station,datatime,validdate,vti, rain from ${tableName} where validdate >= #{startValidDate} and validdate &lt;=#{endValidDate}
+                                                and vti in <foreach collection="vtis" item="id" open="(" separator="," close=")">
+                                                                #{id}
+                                                           </foreach>
+                                                and station in <foreach collection="stations" item="id" open="(" separator="," close=")">
+                                                                    #{id}
+                                                                </foreach> order by validdate asc, vti asc
+    </select>
+
+    <select id="queryGribForecastRainCheckHourOrg" parameterType="com.check.pojo.CheckDataParams" resultType="com.forecast.pojo.GribForecastRainValueEntity">
+        select station,datatime,validdate,vti,tp as rain from ${tableName} where validdate >= #{startValidDate} and validdate &lt;=#{endValidDate}
+                                                and hour = #{hour}
+                                                and vti in <foreach collection="vtis" item="id" open="(" separator="," close=")">
+                                                                #{id}
+                                                           </foreach>
+                                                and station in <foreach collection="stations" item="id" open="(" separator="," close=")">
+                                                                    #{id}
+                                                                </foreach> order by validdate asc, vti asc
+    </select>
+
+    <select id="queryGribForecastRainCheckDay" parameterType="com.check.pojo.CheckDataParams" resultType="com.forecast.pojo.GribForecastRainValueEntity">
+        select station,datatime,validdate,vti,rain from ${tableName} where validdate >= #{startValidDate} and validdate &lt;=#{endValidDate}
+                                         and hour = #{hour}
+                                         and vti in <foreach collection="vtis" item="id" open="(" separator="," close=")">
+                                                        #{id}
+                                                    </foreach>
+                                         and station in <foreach collection="stations" item="id" open="(" separator="," close=")">
+                                                            #{id}
+                                                        </foreach> order by validdate asc
+    </select>
+
+    <select id="queryGribForecastRainCheckDayOrg" parameterType="com.check.pojo.CheckDataParams" resultType="com.forecast.pojo.GribForecastRainValueEntity">
+        select station,datatime,validdate,vti, tp as rain from ${tableName} where validdate >= #{startValidDate} and validdate &lt;=#{endValidDate}
+                                         and hour = #{hour}
+                                         and vti in <foreach collection="vtis" item="id" open="(" separator="," close=")">
+                                                        #{id}
+                                                    </foreach>
+                                         and station in <foreach collection="stations" item="id" open="(" separator="," close=")">
+                                                            #{id}
+                                                        </foreach> order by validdate asc
+    </select>
+
+    <select id="queryGribRainValueCompare" parameterType="com.compare.pojo.CompareDataParams" resultType="com.forecast.pojo.GribForecastRainValueEntity">
+        select station,datatime,validdate,vti,rain from ${tableName} where station = #{station} and datatime = #{dataTime} and validdate &lt;=#{endDateTime} order by validdate
+    </select>
+    <select id="queryGribRainValueCompareOrg" parameterType="com.compare.pojo.CompareDataParams" resultType="com.forecast.pojo.GribForecastRainValueEntity">
+        select station,datatime,validdate,vti,tp as rain from ${tableName} where station = #{station} and  datatime = #{dataTime} and validdate >= #{startDateTime} and validdate &lt;=#{endDateTime} order by validdate
+    </select>
+
+    <select id="queryGribRainCompare" parameterType="com.compare.pojo.CompareDataParams" resultType="com.forecast.pojo.GribForecastDataEntity">
+        select * from ${tableName} where datatime = #{dataTime}
+    </select>
+
+    <select id="queryGribForecast" parameterType="com.forecast.pojo.GribForecastDataParams" resultType="com.forecast.pojo.GribForecastDataEntity">
+        select * from ${tableName} where datatime = #{dataTime} and rainvti = #{rainVti}
+                                     and vti in <foreach collection="vtis" item="id" open="(" separator="," close=")">
+                                                    #{id}
+                                                </foreach>
+                                      order by vti
+    </select>
+    
+    
+    <select id="queryGribCheckHourDataFromDb" parameterType="com.check.pojo.CheckDataParams" resultType="com.check.pojo.CheckDataGribIndbEntity">
+    	select station,datatime,datasource,${fieldsName} from public.grib_check_value_tab where datatime >= #{startValidDate} and datatime &lt;= #{endValidDate} and hour = #{hour}
+    														and datasource in <foreach collection="dataSources" item="id" open="(" separator="," close=")">
+													                              #{id}
+													                          </foreach>
+    														and station in <foreach collection="stations" item="id" open="(" separator="," close=")">
+												                               #{id}
+												                           </foreach>
+    </select>
+    
+    
+    <select id="queryGribCheckValue" parameterType="com.check.pojo.CheckDataGribIndbEntity" resultType="com.check.pojo.CheckDataGribIndbEntity">
+    	select station from public.grib_check_value_tab where datatime = #{dataTime} and station = #{station} and datasource = #{dataSource} and hour = #{hour}
+    </select>
+    
+    <insert id="addCheckGribValue" parameterType="com.check.pojo.CheckDataGribIndbEntity">
+    	insert into public.grib_check_value_tab(station,
+												dataTime,
+												inserttime,
+												dataSource,
+												hour,
+												zone,
+												zone2,
+												rain24h24,
+												rain24tn24,
+												rain24m24,
+												rain24f24,
+												rain24h48,
+												rain24tn48,
+												rain24m48,
+												rain24f48,
+												rain24h72,
+												rain24tn72,
+												rain24m72,
+												rain24f72,
+												rain24h96,
+												rain24tn96,
+												rain24m96,
+												rain24f96,
+												rain24h120,
+												rain24tn120,
+												rain24m120,
+												rain24f120,
+												rain24h144,
+												rain24tn144,
+												rain24m144,
+												rain24f144,
+												rain24h168,
+												rain24tn168,
+												rain24m168,
+												rain24f168,
+												rain24h192,
+												rain24tn192,
+												rain24m192,
+												rain24f192,
+												rain24h216,
+												rain24tn216,
+												rain24m216,
+												rain24f216,
+												rain24h240,
+												rain24tn240,
+												rain24m240,
+												rain24f240)
+										 values(#{station},
+												#{dataTime},
+												#{inserttime},
+												#{dataSource},
+												#{hour},
+												#{zone},
+												#{zone2},
+												#{rain24h24},
+												#{rain24tn24},
+												#{rain24m24},
+												#{rain24f24},
+												#{rain24h48},
+												#{rain24tn48},
+												#{rain24m48},
+												#{rain24f48},
+												#{rain24h72},
+												#{rain24tn72},
+												#{rain24m72},
+												#{rain24f72},
+												#{rain24h96},
+												#{rain24tn96},
+												#{rain24m96},
+												#{rain24f96},
+												#{rain24h120},
+												#{rain24tn120},
+												#{rain24m120},
+												#{rain24f120},
+												#{rain24h144},
+												#{rain24tn144},
+												#{rain24m144},
+												#{rain24f144},
+												#{rain24h168},
+												#{rain24tn168},
+												#{rain24m168},
+												#{rain24f168},
+												#{rain24h192},
+												#{rain24tn192},
+												#{rain24m192},
+												#{rain24f192},
+												#{rain24h216},
+												#{rain24tn216},
+												#{rain24m216},
+												#{rain24f216},
+												#{rain24h240},
+												#{rain24tn240},
+												#{rain24m240},
+												#{rain24f240})
+    </insert>
+    
+    <update id="updateCheckGribValue">
+    	update public.grib_check_value_tab set  station = #{station},
+												dataTime = #{dataTime},
+												inserttime = #{inserttime},
+												dataSource = #{dataSource},
+												hour = #{hour},
+												zone = #{zone},
+												zone2 = #{zone2},
+												rain24h24 = #{rain24h24},
+												rain24tn24 = #{rain24tn24},
+												rain24m24 = #{rain24m24},
+												rain24f24 = #{rain24f24},
+												rain24h48 = #{rain24h48},
+												rain24tn48 = #{rain24tn48},
+												rain24m48 = #{rain24m48},
+												rain24f48 = #{rain24f48},
+												rain24h72 = #{rain24h72},
+												rain24tn72 = #{rain24tn72},
+												rain24m72 = #{rain24m72},
+												rain24f72 = #{rain24f72},
+												rain24h96 = #{rain24h96},
+												rain24tn96 = #{rain24tn96},
+												rain24m96 = #{rain24m96},
+												rain24f96 = #{rain24f96},
+												rain24h120 = #{rain24h120},
+												rain24tn120 = #{rain24tn120},
+												rain24m120 = #{rain24m120},
+												rain24f120 = #{rain24f120},
+												rain24h144 = #{rain24h144},
+												rain24tn144 = #{rain24tn144},
+												rain24m144 = #{rain24m144},
+												rain24f144 = #{rain24f144},
+												rain24h168 = #{rain24h168},
+												rain24tn168 = #{rain24tn168},
+												rain24m168 = #{rain24m168},
+												rain24f168 = #{rain24f168},
+												rain24h192 = #{rain24h192},
+												rain24tn192 = #{rain24tn192},
+												rain24m192 = #{rain24m192},
+												rain24f192 = #{rain24f192},
+												rain24h216 = #{rain24h216},
+												rain24tn216 = #{rain24tn216},
+												rain24m216 = #{rain24m216},
+												rain24f216 = #{rain24f216},
+												rain24h240 = #{rain24h240},
+												rain24tn240 = #{rain24tn240},
+												rain24m240 = #{rain24m240},
+												rain24f240 = #{rain24f240}
+										where datatime = #{dataTime} and station = #{station} and datasource = #{dataSource} and hour = #{hour}
+    </update>
+</mapper>

@@ -1,0 +1,103 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "乌鲁木齐市",
+                "areacode": "650100"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    87.617733,
+                    43.792818
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "拉萨市",
+                "areacode": "540100"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    91.132212,
+                    29.660361
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "西宁市",
+                "areacode": "630100"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    101.778916,
+                    36.623178
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "兰州市",
+                "areacode": "620100"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    103.823557,
+                    36.058039
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "银川市",
+                "areacode": "640100"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    106.278179,
+                    38.46637
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "成都市",
+                "areacode": "510100"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    104.065735,
+                    30.659462
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "重庆市",
+                "areacode": "500000"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    106.504962,
+                    29.533155
+                ]
+            }
+        }
+    ]
+}

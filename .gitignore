@@ -1,0 +1,26 @@
+# === 大体量数据文件 ===
+data/EC预报/
+data/量级/
+data/phase/
+*.grib
+*.grib2
+*.gbx9
+*.ncx4
+*.nc
+*.npy
+*.npz
+
+# === 参考项目构建产物 ===
+reference/cdsz/target/
+reference/yy-webgis-bj/node_modules/
+reference/yy-webgis-bj/.git/
+reference/yy-webgis-bj/.git.bak/
+
+# === 通用 ===
+.DS_Store
+*.docx
+__pycache__/
+*.pyc
+node_modules/
+.env
+*.log

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<!-- zIndex奇怪现象， 自己zIndex为2,兄弟zIndex为auto， 兄弟的儿子zIndex为1和3， 展示在兄弟的两个儿子层级之间 -->
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+</head>
+
+<body>
+    <div>
+        <div class="parent1">
+            <div class="child1" style="z-index: 1;">Child 1 of Parent 1</div>
+            <div class="child2" style="z-index: 3;">Child 2 of Parent 1</div>
+        </div>
+    </div>
+    <div class="target">Target Div</div> <!-- 这个就是要插入层级的div -->
+
+</body>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        position: relative;
+    }
+
+    .parent1 {
+        position: relative;
+        /* 相对定位，为子元素的绝对定位提供参考坐标 */
+        width: 100vw;
+        height: 100vh;
+        background-color: lightgray;
+
+    }
+
+    .child1 {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        background-color: gray;
+        margin: 10px;
+    }
+
+    .child2 {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        background-color: gray;
+        margin: 10px;
+        top: 100px;
+    }
+
+    .target {
+        position: absolute;
+        /* 设置为绝对定位 */
+        width: 150px;
+        height: 150px;
+        background-color: orange;
+        z-index: 2;
+        top: 0;
+        left: 0;
+
+    }
+</style>
+
+</html>

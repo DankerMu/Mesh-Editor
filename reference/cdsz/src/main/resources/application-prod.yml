@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+#    url: jdbc:postgresql://postgres:5432/postgres
+#    url: jdbc:postgresql://127.0.0.1:5432/x30
+    url: jdbc:postgresql://192.168.193.42:5432/x30
+    username: postgres
+    password: geovisPostgres
+    type: com.alibaba.druid.pool.DruidDataSource
+  redis:
+    host: redis
+    port: 6379
+    password: 123456
+    database: 2
+    lettuce:
+      pool:
+        max-active: 8
+        max-wait: -1
+        max-idle: 8
+        min-idle: 0
+
+#eureka:
+#  client:
+#    serviceUrl:
+##      defaultZone: http://BaseServer:1000/eureka/
+#      defaultZone: http://127.0.0.1:8888/eureka/
+#      fetch-registry: false
+#      register-with-eureka: false
+#  instance:
+#    instance-id: SystemManager-share
+#    prefer-ip-address: true
+
+
+# mybatis 配置信息xiang
+mybatis-plus:
+  # 配置mapper.xml文件路径
+  mapper-locations: classpath:/mapper/*.xml
+  #configuration:
+    ## 开启log
+    #log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

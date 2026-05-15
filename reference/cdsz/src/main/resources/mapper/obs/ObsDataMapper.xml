@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.obs.dao.ObsDataMapper">
+    <select id="queryObsData" parameterType="com.obs.pojo.ObsDataParams" resultType="com.obs.pojo.ObsDataEntity">
+        select station_id_d as station,
+               datetime,
+               tem as at,
+               tem_max_24h as at_max,
+               tem_min_24h as at_min,
+               pre_1h as rain,
+               pre_24h as rain24,
+               win_d_avg_10mi as wd,
+               win_s_avg_10mi as ws,
+               vis,
+               tcc as n,
+               wep_now as ptype
+        from public.surf_chn_mul_hor_micaps
+        where station_id_d = #{station}
+        and datetime &gt;= #{dataTime}
+        and datetime &lt;= #{endDateTime}
+        order by datetime
+    </select>
+
+    <select id="queryObsCheckData" parameterType="com.check.pojo.CheckDataParams" resultType="com.obs.pojo.ObsDataEntity">
+        select station_id_d as station,
+               datetime,
+               lon,
+               lat,
+               tem as at,
+               tem_max_24h as at_max,
+               tem_min_24h as at_min,
+               pre_1h as rain,
+               pre_24h as rain24,
+               win_d_avg_10mi as wd,
+               win_s_avg_10mi as ws,
+               vis,
+               tcc,
+               wep_now as ptype
+        from public.surf_chn_mul_hor_micaps
+        where
+            datetime >= #{startTime}
+            and datetime &lt;= #{endValidDate}
+            and station_id_d in <foreach collection="stations" item="id" open="(" separator="," close=")">
+                                    #{id}
+                                </foreach>
+    </select>
+    
+    <insert id="addUploadStationData" parameterType="com.upload.UploadStationData">
+		insert into surf_chn_mul_hor_micaps (station_id_d, station_name, datetime, lon, lat,
+											 tem, tem_max_24h, tem_min_24h, pre_1h, pre, rhu,
+											 win_d_avg_10mi, win_s_avg_10mi,vis,tcc,
+											 filename,filepath,inserttime) 
+											 values(#{stationNum}, #{stationName}, #{dateTime}, #{lon}, #{lat}, 
+											 #{tem}, #{temMax}, #{temMin}, #{pre}, #{pre}, #{rhu}, 
+											 #{wd10mi}, #{ws10mi}, #{vis},#{tcc},
+											 #{fileName},#{filePath},#{insertTime}) 
+											 on conflict (datetime,station_id_d) do update set 
+											 station_id_d = #{stationNum},
+											 station_name = #{stationName},
+											 datetime = #{dateTime},
+											 lon = #{lon},
+											 lat = #{lat},
+											 tem = #{tem},
+											 tem_max_24h = #{temMax},
+											 tem_min_24h = #{temMin},
+											 pre_1h = #{pre},
+											 pre = #{pre},
+											 rhu = #{rhu},
+											 win_d_avg_10mi = #{wd10mi},
+											 win_s_avg_10mi = #{ws10mi},
+											 vis = #{vis},
+											 tcc = #{tcc},
+											 filename = #{fileName},
+											 filepath = #{filePath},
+											 inserttime = #{insertTime}
+    </insert>
+
+</mapper>

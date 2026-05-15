@@ -1,0 +1,49 @@
+﻿spring:
+  datasource:
+    dynamic:
+      primary: smdb
+      strict: false
+      datasource:
+        stdb:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://221.238.158.101:20006/postgres?sslmode=disable
+          username: root
+          password: Password123@postgres
+          type: com.alibaba.druid.pool.DruidDataSource
+        smdb:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://221.238.158.101:20006/postgres?sslmode=disable
+          username: root
+          password: Password123@postgres
+          type: com.alibaba.druid.pool.DruidDataSource
+        fidb:
+          driver-class-name: org.postgresql.Driver
+          url: jdbc:postgresql://221.238.158.101:20006/postgres?sslmode=disable
+          username: root
+          password: Password123@postgres
+          type: com.alibaba.druid.pool.DruidDataSource
+  ## 数据连接池
+  druid:
+    initialSize: 1
+    minIdle: 1
+    maxActive: 5
+    keepAlive: true
+    maxWait: 60000
+    minEvictableIdleTimeMills: 300000
+    testWhileIdle: true
+    testOnBorrow: true
+    testOnReturn: true
+    poolPreparedStatements: true
+    ## 配置拦截
+    filters: stat,wall
+
+# mybatis 配置信息xiang
+mybatis-plus:
+  # 配置mapper.xml文件路径
+  mapper-locations:
+    - classpath:/mapper/**/*.xml
+    - classpath:/mapper/forecast/*.xml
+  configuration:
+    # 开启log
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+

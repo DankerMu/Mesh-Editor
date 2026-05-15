@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.original.dao.NafpDataMapper">
+    <select id="queryT1279Data" parameterType="com.original.pojo.NafpDataParams" resultType="com.original.pojo.NafpDataEntity">
+        select * from public.nafp_t1279_tab
+    </select>
+    <select id="queryKT1279Data" parameterType="com.original.pojo.NafpDataParams" resultType="com.original.pojo.NafpDataEntity">
+        select * from public.nafp_kt1279_tab
+    </select>
+    <select id="queryEcmfData" parameterType="com.original.pojo.NafpDataParams" resultType="com.original.pojo.NafpDataEntity">
+        select * from public.nafp_ecmf_tab
+    </select>
+    <select id="queryGrapesData" parameterType="com.original.pojo.NafpDataParams" resultType="com.original.pojo.NafpDataEntity">
+        select * from public.nafp_grapes_tab
+    </select>
+    <select id="queryCldasData" parameterType="com.original.pojo.NafpDataParams" resultType="com.original.pojo.NafpDataEntity">
+        select * from public.nafp_cldas_tab
+    </select>
+    <select id="queryCmpaData" parameterType="com.original.pojo.NafpDataParams" resultType="com.original.pojo.NafpDataEntity">
+        select * from public.nafp_cmpa_tab
+    </select>
+    <select id="querySwc3kmData" parameterType="com.original.pojo.NafpDataParams" resultType="com.original.pojo.NafpDataEntity">
+        select * from public.nafp_swc3km_tab
+    </select>
+    <select id="querySwc9kmData" parameterType="com.original.pojo.NafpDataParams" resultType="com.original.pojo.NafpDataEntity">
+        select * from public.nafp_swc9km_tab
+    </select>
+    <select id="queryScmocData" parameterType="com.original.pojo.NafpDataParams" resultType="com.original.pojo.NafpDataEntity">
+        select * from public.nafp_scmoc_tab
+    </select>
+
+
+
+
+
+    <select id="queryNafpDataCount" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+        select count(datatime) from ${params.tableName} where datatime = #{params.dataTime} and datasource = #{params.dataSource}
+    </select>
+
+    <delete id="deleteNafpDataByDateTimeDataSource" parameterType="com.original.pojo.DataQcManagerParams">
+        delete from ${params.tableName} where datasource = #{params.dataSource} and datatime in
+        <foreach collection="params.datatimes" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <update id="updateNafpDataByDateTimeDataSource" parameterType="com.original.pojo.DataQcManagerParams">
+        update data_qc_manager_tab set arrived = 0, unarrived = 0, status = '异常'
+        where datasource = #{params.dataSource} and datatime in
+        <foreach collection="params.datatimes" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <select id="queryOriginalNafpDataTotal" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+        select count(filename) as total from ${params.tableName} where datatime = #{params.dataTime}
+    </select>
+
+    <select id="queryOriginalNafpDataCount" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+        select datatime,count(datatime) as arrived from ${params.tableName} where datatime >= #{params.startTime} and datatime &lt; #{params.endTime}
+        group by datatime
+    </select>
+
+    <select id="queryOriginalNafpDataCountAll" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+        select * from (
+            select datatime,count(datatime) as arrived from ${params.tableName} where datatime >= #{params.startTime} and datatime &lt; #{params.endTime}
+                                                                                group by datatime
+            union all
+            select datatime,count(datatime) as arrived from ${params.tableName} where datatime >= #{params.startTime} and datatime &lt; #{params.endTime}
+                                                                                group by datatime
+
+                      ) combined
+            order by datatime desc
+    </select>
+
+    <select id="queryOriginalNafpDataCountByPage" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+        select datatype as dataSource,datatime,count(datatime) as arrived from public.nafp_grib_tab
+                                                   where datatime >= #{params.startTime} and datatime &lt; #{params.endTime} and datatype = #{params.dataSource}
+                                                   group by datatime, datatype order by datatime desc, datatype asc
+    </select>
+    
+    <select id="queryDataManagerCountByPageAll" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+    	select * from public.data_manager_tab 
+    			 where datatime >= #{params.startTime} and datatime &lt;= #{params.endTime} 
+    			 order by datatime desc, datasource asc
+    </select>
+    
+    
+    <select id="queryDataManagerCountAll" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+    	select * from public.data_manager_tab 
+    			 where datatime >= #{params.startTime} and datatime &lt;= #{params.endTime} 
+    			 order by datatime desc, datasource asc
+    </select>
+    
+    <select id="queryDataManagerCountByPage" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+    	select * from public.data_manager_tab 
+    			 where datatime >= #{params.startTime} and datatime &lt;= #{params.endTime} 
+    			 and datasource = #{params.dataSource} 
+    			 order by datatime desc, datasource asc
+    </select>
+    
+    
+    <select id="queryDataManagerCount" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+    	select * from public.data_manager_tab 
+    			 where datatime >= #{params.startTime} and datatime &lt;= #{params.endTime} 
+    			 and datasource = #{params.dataSource} 
+    			 order by datatime desc, datasource asc
+    </select>
+    
+    <select id="queryOriginalNafpDataCountByPageAll" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+        select datatype as dataSource,datatime,count(datatime) as arrived from public.nafp_grib_tab
+                where datatime >= #{params.startTime} and datatime &lt; #{params.endTime}
+                group by datatype, datatime 
+                order by datatime desc, datatype asc
+    </select>
+    <select id="queryOriginalNafpDataCountByPageAllCldasCmpa" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+        select datatype as dataSource, datatime, count(f.datatime) as arrived from (
+			select datatype, datatime,validdate from public.nafp_grib_tab
+                where datatype in ('cldas', 'cmpa') and datatime >= #{params.startTime} and datatime &lt; #{params.endTime}
+                group by datatype, datatime,validdate
+								) as f group by datatime, datatype order by datatime desc, datatype asc
+    </select>
+    
+    <select id="queryOriginalNafpDataCountByAll" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+        select datatype as dataSource,datatime,count(datatime) as arrived from public.nafp_grib_tab
+                where datatime >= #{params.startTime} and datatime &lt; #{params.endTime}
+                group by datatype, datatime 
+                order by datatime desc, datatype asc
+    </select>
+    
+    <select id="queryOriginalNafpDataCountByAllCldas" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+        select datatype as datasource, datatime, datatime, count(f.datatype) as arrived from (
+			select datatype, datatime,filename,validdate from public.nafp_grib_tab
+                where datatype in ('cldas') and datatime >= #{params.startTime} and datatime &lt; #{params.endTime}
+                group by datatype, filename,datatime,validdate
+								) as f group by datatime,datatype
+    </select>
+    <select id="queryOriginalNafpDataCountByAllCmpa" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+        select datatype as dataSource, datatime, count(f.datatime) as arrived from (
+			select datatype, datatime,validdate from public.nafp_grib_tab
+                where datatype in ('cldas', 'cmpa') and datatime >= #{params.startTime} and datatime &lt; #{params.endTime}
+                group by datatype, datatime,validdate
+								) as f group by datatime, datatype
+    </select>
+    
+    <select id="queryOriginalNafpDataCountPageCldasCmpa" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+        select datatype as datasource, count(f.datatime) as arrived from (
+			select datatype, datatime,validdate from public.nafp_grib_tab
+                where datatype in ('cmpa') and datatime >= #{params.startTime} and datatime &lt; #{params.endTime}
+                group by datatype, datatime,validdate
+								) as f group by datatime, datatype
+    </select>
+    <select id="queryOriginalNafpDataCountCldasCmpa" parameterType="com.original.pojo.DataQcManagerParams" resultType="com.original.pojo.DataQcManagerEntity">
+        select datatype as dataSource, datatime, count(f.datatime) as arrived from (
+			select datatype, datatime,validdate from public.nafp_grib_tab
+                where datatype in ('cldas', 'cmpa') and datatime >= #{params.startTime} and datatime &lt; #{params.endTime}
+                group by datatype, datatime,validdate
+								) as f group by datatime, datatype
+    </select>
+
+
+    <insert id="insertQcCount" parameterType="com.original.pojo.DataQcManagerParams">
+        insert into data_qc_manager_tab (datatime, total, arrived, unarrived, status, inserttime, datasource)
+        values (#{params.dataTime}, #{params.total}, #{params.arrived}, #{params.unarrived}, #{params.status}, #{params.insertTime}, #{params.dataSource})
+    </insert>
+
+</mapper>

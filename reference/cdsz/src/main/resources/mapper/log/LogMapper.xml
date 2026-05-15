@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.log.dao.LogMapper">
+    <insert id="addLogRecord">
+        insert into log_records_tab (username, optiontype, optioncontent, optiontime)
+        values (#{username}, #{optiontype}, #{optioncontent}, #{optiontime})
+    </insert>
+
+    <select id="queryLogRecords" parameterType="com.log.pojo.LogQueryParams" resultType="com.log.pojo.LogRecordParams">
+        select * from log_records_tab
+        where optiontime >= #{params.startTime} and optiontime &lt;= #{params.endTime}
+              and username like Concat('%',#{params.userName},'%') order by optiontime desc
+    </select>
+
+</mapper>

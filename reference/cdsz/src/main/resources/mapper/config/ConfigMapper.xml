@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.config.dao.ConfigMapper">
+
+    <select id="getVtisByDataSource" parameterType="java.lang.String" resultType="com.config.pojo.VitsEntity">
+        select vtis from public.vtis_config_tab where datasource = #{dataSource}
+    </select>
+
+    <select id="getDataSourcesName" parameterType="java.lang.String" resultType="com.config.pojo.DataSourceNameEntity">
+        select * from public.datasourcename_config_tab where model = #{model}
+    </select>
+
+    <select id="getDataSources" resultType="com.config.pojo.DataSourceNameEntity">
+        select * from public.datasourcename_config_tab
+    </select>
+
+    <select id="getStationForecastHeader" parameterType="com.config.pojo.ConfigParams" resultType="com.config.pojo.HeaderEntity">
+        select * from public.station_forecast_head_config_tab where mk = #{mk} and enabled = 0 order by index
+    </select>
+
+    <select id="getStationForecastCheckElements" resultType="com.config.pojo.HeaderEntity">
+        select * from public.station_forecast_head_config_tab where mk = #{mk} and enabled = 0 and elementunit != 'mm' order by index
+    </select>
+
+    <select id="getCheckDataMethod" resultType="com.config.pojo.MethodEntity">
+        select method from public.check_method_tab
+    </select>
+
+    <select id="queryDataQcDataType" resultType="com.config.pojo.DataSourceType">
+        select * from datasource_type_config_tab
+    </select>
+
+    <select id="queryModelType" resultType="com.config.pojo.ModelTypeEntity">
+        select * from public.model_config_tab
+    </select>
+
+    <select id="getElementsByDataType" parameterType="com.config.pojo.ConfigParams" resultType="com.config.pojo.ElementEntity">
+        select id,element,elementname from public.data_check_config_tab where datatype = #{dataType} order by element
+    </select>
+
+    <select id="getMethodByElement" parameterType="com.config.pojo.ConfigParams" resultType="com.config.pojo.MethodEntity">
+        select method from public.data_check_config_tab where element = #{element}
+    </select>
+
+    <select id="getDisVtiByElement" parameterType="com.config.pojo.ConfigParams" resultType="com.config.pojo.VitsEntity">
+        select disvti as vtis from public.data_check_config_tab where element = #{element}
+    </select>
+
+    <select id="getDataSourceByDataType" parameterType="com.config.pojo.ConfigParams" resultType="com.config.pojo.DataSourceType">
+        select id,datasource,datasourcename,index from public.datasource_type_config_tab where datatype = #{dataType} order by index
+    </select>
+
+    <select id="getDataZone" resultType="com.config.pojo.DataZoneEntity">
+        select id,datazone,index from public.data_zone_config_tab order by index
+    </select>
+
+    <select id="getZoneStations" parameterType="com.config.pojo.ConfigParams" resultType="com.config.pojo.ZoneStationEntity">
+        select station_id_d as station, station_name as stationname from public.station_info_tab where province = #{province}
+    </select>
+</mapper>
