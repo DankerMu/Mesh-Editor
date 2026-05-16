@@ -32,7 +32,7 @@ const onSubmit: FormProps['onSubmit'] = async ({ validateResult }) => {
     await authStore.login(formData.username, formData.password)
     await router.push('/')
   } catch (error: unknown) {
-    const responseMessage =
+    const responseCode =
       typeof error === 'object' &&
       error !== null &&
       'response' in error &&
@@ -41,12 +41,15 @@ const onSubmit: FormProps['onSubmit'] = async ({ validateResult }) => {
       'data' in error.response &&
       typeof error.response.data === 'object' &&
       error.response.data !== null &&
-      'message' in error.response.data &&
-      typeof error.response.data.message === 'string'
-        ? error.response.data.message
+      'code' in error.response.data &&
+      typeof error.response.data.code === 'string'
+        ? error.response.data.code
         : null
 
-    errorMessage.value = responseMessage ?? '登录失败，请检查用户名和密码'
+    errorMessage.value =
+      responseCode === 'USER_DISABLED'
+        ? '账号已被禁用，请联系管理员'
+        : '登录失败，请检查用户名和密码'
   } finally {
     loading.value = false
   }

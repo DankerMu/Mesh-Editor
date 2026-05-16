@@ -49,17 +49,24 @@ export const useAuthStore = defineStore('auth', {
         role: loginData.role,
       }
       localStorage.setItem('token', loginData.token)
+      localStorage.setItem('user', JSON.stringify(this.user))
     },
     logout() {
       this.user = null
       this.token = null
       localStorage.removeItem('token')
+      localStorage.removeItem('user')
     },
     restoreSession() {
       const token = localStorage.getItem('token')
+      const userStr = localStorage.getItem('user')
 
       if (token) {
         this.token = token
+      }
+
+      if (userStr) {
+        this.user = JSON.parse(userStr)
       }
     },
   },

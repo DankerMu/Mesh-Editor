@@ -53,9 +53,42 @@ describe('authStore', () => {
       role: 'admin',
     })
     expect(authStore.role).toBe('admin')
+    expect(localStorage.getItem('token')).toBe('jwt-token')
+    expect(JSON.parse(localStorage.getItem('user') ?? '{}')).toEqual({
+      user_id: 'user-1',
+      username: 'admin',
+      display_name: '管理员',
+      role: 'admin',
+    })
   })
 
-  it('T5.5 logout 后状态清空', () => {
+  it('T5.5 restoreSession 恢复 token 与 user 元数据', () => {
+    localStorage.setItem('token', 'jwt-token')
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
+        user_id: 'user-1',
+        username: 'admin',
+        display_name: '管理员',
+        role: 'admin',
+      }),
+    )
+
+    const authStore = useAuthStore()
+    authStore.restoreSession()
+
+    expect(authStore.isAuthenticated).toBe(true)
+    expect(authStore.token).toBe('jwt-token')
+    expect(authStore.user).toEqual({
+      user_id: 'user-1',
+      username: 'admin',
+      display_name: '管理员',
+      role: 'admin',
+    })
+    expect(authStore.role).toBe('admin')
+  })
+
+  it('T5.5b logout 后状态与持久化缓存清空', () => {
     const authStore = useAuthStore()
     authStore.token = 'jwt-token'
     authStore.user = {
@@ -65,6 +98,7 @@ describe('authStore', () => {
       role: 'admin',
     }
     localStorage.setItem('token', 'jwt-token')
+    localStorage.setItem('user', JSON.stringify(authStore.user))
 
     authStore.logout()
 
@@ -72,5 +106,6 @@ describe('authStore', () => {
     expect(authStore.token).toBeNull()
     expect(authStore.user).toBeNull()
     expect(localStorage.getItem('token')).toBeNull()
+    expect(localStorage.getItem('user')).toBeNull()
   })
 })
