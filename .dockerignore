@@ -1,0 +1,9 @@
+.git
+.claude
+.pytest_cache
+backend/.pytest_cache
+backend/.venv
+backend/mesh_editor.db
+frontend/dist
+frontend/node_modules
+frontend/.vite
