@@ -2,10 +2,13 @@ import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 
+from app.api.dependencies import get_current_user
+from app.api.routes.auth import protected_router as auth_router
+from app.api.routes.auth import public_router as auth_public_router
 from app.api.routes.health import router as health_router
 from app.core.error_registry import get_error
 from app.core.errors import DomainError
@@ -25,6 +28,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Mesh Editor API", version="2.0.0", lifespan=lifespan)
+api_router = APIRouter(prefix="/api", dependencies=[Depends(get_current_user)])
+public_api_router = APIRouter(prefix="/api")
 
 
 @app.middleware("http")
@@ -85,4 +90,9 @@ async def generic_error_handler(request: Request, exc: Exception) -> JSONRespons
     )
 
 
-app.include_router(health_router, prefix="/api")
+public_api_router.include_router(health_router)
+public_api_router.include_router(auth_public_router)
+api_router.include_router(auth_router)
+
+app.include_router(public_api_router)
+app.include_router(api_router)
