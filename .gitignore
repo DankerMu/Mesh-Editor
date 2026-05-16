@@ -21,6 +21,8 @@ reference/yy-webgis-bj/.git.bak/
 *.docx
 __pycache__/
 *.pyc
+.venv/
 node_modules/
 .env
 *.log
+openspec/
