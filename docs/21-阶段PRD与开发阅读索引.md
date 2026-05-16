@@ -17,13 +17,13 @@
 
 | 阶段 | 主要目标 | 必读文档 | 辅助文档 |
 |---|---|---|---|
-| M0 工程骨架与基础设施 | 建立项目骨架、配置、权限、迁移、错误码 | `docs/10`、`docs/11`、`docs/16`、`docs/17` | `schemas/enums.json`、`schemas/error_codes.json`、`progress.md` |
+| M0 工程骨架与基础设施 | 建立项目骨架、配置、权限、迁移、错误码 | `docs/10`、`docs/11`、`docs/16`、`docs/17` | `docs/22`、`schemas/frontend_ui_tokens.json`、`schemas/enums.json`、`schemas/error_codes.json`、`progress.md` |
 | M1 数据接入与窗口生成 | 扫描数据、生成窗口、构建 qpf/ptype、QC | `docs/03`、`docs/13`、`docs/11`、`docs/18` | `schemas/product_config.json` |
-| M2 地图与编辑工作台 | 地图显示、窗口选择、字段加载、绘制选区 | `docs/12`、`docs/17`、`docs/04`、`docs/10` | `docs/13`、`schemas/enums.json` |
-| M3 编辑引擎与操作留痕 | preview/apply、EditOps、undo/redo、mask、统计 | `docs/14`、`docs/16`、`docs/17`、`docs/18` | `docs/05`、`docs/10` |
-| M4 版本保存、审核与发布 | 保存版本、提交审核、发布、发布产物 | `docs/07`、`docs/13`、`docs/16`、`docs/17` | `docs/06`、`docs/11` |
-| M5 复盘中心与绘图任务队列 | review_payload、plotter、任务队列、复盘包 | `docs/15`、`docs/08`、`docs/17`、`docs/18` | `docs/06`、参考绘图脚本 |
-| M6 运维、统计、配置与试运行 | 用户、审计、配置、监控、统计、E2E | `docs/07`、`docs/16`、`docs/17`、`docs/18`、`docs/19` | `checklists/开发前检查清单.md` |
+| M2 地图与编辑工作台 | 地图显示、窗口选择、字段加载、绘制选区 | `docs/12`、`docs/17`、`docs/04`、`docs/10`、`docs/22`、`docs/23`、`docs/24`、`docs/25` | `docs/13`、`schemas/enums.json` |
+| M3 编辑引擎与操作留痕 | preview/apply、EditOps、undo/redo、mask、统计 | `docs/14`、`docs/16`、`docs/17`、`docs/18`、`docs/24`、`docs/26` | `docs/05`、`docs/10` |
+| M4 版本保存、审核与发布 | 保存版本、提交审核、发布、发布产物 | `docs/07`、`docs/13`、`docs/16`、`docs/17`、`docs/23`(F05)、`docs/24`(审核交互)、`docs/26`(审核走查) | `docs/06`、`docs/11` |
+| M5 复盘中心与绘图任务队列 | review_payload、plotter、任务队列、复盘包 | `docs/15`、`docs/08`、`docs/17`、`docs/18`、`docs/23`(F06/F15)、`docs/24`(任务状态)、`docs/26`(复盘中心走查) | `docs/06`、参考绘图脚本 |
+| M6 运维、统计、配置与试运行 | 用户、审计、配置、监控、统计、E2E | `docs/07`、`docs/16`、`docs/17`、`docs/18`、`docs/19`、`docs/23`(F16-F18)、`docs/26`(运维/统计/系统管理验收) | `checklists/开发前检查清单.md` |
 
 ---
 
@@ -228,7 +228,11 @@ forecaster（加载窗口、查看数据、绘制选区）
 - [ ] 选择 window 后地图加载 qpf/ptype 色斑显示正确
 - [ ] 鼠标拾取显示 grid_i / grid_j / qpf / ptype 值
 - [ ] polygon / line_buffer / brush_path 三种选区均可绘制并生成 geometry
-- [ ] 编辑页面布局完整（工具栏、地图区、信息面板）
+- [ ] 编辑页面布局完整：顶部栏 56px、左侧栏 260px 可折叠、右侧栏 340px 可折叠、底部状态栏 36px
+- [ ] 查看模式切换正确：before/after/delta/change/touched/changed/review 各模式显示对应图层
+- [ ] 按钮启禁用规则：无 session 时选区工具禁用，无 mask 时降水/相态面板禁用
+- [ ] 选区工具交互：polygon 双击闭合 + Esc 取消，line_buffer 可设 width_grid，brush_path 滚轮调半径
+- [ ] editorStore 包含 loading/error 状态，加载中显示 loading 遮罩
 - [ ] CI 通过：前端组件测试全绿
 
 ---
@@ -304,6 +308,9 @@ forecaster（执行编辑、预览、应用、撤销）
 - [ ] undo/redo 操作正确（数组还原、操作历史同步）
 - [ ] invalid mask 区域不参与编辑
 - [ ] edit_operation 入库包含 geometry 和 raster mask
+- [ ] new_precip_needs_ptype=true 时弹出相态选择弹窗，apply 携带 target_ptype
+- [ ] PreviewStatsPanel 显示影响格点数/min/max/mean
+- [ ] OperationHistory 显示操作列表，支持点击展开详情
 - [ ] CI 通过：编辑引擎单元测试全绿
 
 ---

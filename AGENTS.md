@@ -19,9 +19,11 @@
 progress.md          ← 项目进度（必读）
 建设方案.md          ← V2.0 主文档入口
 docs/01-09           ← 业务方案
-docs/10-20           ← 工程设计
-checklists/          ← 开发检查清单
-schemas/             ← 错误码、枚举、产品配置 JSON（前后端共享唯一真相源）
+docs/10-21           ← 工程设计与阶段 PRD
+docs/22-26           ← 前端 UI/UX 规格与效果图落地规范
+docs/assets/frontend/effects/ ← 效果图资产（F01-F06 已生成）
+checklists/          ← 开发检查清单（含前端 UIUX 检查清单）
+schemas/             ← 错误码、枚举、产品配置、前端视觉 token、效果图清单 JSON
 data/                ← 测试数据
 reference/           ← 参考项目（只读）
 ```
@@ -33,6 +35,10 @@ reference/           ← 参考项目（只读）
 - 工程设计入口：`docs/10-开发总蓝图.md` → `docs/11-19`
 - 里程碑与任务拆解：`docs/19-开发任务拆解与里程碑.md`
 - 阶段 PRD 与开发入口：`docs/21-阶段PRD与开发阅读索引.md`
+- 前端 UI/UX 规格：`docs/22-26`
+- 效果图资产：`docs/assets/frontend/effects/`
+- 前端视觉 token：`schemas/frontend_ui_tokens.json`
+- 效果图清单：`schemas/frontend_effect_screens.json`
 - 开发前检查清单：`checklists/开发前检查清单.md`
 - 错误码定义：`schemas/error_codes.json`
 

@@ -1,0 +1,62 @@
+{
+  "colors": {
+    "primary": "#1664FF",
+    "primaryHover": "#4080FF",
+    "primaryBg": "#E8F1FF",
+    "success": "#00A870",
+    "successBg": "#E8F8F2",
+    "warning": "#ED7B2F",
+    "warningBg": "#FFF3E8",
+    "danger": "#E34D59",
+    "dangerBg": "#FDECEE",
+    "neutral": "#86909C",
+    "neutralBg": "#F2F3F5",
+    "pageBg": "#F5F7FA",
+    "cardBg": "#FFFFFF",
+    "border": "#E5E6EB",
+    "textPrimary": "#1D2129",
+    "textSecondary": "#4E5969",
+    "textPlaceholder": "#86909C"
+  },
+  "layout": {
+    "topNavHeight": 56,
+    "leftSidebarWidth": 260,
+    "rightSidebarWidth": 340,
+    "bottomStatusHeight": 36,
+    "pageGap": 12,
+    "cardPadding": 16,
+    "cardRadius": 8,
+    "controlRadius": 6
+  },
+  "typography": {
+    "fontFamily": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif",
+    "titleLg": {
+      "size": 22,
+      "lineHeight": 30,
+      "weight": 600
+    },
+    "title": {
+      "size": 18,
+      "lineHeight": 26,
+      "weight": 600
+    },
+    "body": {
+      "size": 14,
+      "lineHeight": 22,
+      "weight": 400
+    },
+    "caption": {
+      "size": 12,
+      "lineHeight": 18,
+      "weight": 400
+    }
+  },
+  "map": {
+    "polygonStroke": "#1664FF",
+    "polygonFill": "rgba(22,100,255,0.16)",
+    "previewStroke": "#7B61FF",
+    "previewFill": "rgba(123,97,255,0.22)",
+    "touchedStroke": "#7B61FF",
+    "changedStroke": "#E34D59"
+  }
+}

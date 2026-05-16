@@ -1,0 +1,227 @@
+[
+  {
+    "id": "F01",
+    "name": "网格编辑主界面",
+    "status": "已生成",
+    "route": "/editor/:windowId",
+    "stage": "M2/M3",
+    "asset": "F01-editor-main.png",
+    "components": [
+      "EditorView",
+      "BaseMap",
+      "PrecipPhaseGridLayer",
+      "QpfEditPanel",
+      "PtypeEditPanel"
+    ]
+  },
+  {
+    "id": "F02",
+    "name": "数据窗口选择页",
+    "status": "已生成",
+    "route": "/editor",
+    "stage": "M1/M2",
+    "asset": "F02-window-selection.png",
+    "components": [
+      "WindowSelector",
+      "WindowStatusTag",
+      "DataStatusPanel"
+    ]
+  },
+  {
+    "id": "F03",
+    "name": "多边形编辑状态",
+    "status": "已生成",
+    "route": "/editor/:windowId",
+    "stage": "M2",
+    "asset": "F03-polygon-editing.png",
+    "components": [
+      "DrawTools",
+      "MaskOverlayLayer",
+      "GridTooltip"
+    ]
+  },
+  {
+    "id": "F04",
+    "name": "编辑预览状态",
+    "status": "已生成",
+    "route": "/editor/:windowId",
+    "stage": "M3",
+    "asset": "F04-preview-state.png",
+    "components": [
+      "PreviewStatsPanel",
+      "OperationHistory",
+      "MaskOverlayLayer"
+    ]
+  },
+  {
+    "id": "F05",
+    "name": "版本审核页面",
+    "status": "已生成",
+    "route": "/approval/version/:versionId",
+    "stage": "M4",
+    "asset": "F05-version-approval.png",
+    "components": [
+      "ApprovalView",
+      "VersionComparePanel",
+      "ApprovalActionPanel"
+    ]
+  },
+  {
+    "id": "F06",
+    "name": "复盘中心页面",
+    "status": "已生成",
+    "route": "/review/product/:reviewId",
+    "stage": "M5",
+    "asset": "F06-review-center.png",
+    "components": [
+      "ReviewCenterView",
+      "ReviewImagePanel",
+      "ReviewTaskStatus"
+    ]
+  },
+  {
+    "id": "F07",
+    "name": "登录页",
+    "status": "待生成",
+    "route": "/login",
+    "stage": "M0",
+    "asset": "",
+    "components": [
+      "LoginView"
+    ]
+  },
+  {
+    "id": "F08",
+    "name": "系统首页/工作台入口",
+    "status": "待生成",
+    "route": "/",
+    "stage": "M0/M1",
+    "asset": "",
+    "components": [
+      "HomeView",
+      "MenuCards"
+    ]
+  },
+  {
+    "id": "F09",
+    "name": "绘制笔/线缓冲编辑状态",
+    "status": "待生成",
+    "route": "/editor/:windowId",
+    "stage": "M2",
+    "asset": "",
+    "components": [
+      "DrawTools",
+      "LineBufferTool"
+    ]
+  },
+  {
+    "id": "F10",
+    "name": "笔刷编辑状态",
+    "status": "待生成",
+    "route": "/editor/:windowId",
+    "stage": "M2",
+    "asset": "",
+    "components": [
+      "BrushTool",
+      "MaskOverlayLayer"
+    ]
+  },
+  {
+    "id": "F11",
+    "name": "新增降水落区相态选择弹窗",
+    "status": "待生成",
+    "route": "/editor/:windowId",
+    "stage": "M3",
+    "asset": "",
+    "components": [
+      "NewPrecipPtypeDialog",
+      "PreviewStatsPanel"
+    ]
+  },
+  {
+    "id": "F12",
+    "name": "操作历史与撤销重做详情",
+    "status": "待生成",
+    "route": "/editor/:windowId",
+    "stage": "M3",
+    "asset": "",
+    "components": [
+      "OperationHistory",
+      "OperationDetailDrawer"
+    ]
+  },
+  {
+    "id": "F13",
+    "name": "差异图/相态变化/修改区域查看模式",
+    "status": "待生成",
+    "route": "/editor/:windowId",
+    "stage": "M3/M4",
+    "asset": "",
+    "components": [
+      "LayerModePanel",
+      "PrecipPhaseGridLayer"
+    ]
+  },
+  {
+    "id": "F14",
+    "name": "保存版本与提交审核状态",
+    "status": "待生成",
+    "route": "/editor/:windowId",
+    "stage": "M4",
+    "asset": "",
+    "components": [
+      "SaveSubmitPanel",
+      "VersionStatusCard"
+    ]
+  },
+  {
+    "id": "F15",
+    "name": "复盘任务 partial_success/failed 状态",
+    "status": "待生成",
+    "route": "/review/product/:reviewId",
+    "stage": "M5",
+    "asset": "",
+    "components": [
+      "ReviewTaskStatus",
+      "MissingFieldsPanel"
+    ]
+  },
+  {
+    "id": "F16",
+    "name": "历史分析统计页面",
+    "status": "待生成",
+    "route": "/analysis/operations",
+    "stage": "M6",
+    "asset": "",
+    "components": [
+      "OperationStatsChart",
+      "PtypeTransitionMatrix"
+    ]
+  },
+  {
+    "id": "F17",
+    "name": "系统管理：用户/配置/模板",
+    "status": "待生成",
+    "route": "/admin/users",
+    "stage": "M6",
+    "asset": "",
+    "components": [
+      "UserTable",
+      "ConfigEditor",
+      "TemplateEditor"
+    ]
+  },
+  {
+    "id": "F18",
+    "name": "运维监控：任务/存储/审计",
+    "status": "待生成",
+    "route": "/admin/tasks",
+    "stage": "M6",
+    "asset": "",
+    "components": [
+      "TaskQueuePanel",
+      "StorageMonitor",
+      "AuditLogTable"
+    ]
+  }
+]

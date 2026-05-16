@@ -12,12 +12,14 @@
 ```
 建设方案.md          ← V2.0 主文档，文档索引入口
 docs/01-09           ← 业务方案与功能设计
-docs/10-20           ← 工程开发设计（2026-05-15 合并自 dev-design-pack）
-checklists/          ← 开发前检查清单
-schemas/             ← error_codes.json
+docs/10-21           ← 工程开发设计与阶段 PRD（2026-05-15 合并自 dev-design-pack）
+docs/22-26           ← 前端 UI/UX 规格与效果图落地规范
+docs/assets/frontend/effects/ ← 效果图资产（F01-F06 已生成）
+checklists/          ← 开发检查清单（含前端 UIUX 开发检查清单）
+schemas/             ← error_codes.json、frontend_ui_tokens.json、frontend_effect_screens.json
 data/                ← 测试数据（EC预报/phase/量级，大文件已 gitignore）
 reference/           ← 参考项目（yy-webgis-bj 前端、cdsz 后端、要素场绘图脚本）
-Mesh-Editor-dev-design-pack/  ← 设计补全包原始文件（已合并到 docs/10-20）
+设计效果图/           ← 设计效果图原始文件（只读参考）
 ```
 
 ## 文档体系
@@ -93,5 +95,8 @@ Mesh-Editor-dev-design-pack/  ← 设计补全包原始文件（已合并到 doc
 | 2026-05-15 | **索引口径对齐**：docs/21 与 docs/07/17 的表名（app_user）、API 路径、接口方法（POST export）、MaskGeometry 命名统一；建设方案.md docs/07 描述更新；docs/11 补 migration downgrade 要求 |
 | 2026-05-15 | **阶段计划对齐**：progress.md 阶段编号与 docs/19 统一；新增 docs/21 阶段 PRD 与开发阅读索引（M0-M6 目标/范围/不做/必读/验收）；开发前检查清单按 M0-M6 重写；建设方案.md 和 AGENTS.md 索引追加 docs/21 |
 | 2026-05-15 | DEM 数据已就位（data/DEM_0P05_CHINA.nc），更新 docs/01 状态和 data/生产环境数据结构.md |
+| 2026-05-15 | **前端 UI 交互细则与技术栈冻结**：docs/12 新增 §12.1.2 技术栈冻结（Vite/Pinia/Vue Router/axios/ECharts/Vitest/Playwright/ESLint+Prettier）；editorStore 补充 qpfBefore/ptypeBefore/touchedMask/changedMask/invalidMask + loading/error 状态 + selectedViewMode；新增 §12.11 含布局尺寸、查看模式图层规则、按钮启禁用规则、新增降水相态弹窗流程、选区工具交互细节、页面线框图、测试方案；docs/21 M2 验收增加布局/模式/按钮/选区交互项，M3 验收增加相态弹窗/统计面板/操作历史项 |
 | 2026-05-15 | **设计文档全量审核定稿**：修复 DDL/Schema/枚举/API 共 10 类问题（v000 零场派生、edit_operation 补字段、review_product nullable+队列字段、brush→brush_path 统一、target_ptype 校验规则、changed_mask 浮点容差、Grid Binary API 完善、MASK_EMPTY 错误码、partial 窗口可编辑默认值、绘图 worker 认领与恢复策略），涉及 docs/06/07/11/12/13/14/15/16/17/19 + schemas/enums.json + schemas/error_codes.json + schemas/product_config.json，全部 20 篇设计文档达到可编码状态 |
+| 2026-05-16 | **效果图 vs 规格一致性修复**：统一右侧栏 340px（docs/12/22/21/tokens.json）；合并二级上下文栏到顶部导航单行；统一系统全称「降水相态网格编辑系统」；修正雪色描述为灰色系；F05 审核页交互改为缩略图并排；F02 标注网格分辨率控件为误标；F06 补充 2×2 网格布局规格；删除 Mesh-Editor-frontend-uiux-pack 原始包 |
+| 2026-05-16 | **前端 UI/UX 规格补充包集成**：新增 docs/22-26（视觉 token、18 张效果图页面规格、组件状态、Mock 数据、验收走查）；新增 schemas/frontend_ui_tokens.json + frontend_effect_screens.json；新增 checklists/前端UIUX开发检查清单.md；已生成 6 张效果图资产 F01-F06 置入 docs/assets/frontend/effects/；更新建设方案.md、docs/12、docs/21、AGENTS.md 索引 |
 | 2026-05-15 | 初始文档 01-09 完成；设计补全包 10-20 合并；建设方案升级 V2.0 |
