@@ -168,11 +168,32 @@ class EditParameters(BaseModel):
 
 class EditPreviewRequest(BaseModel):
     session_id: str
-    tool: Literal['polygon', 'line_buffer', 'brush']
+    tool: Literal['polygon', 'line_buffer', 'brush_path']
     variable: Literal['qpf', 'ptype']
     operation: Literal['set_value', 'increase', 'decrease', 'multiply', 'clear', 'set_ptype', 'screen_clear']
     mask: MaskGeometry
     parameters: EditParameters
+
+    @model_validator(mode='after')
+    def check_target_ptype(self) -> Self:
+        op = self.operation
+        tp = self.parameters.target_ptype
+        if op == 'set_ptype' and tp is None:
+            raise ValueError('target_ptype is required when operation=set_ptype')
+        if op in ('clear', 'decrease', 'screen_clear') and tp is not None:
+            raise ValueError(f'target_ptype must not be set when operation={op}')
+        return self
+
+`target_ptype` 适用场景：
+
+| operation | target_ptype | 说明 |
+|---|---|---|
+| `set_ptype` | **必填**（1/2/3，或 0 清除） | 直接设置相态，validator 强制 |
+| `set_value` / `increase` / `multiply` | 条件必填 | 若操作产生新增降水落区（qpf 从 ≤threshold 变为 >threshold），apply 时必须携带；preview 阶段通过 `new_precip_needs_ptype=true` 提示前端（详见 docs/14 §14.8.1） |
+| `decrease` | 禁止 | 不可能产生新增降水，validator 拒绝 |
+| `clear` / `screen_clear` | 禁止 | 清除操作，validator 拒绝 |
+
+> 注意：`set_value`/`increase`/`multiply` 的条件必填由 apply 层运行时检查（`NEW_PRECIP_NEEDS_PTYPE` 错误码），而非 Schema validator 静态校验，因为是否产生新增降水取决于当前网格数据。
 
 class EditPreviewResponse(BaseModel):
     preview_id: str
@@ -194,7 +215,7 @@ class EditPreviewResponse(BaseModel):
 
 审计：不写 audit_log。
 
-错误码：`SESSION_NOT_FOUND`, `SESSION_NOT_EDITING`, `MASK_OUT_OF_BOUNDS`, `INVALID_OPERATION_PARAM`。
+错误码：`SESSION_NOT_FOUND`, `SESSION_NOT_EDITING`, `MASK_OUT_OF_BOUNDS`, `MASK_EMPTY`, `INVALID_OPERATION_PARAM`。
 
 ---
 
@@ -243,15 +264,26 @@ X-Grid-Rows: 501
 X-Grid-Cols: 821
 X-Grid-Dtype: float32 | uint8
 X-Grid-Order: C
+X-Grid-Byte-Length: 1645284
+X-Grid-Variable: qpf_after
 
 Body: raw bytes, row-major, shape=(501, 821)
 ```
+
+`X-Grid-Byte-Length`：未压缩原始字节数（`rows × cols × dtype_size`），前端用于校验传输完整性。
+`X-Grid-Variable`：字段名回显，前端可用于校验请求/响应一致性。
+
+前端不手动解 gzip；浏览器/代理完成 `Content-Encoding` 解压。若响应未压缩（反向代理已解压或后端未启用 gzip），`Content-Encoding` header 不存在，协议仍成立——前端只依赖 `X-Grid-*` header 解读 body。
 
 前端使用示例：
 
 ```ts
 const res = await fetch(`/api/session/${sid}/field/qpf_after`)
 const buf = await res.arrayBuffer()
+const expectedBytes = parseInt(res.headers.get('X-Grid-Byte-Length')!)
+if (buf.byteLength !== expectedBytes) {
+  throw new Error('Grid field transfer incomplete')
+}
 const qpfAfter = new Float32Array(buf) // length === 411321
 ```
 

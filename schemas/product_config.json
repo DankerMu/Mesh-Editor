@@ -3,6 +3,8 @@
   "lead_step_hours": 3,
   "window_step_hours": 24,
   "init_times": ["08Z", "20Z"],
+  "qpf_change_epsilon": 0.001,
+  "allow_partial_window_edit": true,
   "accum_products": {
     "24": {
       "accum_hours": 24,

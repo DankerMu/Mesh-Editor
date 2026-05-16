@@ -57,19 +57,23 @@ Mesh-Editor-dev-design-pack/  ← 设计补全包原始文件（已合并到 doc
 
 ## 当前阶段
 
-**阶段：设计文档完成，尚未进入代码开发**
+**阶段：设计文档定稿，进入 M0 工程骨架搭建**
 
 ### 已完成
 
 - [x] 业务方案文档 01-09 编写
 - [x] 工程设计文档 10-20 编写
-- [x] 设计补全包合并到主仓库（2026-05-15）
-- [x] 现有文档对齐修改（版本号、架构、角色、里程碑）
+- [x] 设计补全包合并到主仓库
+- [x] 文档对齐修改（版本号、架构、角色、里程碑）
 - [x] 创建 progress.md / CLAUDE.md / AGENTS.md
+- [x] 设计文档全量审核与修复（2026-05-15，详见下方）
+
+### 进行中
+
+- [ ] M0：工程骨架搭建（前后端项目初始化、CI、Docker 基础）
 
 ### 待开始
 
-- [ ] M0：工程骨架搭建（前后端项目初始化、CI、Docker 基础）
 - [ ] M1：配置与权限基础
 - [ ] M2：数据接入与窗口生成
 - [ ] M3：编辑工作台与编辑引擎
@@ -79,23 +83,12 @@ Mesh-Editor-dev-design-pack/  ← 设计补全包原始文件（已合并到 doc
 
 ### 阻塞项
 
-- 无（文档阶段无阻塞）
+- 无
 
 ## 最近变更记录
 
 | 日期 | 变更 |
 |---|---|
-| 2026-05-15 | docs/11 §11.10.1 补充数据库索引（含 partial index）和 §11.10.2 迁移策略；v000_original 定义为真实版本（docs/07/16/enums）；docs/09 §25.3 扩展为成品级性能目标 + §25.4 运维验收 |
-| 2026-05-15 | 新增 schemas/enums.json（16 类枚举），docs/10 更新共享枚举规则为生成而非手抄 |
-| 2026-05-15 | docs/13 §13.4/§13.5 补充 qpf_build_manifest.json 和 ptype_source_manifest.json（含 schema），归档目录同步 |
-| 2026-05-15 | error_codes.json 与 docs/16 §16.10 完全同步（42 码），补齐 PREVIEW_CONFLICT/FIELD_NOT_AVAILABLE/NEW_PRECIP_NEEDS_PTYPE/CONSISTENCY_VIOLATION |
-| 2026-05-15 | docs/13 §13.8.1 定义发布产物契约 product_manifest.json（fields/derived/images/review + txt 输出），更新 docs/07/11 |
-| 2026-05-15 | 并发策略冻结为 single_editing_session_per_window，docs/11 §11.10 和 docs/16 §16.8 删除 multi_session 推荐/可选 |
-| 2026-05-15 | docs/13 §13.5 PtypeBuilder 中间 tp QC 规则（缺失/负值/NaN），PtypeBuildResult 增加诊断字段；docs/03 §8.2.3 同步 |
-| 2026-05-15 | 新增降水落区 ptype 强制规则（三层防护：preview→apply→save），docs/14 §14.8.1，新增错误码 NEW_PRECIP_NEEDS_PTYPE / CONSISTENCY_VIOLATION |
-| 2026-05-15 | ptype_transition 拆分为 op_ptype_transition（操作级）+ version_ptype_transition（版本级），docs/14 §14.9.2 重写 |
-| 2026-05-15 | edit_mask 拆分为 touched_mask + changed_mask（12 个文件全量重命名，docs/14 §14.11.1 补充计算规则）|
-| 2026-05-15 | docs/17 §17.8.1 新增 Grid Field Binary API（逐字段 flat binary 传输协议）；更新 docs/07 session/load 描述 |
-| 2026-05-15 | 修复 progress.md ptype 合成规则描述（对齐 docs/03 §8.2.3）|
-| 2026-05-15 | docs/03 §7.1.1 补充 start_lead 枚举规则（统一 24h 步进滑动窗口，23 窗口/case）；新增 schemas/product_config.json |
+| 2026-05-15 | DEM 数据已就位（data/DEM_0P05_CHINA.nc），更新 docs/01 状态和 data/生产环境数据结构.md |
+| 2026-05-15 | **设计文档全量审核定稿**：修复 DDL/Schema/枚举/API 共 10 类问题（v000 零场派生、edit_operation 补字段、review_product nullable+队列字段、brush→brush_path 统一、target_ptype 校验规则、changed_mask 浮点容差、Grid Binary API 完善、MASK_EMPTY 错误码、partial 窗口可编辑默认值、绘图 worker 认领与恢复策略），涉及 docs/06/07/11/12/13/14/15/16/17/19 + schemas/enums.json + schemas/error_codes.json + schemas/product_config.json，全部 20 篇设计文档达到可编码状态 |
 | 2026-05-15 | 初始文档 01-09 完成；设计补全包 10-20 合并；建设方案升级 V2.0 |

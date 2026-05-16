@@ -9,7 +9,7 @@
   "plot_status": ["pending", "running", "success", "partial_success", "failed", "permanently_failed"],
   "scan_type": ["manual", "scheduled", "startup"],
   "ptype": [0, 1, 2, 3],
-  "edit_tool": ["polygon", "line_buffer", "brush"],
+  "edit_tool": ["polygon", "line_buffer", "brush_path"],
   "edit_variable": ["qpf", "ptype"],
   "edit_operation": ["set_value", "increase", "decrease", "multiply", "clear", "set_ptype", "screen_clear"],
   "mask_type": ["polygon", "line_buffer", "brush_path"],
