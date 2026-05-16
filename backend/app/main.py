@@ -1,5 +1,6 @@
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -15,7 +16,15 @@ from app.schemas.common import ErrorResponse
 configure_logging()
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Mesh Editor API", version="2.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    yield
+    from app.db.session import engine
+    await engine.dispose()
+
+
+app = FastAPI(title="Mesh Editor API", version="2.0.0", lifespan=lifespan)
 
 
 @app.middleware("http")

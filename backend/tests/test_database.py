@@ -84,6 +84,9 @@ def test_alembic_roundtrip(tmp_path: Path) -> None:
 
     upgrade_head(db_path)
     downgrade_base(db_path)
+    tables_after_downgrade = table_names(db_path) - {"alembic_version"}
+    assert "app_user" not in tables_after_downgrade
+    assert "audit_log" not in tables_after_downgrade
     upgrade_head(db_path)
 
     assert {"app_user", "audit_log"}.issubset(table_names(db_path))
