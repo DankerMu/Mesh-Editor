@@ -99,7 +99,5 @@ ERROR_CODES = load_error_codes()
 def get_error(code: str) -> tuple[str, int]:
     info = ERROR_INFO.get(code)
     if info is None:
-        if code.endswith("_NOT_FOUND"):
-            return "资源未找到", 404
-        return "请求处理失败", 400
+        info = ERROR_INFO["INTERNAL_ERROR"]
     return info.message, info.http_status

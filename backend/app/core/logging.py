@@ -50,7 +50,8 @@ def configure_logging(level: int = logging.INFO) -> None:
     root = logging.getLogger()
     if root.handlers:
         for handler in root.handlers:
-            handler.addFilter(TraceIdFilter())
+            if not any(isinstance(f, TraceIdFilter) for f in handler.filters):
+                handler.addFilter(TraceIdFilter())
         root.setLevel(level)
         return
 
