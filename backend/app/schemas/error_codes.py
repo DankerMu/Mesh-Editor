@@ -2,8 +2,8 @@ import json
 from enum import StrEnum
 from pathlib import Path
 
+from app.core.constants import REPO_ROOT
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_ERROR_CODES_PATH = REPO_ROOT / "schemas" / "error_codes.json"
 
 
