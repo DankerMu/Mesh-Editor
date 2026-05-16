@@ -71,7 +71,7 @@ admin（管理初始用户）、forecaster/reviewer/viewer（登录验证）
 
 ### 8. 关键数据对象
 
-- `user` 表（id, username, role, created_at）
+- `app_user` 表（id, username, role, is_active, created_at）
 - `schemas/error_codes.json`
 - `schemas/enums.json`
 - `schemas/product_config.json`
@@ -203,13 +203,15 @@ forecaster（加载窗口、查看数据、绘制选区）
 | 接口 | 说明 |
 |---|---|
 | `POST /api/session/start` | 创建编辑会话 |
-| `GET /api/session/{id}/load` | 加载会话数据（qpf/ptype 数组） |
+| `GET /api/session/{session_id}/load` | 加载会话元数据和字段 URL 列表 |
+| `GET /api/session/{session_id}/field/{field_name}` | 逐字段 flat binary 下载（qpf/ptype 等） |
+| `GET /api/window/{window_id}/field/{field_name}` | 窗口原始字段 binary（qpf_before/ptype_before/invalid_mask） |
 
 ### 8. 关键数据对象
 
 - `edit_session` 表
 - qpf/ptype numpy 数组（501×821）
-- geometry（GeoJSON MultiPolygon）
+- MaskGeometry：polygon / line_buffer / brush_path
 
 ### 9. 必读文档
 
@@ -422,12 +424,11 @@ forecaster/reviewer（查看复盘图）、admin（管理绘图任务）
 | `GET /api/tasks/plot/{review_id}` | 绘图任务状态 |
 | `GET /api/review/case/{case_id}` | 复盘详情 |
 | `GET /api/review/window/{window_id}/versions` | 窗口版本复盘列表 |
-| `GET /api/review/export` | 导出复盘包 zip |
+| `POST /api/review/export` | 创建导出任务并下载复盘包 zip |
 
 ### 8. 关键数据对象
 
 - `review_product` 表
-- `plot_task` 表
 - review_payload（JSON）
 - 复盘图片文件
 
@@ -492,18 +493,21 @@ admin（全部功能）、reviewer/forecaster（查看统计）
 
 | 接口 | 说明 |
 |---|---|
-| `GET/POST/PUT/DELETE /api/admin/users` | 用户 CRUD |
-| `GET /api/admin/audit` | 审计日志查询 |
-| `GET/PUT /api/admin/config` | 配置管理 |
-| `GET /api/admin/monitor/storage` | 磁盘监控 |
-| `GET /api/admin/monitor/tasks` | 任务监控 |
+| `GET /api/users` | 用户列表 |
+| `POST /api/users` | 创建用户 |
+| `PUT /api/users/{user_id}` | 更新用户信息/角色/启用状态 |
+| `GET /api/audit/logs` | 审计日志查询 |
+| `GET /api/config/{config_type}` | 读取配置 |
+| `PUT /api/config/{config_type}` | 更新配置（生成 config_snapshot） |
+| `GET /api/monitor/storage` | 磁盘监控 |
+| `GET /api/monitor/tasks` | 任务监控 |
 | `GET /api/stats/operations` | 操作统计 |
 | `GET /api/stats/ptype-transitions` | 相态转换统计 |
 | `GET /api/stats/export` | 批量导出 CSV |
 
 ### 8. 关键数据对象
 
-- `user` 表（完整 CRUD）
+- `app_user` 表（创建/更新/禁用，不做物理删除）
 - `audit_log` 表
 - `config_snapshot` 表
 - 统计聚合视图
@@ -518,7 +522,7 @@ admin（全部功能）、reviewer/forecaster（查看统计）
 
 ### 10. 验收标准
 
-- [ ] admin 可创建/编辑/禁用用户
+- [ ] admin 可创建/更新/禁用用户（通过 is_active 软删除，不做物理删除）
 - [ ] 审计日志可按时间/用户/操作类型查询
 - [ ] 配置变更生成 config_snapshot
 - [ ] 监控页面显示磁盘用量和任务状态
