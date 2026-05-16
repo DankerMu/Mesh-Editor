@@ -26,7 +26,7 @@ http.interceptors.response.use(
     const code = error.response?.data?.code
     const status = error.response?.status
 
-    if (code === 'TOKEN_EXPIRED' || code === 'AUTH_REQUIRED' || code === 'USER_DISABLED') {
+    if (code === 'TOKEN_EXPIRED' || code === 'AUTH_REQUIRED' || code === 'USER_DISABLED' || (status === 401 && !code)) {
       const authStore = useAuthStore()
       authStore.logout()
       await router.push('/login')
