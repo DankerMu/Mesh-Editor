@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - mesh-data:/data
+      - mesh-archive:/archive
+      - mesh-tmp:/tmp/mesh
+      - mesh-db:/db
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////db/mesh_editor.db
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mesh-data:
+  mesh-archive:
+  mesh-tmp:
+  mesh-db:

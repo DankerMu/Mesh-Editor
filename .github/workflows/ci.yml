@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Backend lint (ruff)
+        working-directory: backend
+        run: uv sync && uv run ruff check app/ tests/
+      - name: Frontend lint (eslint)
+        working-directory: frontend
+        run: npm ci && npx eslint src/
+
+  type-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Backend type-check (mypy)
+        working-directory: backend
+        run: uv sync && uv run mypy app/ --ignore-missing-imports
+      - name: Frontend type-check (vue-tsc)
+        working-directory: frontend
+        run: npm ci && npx vue-tsc --noEmit
+
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Run backend tests
+        working-directory: backend
+        run: uv sync && uv run pytest tests/ -v
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm ci && npx vitest run
+
+  migration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Alembic round-trip
+        working-directory: backend
+        run: |
+          uv sync
+          uv run alembic upgrade head
+          uv run alembic downgrade base
+          uv run alembic upgrade head
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t mesh-editor-backend .
+      - name: Build frontend image
+        run: docker build -f frontend/Dockerfile -t mesh-editor-frontend frontend/
+      - name: Compose smoke test
+        run: |
+          trap 'docker compose down -v' EXIT
+          docker compose up -d --build
+          for i in {1..30}; do
+            if curl -fsS http://localhost:8000/api/health; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose logs
+          exit 1

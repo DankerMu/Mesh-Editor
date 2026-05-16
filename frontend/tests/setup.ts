@@ -9,7 +9,7 @@ config.global.stubs = {
     template: '<button><slot /></button>',
   },
   't-form': {
-    template: '<form><slot /></form>',
+    template: '<form @submit.prevent="$emit(\'submit\', { validateResult: true })"><slot /></form>',
   },
   't-form-item': {
     props: ['label'],

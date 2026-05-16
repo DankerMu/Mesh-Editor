@@ -21,11 +21,22 @@ dependencies = [
 [dependency-groups]
 dev = [
     "httpx>=0.27.0",
+    "mypy>=1.11.0",
     "pytest>=8.3.0",
     "pytest-asyncio>=0.24.0",
+    "ruff>=0.11.0",
 ]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.core.enums",
+    "app.db.migrations.env",
+    "app.main",
+    "app.schemas.error_codes",
+]
+disable_error_code = ["arg-type", "assignment", "return-value"]

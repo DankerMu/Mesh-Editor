@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuthStore } from '@/stores/authStore'
 import LoginView from '@/views/LoginView.vue'
@@ -54,6 +54,7 @@ describe('views', () => {
     })
 
     await wrapper.find('form').trigger('submit')
+    await flushPromises()
 
     expect(wrapper.text()).toContain('登录失败，请检查用户名和密码')
     expect(wrapper.text()).not.toContain('用户 admin 不存在或密码错误')
@@ -78,6 +79,7 @@ describe('views', () => {
     })
 
     await wrapper.find('form').trigger('submit')
+    await flushPromises()
 
     expect(wrapper.text()).toContain('账号已被禁用，请联系管理员')
     expect(wrapper.text()).not.toContain('账号 admin 已被禁用')
