@@ -89,6 +89,7 @@ Mesh-Editor-dev-design-pack/  ← 设计补全包原始文件（已合并到 doc
 
 | 日期 | 变更 |
 |---|---|
+| 2026-05-15 | **CI 策略落地**：docs/21 新增 §21.11 CI 策略（M0 建 pipeline、M1-M6 增量测试）；M0-M6 验收标准均追加 CI 通过项；检查清单每阶段追加 CI 增量检查；AGENTS.md 追加 CI 开发规范 |
 | 2026-05-15 | **索引口径对齐**：docs/21 与 docs/07/17 的表名（app_user）、API 路径、接口方法（POST export）、MaskGeometry 命名统一；建设方案.md docs/07 描述更新；docs/11 补 migration downgrade 要求 |
 | 2026-05-15 | **阶段计划对齐**：progress.md 阶段编号与 docs/19 统一；新增 docs/21 阶段 PRD 与开发阅读索引（M0-M6 目标/范围/不做/必读/验收）；开发前检查清单按 M0-M6 重写；建设方案.md 和 AGENTS.md 索引追加 docs/21 |
 | 2026-05-15 | DEM 数据已就位（data/DEM_0P05_CHINA.nc），更新 docs/01 状态和 data/生产环境数据结构.md |

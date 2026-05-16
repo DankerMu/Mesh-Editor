@@ -48,6 +48,7 @@ reference/           ← 参考项目（只读）
 
 ## 开发规范
 
+- CI pipeline 结构在 M0 建立，后续阶段只增加测试文件不改 pipeline 配置；每阶段合入前 CI 全部 job 必须通过
 - 中文响应，技术术语保持英文
 - 编辑系统核心对象：ProductWindow / EditSession / EditVersion / EditOperation / PlotTask
 - 状态机定义在 `docs/16`，API Schema 在 `docs/17`
