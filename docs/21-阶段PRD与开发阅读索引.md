@@ -44,7 +44,7 @@ admin（管理初始用户）、forecaster/reviewer/viewer（登录验证）
 
 ### 4. 本阶段范围
 
-- 后端：FastAPI 可启动、统一响应结构、trace_id、错误码加载、enums 加载、Alembic migration、PathBuilder、基础配置加载、JWT 登录与权限中间件
+- 后端：FastAPI 可启动、uv 虚拟环境与 pyproject.toml 依赖管理、统一响应结构、trace_id、错误码加载、enums 加载、Alembic migration、PathBuilder、基础配置加载、JWT 登录与权限中间件
 - 前端：Vue 可启动、登录页、路由守卫、authStore、http.ts 统一响应处理、403/500 错误页
 - 部署：docker-compose dev、backend/frontend 容器、data/archive/tmp/db 卷挂载
 - CI pipeline：lint（ruff + eslint）、type check（mypy + vue-tsc）、pytest、vitest、alembic upgrade→downgrade→upgrade、docker build smoke test

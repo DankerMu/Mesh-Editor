@@ -48,6 +48,7 @@ reference/           ← 参考项目（只读）
 
 ## 开发规范
 
+- Python 虚拟环境和依赖管理统一使用 uv（pyproject.toml + uv.lock），禁止 pip install / requirements.txt / poetry
 - CI pipeline 结构在 M0 建立，后续阶段只增加测试文件不改 pipeline 配置；每阶段合入前 CI 全部 job 必须通过
 - 中文响应，技术术语保持英文
 - 编辑系统核心对象：ProductWindow / EditSession / EditVersion / EditOperation / PlotTask
