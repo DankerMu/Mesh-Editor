@@ -20,6 +20,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def upgrade() -> None:
+    conn = op.get_bind()
+    result = conn.execute(sa.text("SELECT COUNT(*) FROM app_user WHERE username = :u").bindparams(u="admin"))
+    if result.scalar() != 0:
+        return
+
     password_hash = pwd_context.hash("admin123")
     op.execute(
         sa.text(

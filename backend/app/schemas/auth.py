@@ -9,7 +9,7 @@ class LoginRequest(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    user_id: int
+    user_id: str
     username: str
     display_name: str
     role: str

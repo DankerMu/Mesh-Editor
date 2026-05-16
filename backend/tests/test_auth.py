@@ -1,5 +1,7 @@
 import asyncio
+import json
 from collections.abc import AsyncIterator, Iterator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import NamedTuple
 
@@ -8,16 +10,20 @@ import pytest
 import sqlalchemy as sa
 from alembic import command
 from alembic.config import Config
+from fastapi import APIRouter, Depends, Request
 from fastapi.testclient import TestClient
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from app.api.dependencies import require_role
+from app.core.logging import get_trace_id
 from app.core.security import create_access_token, get_jwt_secret
 from app.db.models import AppUser, AuditLog, Base
 from app.db.session import get_db
-from app.main import app
+from app.main import api_router, app
+from app.schemas.common import ApiResponse
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
@@ -80,9 +86,15 @@ def auth_client() -> Iterator[AuthClient]:
             yield session
 
     app.dependency_overrides[get_db] = override_get_db
+
+    async def admin_test_route(_: AppUser = Depends(require_role("admin"))) -> ApiResponse[dict[str, bool]]:
+        return ApiResponse(data={"admin": True}, trace_id=get_trace_id())
+
+    include_test_route("/admin/test", admin_test_route)
     with TestClient(app, raise_server_exceptions=False) as client:
         yield AuthClient(client=client, session_factory=session_factory)
 
+    remove_test_routes()
     app.dependency_overrides.pop(get_db, None)
     asyncio.run(engine.dispose())
 
@@ -114,8 +126,45 @@ async def count_audit_logs(
         return int(result.scalar_one())
 
 
+async def get_audit_detail(
+    session_factory: async_sessionmaker[AsyncSession],
+    username: str,
+    action: str,
+) -> dict[str, object]:
+    async with session_factory() as db:
+        result = await db.execute(
+            select(AuditLog.detail_json)
+            .where(
+                AuditLog.username == username,
+                AuditLog.action == action,
+            )
+            .order_by(AuditLog.id.desc())
+        )
+        detail_json = result.scalar_one()
+        return json.loads(str(detail_json))
+
+
 def bearer(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
+
+
+def include_test_route(path: str, endpoint: object) -> None:
+    router = APIRouter()
+    router.add_api_route(path, endpoint, methods=["GET"])
+    before = list(app.router.routes)
+    app.include_router(router, prefix=api_router.prefix, dependencies=api_router.dependencies)
+    app.state.test_routes = getattr(app.state, "test_routes", []) + [
+        route for route in app.router.routes if route not in before
+    ]
+    app.openapi_schema = None
+
+
+def remove_test_routes() -> None:
+    for route in getattr(app.state, "test_routes", []):
+        if route in app.router.routes:
+            app.router.routes.remove(route)
+    app.state.test_routes = []
+    app.openapi_schema = None
 
 
 def test_t4_1_login_success_returns_token(auth_client: AuthClient) -> None:
@@ -127,7 +176,7 @@ def test_t4_1_login_success_returns_token(auth_client: AuthClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["code"] == "OK"
-    assert body["data"]["user_id"] == 1
+    assert body["data"]["user_id"] == "1"
     assert body["data"]["username"] == "admin"
     assert body["data"]["display_name"] == "系统管理员"
     assert body["data"]["role"] == "admin"
@@ -212,6 +261,25 @@ def test_t4_8_health_and_login_are_public(auth_client: AuthClient) -> None:
     assert login_response.json()["code"] == "OK"
 
 
+def test_default_api_router_protects_route_without_explicit_auth(auth_client: AuthClient) -> None:
+    async def test_unprotected_route(request: Request) -> ApiResponse[dict[str, str]]:
+        current_user: AppUser = request.state.current_user
+        return ApiResponse(data={"username": str(current_user.username)}, trace_id=get_trace_id())
+
+    include_test_route("/test-unprotected", test_unprotected_route)
+    try:
+        unauthenticated_response = auth_client.client.get("/api/test-unprotected")
+        token = login(auth_client.client, "viewer", "viewer123")["data"]["token"]
+        authenticated_response = auth_client.client.get("/api/test-unprotected", headers=bearer(token))
+    finally:
+        remove_test_routes()
+
+    assert unauthenticated_response.status_code == 401
+    assert unauthenticated_response.json()["code"] == "AUTH_REQUIRED"
+    assert authenticated_response.status_code == 200
+    assert authenticated_response.json()["data"] == {"username": "viewer"}
+
+
 def test_t4_9_admin_can_access_admin_route(auth_client: AuthClient) -> None:
     token = login(auth_client.client, "admin", "admin123")["data"]["token"]
 
@@ -245,6 +313,25 @@ def test_t4_11_disabled_user_with_valid_token_returns_user_disabled(auth_client:
     assert response.json()["code"] == "USER_DISABLED"
 
 
+def test_token_username_must_match_user_id_subject(auth_client: AuthClient) -> None:
+    admin_user_id = asyncio.run(get_user_id(auth_client.session_factory, "admin"))
+    token = jwt.encode(
+        {
+            "sub": str(admin_user_id),
+            "username": "viewer",
+            "role": "viewer",
+            "exp": datetime.now(UTC) + timedelta(minutes=5),
+        },
+        get_jwt_secret(),
+        algorithm="HS256",
+    )
+
+    response = auth_client.client.get("/api/auth/me", headers=bearer(token))
+
+    assert response.status_code == 401
+    assert response.json()["code"] == "AUTH_REQUIRED"
+
+
 def test_t4_12_successful_login_writes_audit_log(auth_client: AuthClient) -> None:
     response = auth_client.client.post(
         "/api/auth/login",
@@ -252,8 +339,10 @@ def test_t4_12_successful_login_writes_audit_log(auth_client: AuthClient) -> Non
     )
 
     assert response.status_code == 200
-    count = asyncio.run(count_audit_logs(auth_client.session_factory, "admin", "login_success"))
+    count = asyncio.run(count_audit_logs(auth_client.session_factory, "admin", "login"))
+    detail = asyncio.run(get_audit_detail(auth_client.session_factory, "admin", "login"))
     assert count == 1
+    assert detail["result"] == "success"
 
 
 def test_t4_13_failed_login_writes_audit_log(auth_client: AuthClient) -> None:
@@ -263,8 +352,10 @@ def test_t4_13_failed_login_writes_audit_log(auth_client: AuthClient) -> None:
     )
 
     assert response.status_code == 401
-    count = asyncio.run(count_audit_logs(auth_client.session_factory, "admin", "login_failure"))
+    count = asyncio.run(count_audit_logs(auth_client.session_factory, "admin", "login"))
+    detail = asyncio.run(get_audit_detail(auth_client.session_factory, "admin", "login"))
     assert count == 1
+    assert detail["result"] == "failure"
 
 
 def test_t4_14_jwt_claims_include_sub_role_and_exp(auth_client: AuthClient) -> None:

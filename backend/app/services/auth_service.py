@@ -30,8 +30,9 @@ class AuthService:
             await self._write_login_audit(
                 db,
                 username=username,
-                action="login_failure",
+                action="login",
                 reason="user_not_found",
+                result="failure",
                 ip_address=ip_address,
             )
             raise DomainError(code="AUTH_REQUIRED", message="需要登录认证", http_status=401)
@@ -41,8 +42,9 @@ class AuthService:
                 db,
                 username=username,
                 user_id=int(user.id),
-                action="login_failure",
+                action="login",
                 reason="invalid_password",
+                result="failure",
                 ip_address=ip_address,
             )
             raise DomainError(code="AUTH_REQUIRED", message="需要登录认证", http_status=401)
@@ -52,8 +54,9 @@ class AuthService:
                 db,
                 username=username,
                 user_id=int(user.id),
-                action="login_failure",
+                action="login",
                 reason="user_disabled",
+                result="failure",
                 ip_address=ip_address,
             )
             raise DomainError(code="USER_DISABLED", message="用户已被禁用", http_status=403)
@@ -62,8 +65,9 @@ class AuthService:
             db,
             username=username,
             user_id=int(user.id),
-            action="login_success",
+            action="login",
             reason="success",
+            result="success",
             ip_address=ip_address,
         )
         token, expires_at = create_access_token(
@@ -74,7 +78,7 @@ class AuthService:
             expires_minutes=get_jwt_expire_minutes(),
         )
         return LoginResponse(
-            user_id=int(user.id),
+            user_id=str(user.id),
             username=str(user.username),
             display_name=str(user.display_name),
             role=str(user.role),
@@ -84,12 +88,20 @@ class AuthService:
 
     async def verify_token(self, db: AsyncSession, token: str) -> AppUser:
         payload = decode_access_token(token, get_jwt_secret())
+        subject = payload.get("sub")
         username = payload.get("username")
+        if not isinstance(subject, str) or not subject:
+            raise DomainError(code="AUTH_REQUIRED", message="需要登录认证", http_status=401)
         if not isinstance(username, str) or not username:
             raise DomainError(code="AUTH_REQUIRED", message="需要登录认证", http_status=401)
 
-        user = await self.user_repo.get_by_username(db, username)
-        if user is None:
+        try:
+            user_id = int(subject)
+        except ValueError as exc:
+            raise DomainError(code="AUTH_REQUIRED", message="需要登录认证", http_status=401) from exc
+
+        user = await self.user_repo.get_by_id(db, user_id)
+        if user is None or user.username != username:
             raise DomainError(code="AUTH_REQUIRED", message="需要登录认证", http_status=401)
         if not bool(user.is_active):
             raise DomainError(code="USER_DISABLED", message="用户已被禁用", http_status=403)
@@ -101,10 +113,11 @@ class AuthService:
         username: str,
         action: str,
         reason: str,
+        result: str,
         ip_address: str | None,
         user_id: int | None = None,
     ) -> None:
-        detail: dict[str, Any] = {"reason": reason}
+        detail: dict[str, Any] = {"reason": reason, "result": result}
         db.add(
             AuditLog(
                 user_id=user_id,

@@ -5,6 +5,10 @@ from app.db.models import AppUser
 
 
 class UserRepository:
+    async def get_by_id(self, db: AsyncSession, user_id: int) -> AppUser | None:
+        result = await db.execute(select(AppUser).where(AppUser.id == user_id))
+        return result.scalar_one_or_none()
+
     async def get_by_username(self, db: AsyncSession, username: str) -> AppUser | None:
         result = await db.execute(select(AppUser).where(AppUser.username == username))
         return result.scalar_one_or_none()
