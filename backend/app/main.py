@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 
+from app.api.routes.auth import router as auth_router
 from app.api.routes.health import router as health_router
 from app.core.error_registry import get_error
 from app.core.errors import DomainError
@@ -86,3 +87,4 @@ async def generic_error_handler(request: Request, exc: Exception) -> JSONRespons
 
 
 app.include_router(health_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
