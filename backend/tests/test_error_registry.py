@@ -6,7 +6,7 @@ def test_error_registry_loads_auth_required_mapping() -> None:
     message, http_status = get_error("AUTH_REQUIRED")
 
     assert "AUTH_REQUIRED" in ERROR_CODES
-    assert message == "未登录或 token 缺失"
+    assert message == "需要登录认证"
     assert http_status == 401
 
 

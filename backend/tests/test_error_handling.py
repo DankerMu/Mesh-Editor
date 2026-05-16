@@ -56,7 +56,7 @@ def test_validation_error_handler(client: TestClient) -> None:
     body = response.json()
     assert set(body) == {"code", "message", "detail", "trace_id"}
     assert body["code"] == "VALIDATION_ERROR"
-    assert body["message"] == "请求参数校验失败"
+    assert body["message"] == "请求参数验证失败"
     assert isinstance(body["detail"], list)
     assert_uuid4(body["trace_id"])
 
@@ -68,7 +68,7 @@ def test_unhandled_exception_handler_hides_exception_details(client: TestClient)
     body = response.json()
     assert set(body) == {"code", "message", "detail", "trace_id"}
     assert body["code"] == "INTERNAL_ERROR"
-    assert body["message"] == "未分类内部错误"
+    assert body["message"] == "服务器内部错误"
     assert body["detail"] == {}
     assert "sensitive stack detail" not in response.text
     assert_uuid4(body["trace_id"])
