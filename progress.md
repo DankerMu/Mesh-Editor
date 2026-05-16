@@ -70,16 +70,16 @@ Mesh-Editor-dev-design-pack/  ← 设计补全包原始文件（已合并到 doc
 
 ### 进行中
 
-- [ ] M0：工程骨架搭建（前后端项目初始化、CI、Docker 基础）
+- [ ] M0：工程骨架与基础设施（含配置、权限、JWT、PathBuilder、错误码、迁移）
 
 ### 待开始
 
-- [ ] M1：配置与权限基础
-- [ ] M2：数据接入与窗口生成
-- [ ] M3：编辑工作台与编辑引擎
-- [ ] M4：版本审核发布
+- [ ] M1：数据接入与窗口生成
+- [ ] M2：地图与编辑工作台
+- [ ] M3：编辑引擎与操作留痕
+- [ ] M4：版本保存、审核与发布
 - [ ] M5：复盘中心与绘图任务队列
-- [ ] M6：历史统计、监控运维、试运行
+- [ ] M6：运维、统计、配置与试运行
 
 ### 阻塞项
 
@@ -89,6 +89,7 @@ Mesh-Editor-dev-design-pack/  ← 设计补全包原始文件（已合并到 doc
 
 | 日期 | 变更 |
 |---|---|
+| 2026-05-15 | **阶段计划对齐**：progress.md 阶段编号与 docs/19 统一；新增 docs/21 阶段 PRD 与开发阅读索引（M0-M6 目标/范围/不做/必读/验收）；开发前检查清单按 M0-M6 重写；建设方案.md 和 AGENTS.md 索引追加 docs/21 |
 | 2026-05-15 | DEM 数据已就位（data/DEM_0P05_CHINA.nc），更新 docs/01 状态和 data/生产环境数据结构.md |
 | 2026-05-15 | **设计文档全量审核定稿**：修复 DDL/Schema/枚举/API 共 10 类问题（v000 零场派生、edit_operation 补字段、review_product nullable+队列字段、brush→brush_path 统一、target_ptype 校验规则、changed_mask 浮点容差、Grid Binary API 完善、MASK_EMPTY 错误码、partial 窗口可编辑默认值、绘图 worker 认领与恢复策略），涉及 docs/06/07/11/12/13/14/15/16/17/19 + schemas/enums.json + schemas/error_codes.json + schemas/product_config.json，全部 20 篇设计文档达到可编码状态 |
 | 2026-05-15 | 初始文档 01-09 完成；设计补全包 10-20 合并；建设方案升级 V2.0 |

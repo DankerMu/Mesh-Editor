@@ -32,6 +32,7 @@ reference/           ← 参考项目（只读）
 - 业务方案入口：`建设方案.md` → `docs/01-09`
 - 工程设计入口：`docs/10-开发总蓝图.md` → `docs/11-19`
 - 里程碑与任务拆解：`docs/19-开发任务拆解与里程碑.md`
+- 阶段 PRD 与开发入口：`docs/21-阶段PRD与开发阅读索引.md`
 - 开发前检查清单：`checklists/开发前检查清单.md`
 - 错误码定义：`schemas/error_codes.json`
 
