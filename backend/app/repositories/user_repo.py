@@ -32,7 +32,9 @@ class UserRepository:
         await db.refresh(user)
         return user
 
-    async def update(self, db: AsyncSession, user: AppUser, **kwargs: object) -> AppUser:
+    async def update(
+        self, db: AsyncSession, user: AppUser, **kwargs: object
+    ) -> AppUser:
         for key, value in kwargs.items():
             setattr(user, key, value)
         db.add(user)

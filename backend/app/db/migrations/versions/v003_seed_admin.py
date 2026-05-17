@@ -5,6 +5,7 @@ Revises: v002
 Create Date: 2026-05-16
 
 """
+
 from alembic import op
 from passlib.context import CryptContext
 import sqlalchemy as sa
@@ -21,7 +22,11 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def upgrade() -> None:
     conn = op.get_bind()
-    result = conn.execute(sa.text("SELECT COUNT(*) FROM app_user WHERE username = :u").bindparams(u="admin"))
+    result = conn.execute(
+        sa.text("SELECT COUNT(*) FROM app_user WHERE username = :u").bindparams(
+            u="admin"
+        )
+    )
     if result.scalar() != 0:
         return
 
@@ -45,4 +50,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute(sa.text("DELETE FROM app_user WHERE username = :username").bindparams(username="admin"))
+    op.execute(
+        sa.text("DELETE FROM app_user WHERE username = :username").bindparams(
+            username="admin"
+        )
+    )

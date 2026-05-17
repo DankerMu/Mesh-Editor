@@ -9,7 +9,9 @@ from app.db.session import get_db
 from app.services.auth_service import auth_service
 
 
-async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)) -> AppUser:
+async def get_current_user(
+    request: Request, db: AsyncSession = Depends(get_db)
+) -> AppUser:
     authorization = request.headers.get("Authorization")
     if authorization is None:
         raise DomainError(code="AUTH_REQUIRED", message="需要登录认证", http_status=401)
@@ -24,9 +26,13 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
 
 
 def require_role(*roles: str) -> Callable[..., object]:
-    async def role_dependency(current_user: AppUser = Depends(get_current_user)) -> AppUser:
+    async def role_dependency(
+        current_user: AppUser = Depends(get_current_user),
+    ) -> AppUser:
         if current_user.role not in roles:
-            raise DomainError(code="PERMISSION_DENIED", message="权限不足", http_status=403)
+            raise DomainError(
+                code="PERMISSION_DENIED", message="权限不足", http_status=403
+            )
         return current_user
 
     return role_dependency
