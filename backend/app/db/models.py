@@ -26,7 +26,7 @@ class AppUser(Base):
     display_name = Column(String(64), nullable=False)
     role = Column(String(20), nullable=False, server_default="viewer")
     is_active = Column(Boolean, nullable=False, server_default=func.true())
-    created_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
@@ -120,3 +120,28 @@ class EditSession(Base):
     status = Column(String(20), nullable=False, server_default="editing")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class EditOperation(Base):
+    __tablename__ = "edit_operation"
+    __table_args__ = (
+        Index("idx_edit_op_session_seq", "session_id", "sequence_no"),
+    )
+
+    operation_id = Column(String(36), primary_key=True)
+    session_id = Column(
+        String(36), ForeignKey("edit_session.session_id"), nullable=False
+    )
+    window_id = Column(String(32), nullable=False)
+    sequence_no = Column(Integer, nullable=False)
+    tool_name = Column(String(32), nullable=False)
+    variable_name = Column(String(16), nullable=False)
+    operation_type = Column(String(32), nullable=False)
+    parameters_json = Column(Text, nullable=True)
+    mask_geometry_json = Column(Text, nullable=True)
+    mask_raster_path = Column(String(512), nullable=True)
+    before_stats_json = Column(Text, nullable=True)
+    after_stats_json = Column(Text, nullable=True)
+    op_ptype_transition_json = Column(Text, nullable=True)
+    is_undone = Column(Integer, nullable=False, server_default="0")
+    created_at = Column(DateTime, server_default=func.now())
