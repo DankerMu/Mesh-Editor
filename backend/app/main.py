@@ -15,6 +15,8 @@ from app.api.routes.edit import router as edit_router
 from app.api.routes.health import router as health_router
 from app.api.routes.session import router as session_router
 from app.api.routes.session import window_router as session_window_router
+from app.api.routes.versions import list_router as version_list_router
+from app.api.routes.versions import router as version_router
 from app.api.routes.windows import router as windows_router
 from app.core.error_registry import get_error
 from app.core.errors import DomainError
@@ -112,6 +114,8 @@ api_router.include_router(data_scan_router)
 api_router.include_router(edit_router)
 api_router.include_router(session_router)
 api_router.include_router(session_window_router)
+api_router.include_router(version_router)
+api_router.include_router(version_list_router)
 api_router.include_router(windows_router)
 
 app.include_router(public_api_router)
