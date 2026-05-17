@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import numpy as np
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import NX, NY
@@ -57,14 +58,6 @@ def _field_dtype(field_name: str) -> np.dtype[Any]:
     return np.dtype("uint8")
 
 
-def _field_variable(field_name: str) -> str:
-    if field_name.startswith("qpf"):
-        return "qpf"
-    if field_name.startswith("ptype"):
-        return "ptype"
-    return field_name
-
-
 def _field_headers(field_name: str, byte_length: int) -> dict[str, str]:
     return {
         "X-Grid-Rows": str(NY),
@@ -72,7 +65,7 @@ def _field_headers(field_name: str, byte_length: int) -> dict[str, str]:
         "X-Grid-Dtype": str(_field_dtype(field_name)),
         "X-Grid-Order": "C",
         "X-Grid-Byte-Length": str(byte_length),
-        "X-Grid-Variable": _field_variable(field_name),
+        "X-Grid-Variable": field_name,
     }
 
 
@@ -103,32 +96,37 @@ class EditSessionService:
         if user.role not in {"admin", "reviewer", "forecaster"}:
             raise _domain_error("PERMISSION_DENIED", {"role": user.role})
 
+        user_id = int(user.id)
+        case_id = str(window.case_id)
         await self.expire_stale_sessions(db)
         existing = await self.sessions.get_active_by_window(db, window_id)
         if existing is not None:
-            if int(existing.user_id) == int(user.id):
+            if int(existing.user_id) == user_id:
                 return existing
-            raise _domain_error(
-                "WINDOW_LOCKED",
-                {
-                    "window_id": window_id,
-                    "session_id": existing.session_id,
-                    "locked_by": existing.user_id,
-                },
-            )
+            raise _domain_error("WINDOW_LOCKED", {"window_id": window_id})
 
         session_id = str(uuid4())
-        session = await self.sessions.create(
-            db,
-            session_id=session_id,
-            window_id=window_id,
-            user_id=int(user.id),
-            base_version_id=None,
-            status="editing",
-        )
-        self._initialize_working_directory(session_id, window_id)
-        await self._write_audit_log(db, session, user)
-        await db.commit()
+        try:
+            session = await self.sessions.create(
+                db,
+                session_id=session_id,
+                window_id=window_id,
+                user_id=user_id,
+                base_version_id=None,
+                status="editing",
+            )
+            self._initialize_working_directory(session_id, case_id, window_id)
+            await self._write_audit_log(db, session, user)
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            existing = await self.sessions.get_active_by_window(db, window_id)
+            if existing is not None:
+                await db.refresh(existing)
+                if int(existing.user_id) == user_id:
+                    return existing
+                raise _domain_error("WINDOW_LOCKED", {"window_id": window_id})
+            raise
         await db.refresh(session)
         return session
 
@@ -174,8 +172,10 @@ class EditSessionService:
                 "WINDOW_NOT_EDITABLE",
                 {"window_id": window_id, "status": window.status},
             )
-        return self._read_field_file(
-            self.path_builder.window_root(window_id) / "original" / f"{field_name}.npy",
+        return self._read_npz_field_file(
+            self.path_builder.window_original_dir(window.case_id, window_id)
+            / self._window_original_filename(field_name),
+            self._window_original_key(field_name),
             field_name,
         )
 
@@ -213,18 +213,24 @@ class EditSessionService:
             )
         return session
 
-    def _initialize_working_directory(self, session_id: str, window_id: str) -> None:
+    def _initialize_working_directory(
+        self, session_id: str, case_id: str, window_id: str
+    ) -> None:
         session_dir = self.path_builder.session_root(session_id)
-        original_dir = self.path_builder.window_root(window_id) / "original"
+        original_dir = self.path_builder.window_original_dir(case_id, window_id)
         session_dir.mkdir(parents=True, exist_ok=True)
 
-        qpf_before = self._load_array(original_dir / "qpf_before.npy", "qpf_before")
-        ptype_before = self._load_array(
-            original_dir / "ptype_before.npy", "ptype_before"
+        qpf_before = self._load_npz_array(
+            original_dir / "qpf_before.npz", "qpf", "qpf_before"
         )
-        invalid_mask_path = original_dir / "invalid_mask.npy"
+        ptype_before = self._load_npz_array(
+            original_dir / "ptype_before.npz", "ptype", "ptype_before"
+        )
+        invalid_mask_path = original_dir / "ptype_invalid_mask.npz"
         if invalid_mask_path.exists():
-            invalid_mask = self._load_array(invalid_mask_path, "invalid_mask")
+            invalid_mask = self._load_npz_array(
+                invalid_mask_path, "mask", "invalid_mask"
+            )
         else:
             invalid_mask = np.zeros(GRID_SHAPE, dtype=np.uint8)
 
@@ -246,6 +252,20 @@ class EditSessionService:
         np.save(session_dir / "touched_mask.npy", np.zeros(GRID_SHAPE, dtype=np.uint8))
         np.save(session_dir / "changed_mask.npy", np.zeros(GRID_SHAPE, dtype=np.uint8))
 
+    def _window_original_filename(self, field_name: str) -> str:
+        return {
+            "qpf_before": "qpf_before.npz",
+            "ptype_before": "ptype_before.npz",
+            "invalid_mask": "ptype_invalid_mask.npz",
+        }[field_name]
+
+    def _window_original_key(self, field_name: str) -> str:
+        return {
+            "qpf_before": "qpf",
+            "ptype_before": "ptype",
+            "invalid_mask": "mask",
+        }[field_name]
+
     def _load_array(self, path: Path, field_name: str) -> np.ndarray[Any, Any]:
         if not path.exists():
             raise _domain_error(
@@ -253,6 +273,23 @@ class EditSessionService:
                 {"field_name": field_name, "path": str(path)},
             )
         array = np.load(path)
+        return self._normalize_array(array, field_name)
+
+    def _load_npz_array(
+        self, path: Path, key: str, field_name: str
+    ) -> np.ndarray[Any, Any]:
+        if not path.exists():
+            raise _domain_error(
+                "FIELD_NOT_AVAILABLE",
+                {"field_name": field_name, "path": str(path), "key": key},
+            )
+        with np.load(path) as payload:
+            array = payload[key]
+        return self._normalize_array(array, field_name)
+
+    def _normalize_array(
+        self, array: np.ndarray[Any, Any], field_name: str
+    ) -> np.ndarray[Any, Any]:
         if array.shape != GRID_SHAPE:
             raise _domain_error(
                 "GRID_SHAPE_MISMATCH",
@@ -268,6 +305,13 @@ class EditSessionService:
         self, path: Path, field_name: str
     ) -> tuple[bytes, dict[str, str]]:
         array = self._load_array(path, field_name)
+        data = np.ascontiguousarray(array).tobytes(order="C")
+        return data, _field_headers(field_name, len(data))
+
+    def _read_npz_field_file(
+        self, path: Path, key: str, field_name: str
+    ) -> tuple[bytes, dict[str, str]]:
+        array = self._load_npz_array(path, key, field_name)
         data = np.ascontiguousarray(array).tobytes(order="C")
         return data, _field_headers(field_name, len(data))
 

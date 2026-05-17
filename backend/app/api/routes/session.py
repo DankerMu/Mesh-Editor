@@ -42,6 +42,7 @@ async def load_session(
     session_id: str,
     request: Request,
     db: AsyncSession = Depends(get_db),
+    current_user: AppUser = Depends(require_role("admin", "reviewer", "forecaster")),
 ) -> ApiResponse[SessionLoadResponse]:
     data = await session_service.load_session(db, session_id)
     return ApiResponse(
@@ -55,6 +56,7 @@ async def get_session_field(
     session_id: str,
     field_name: str,
     db: AsyncSession = Depends(get_db),
+    current_user: AppUser = Depends(require_role("admin", "reviewer", "forecaster")),
 ) -> Response:
     data, headers = await session_service.get_field_data(db, session_id, field_name)
     return Response(
@@ -69,6 +71,7 @@ async def get_window_field(
     window_id: str,
     field_name: str,
     db: AsyncSession = Depends(get_db),
+    current_user: AppUser = Depends(require_role("admin", "reviewer", "forecaster")),
 ) -> Response:
     data, headers = await session_service.get_window_field_data(
         db, window_id, field_name

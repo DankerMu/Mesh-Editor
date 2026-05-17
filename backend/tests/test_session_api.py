@@ -46,16 +46,16 @@ class SessionApiClient(NamedTuple):
     path_builder: PathBuilder
 
 
-def _write_field_data(builder: PathBuilder, window_id: str) -> None:
-    original_dir = builder.window_root(window_id) / "original"
+def _write_field_data(builder: PathBuilder, case_id: str, window_id: str) -> None:
+    original_dir = builder.window_original_dir(case_id, window_id)
     original_dir.mkdir(parents=True, exist_ok=True)
     qpf = np.full((NY, NX), 1.25, dtype=np.float32)
     ptype = np.full((NY, NX), 2, dtype=np.uint8)
     invalid = np.zeros((NY, NX), dtype=np.uint8)
     invalid[0, 0] = 1
-    np.save(original_dir / "qpf_before.npy", qpf)
-    np.save(original_dir / "ptype_before.npy", ptype)
-    np.save(original_dir / "invalid_mask.npy", invalid)
+    np.savez(original_dir / "qpf_before.npz", qpf=qpf)
+    np.savez(original_dir / "ptype_before.npz", ptype=ptype)
+    np.savez(original_dir / "ptype_invalid_mask.npz", mask=invalid)
 
 
 async def _seed_database(
@@ -137,7 +137,7 @@ def session_api_client(
     builder = PathBuilder(
         base_dir=tmp_path / "archive", data_source_root=tmp_path / "source"
     )
-    _write_field_data(builder, WINDOW_ID)
+    _write_field_data(builder, CASE_ID, WINDOW_ID)
     monkeypatch.setattr("app.services.session_service.default_path_builder", builder)
     monkeypatch.setattr(
         "app.services.session_service.session_service.path_builder", builder
@@ -289,6 +289,59 @@ def test_session_service_errors_and_idempotency(
     }
 
 
+def test_session_service_integrity_error_returns_window_locked(
+    session_api_client: SessionApiClient,
+) -> None:
+    class RacingRepository(SessionRepository):
+        def __init__(self) -> None:
+            self.active_lookup_count = 0
+
+        async def get_active_by_window(
+            self, db: AsyncSession, window_id: str
+        ) -> EditSession | None:
+            self.active_lookup_count += 1
+            if self.active_lookup_count == 1:
+                return None
+            return await super().get_active_by_window(db, window_id)
+
+    async def run_case() -> dict[str, object]:
+        async with session_api_client.session_factory() as db:
+            db.add(
+                EditSession(
+                    session_id="00000000-0000-0000-0000-000000000029",
+                    window_id=WINDOW_ID,
+                    user_id=1,
+                    status="editing",
+                )
+            )
+            await db.commit()
+
+        repo = RacingRepository()
+        service = EditSessionService(
+            sessions=repo,
+            path_builder=session_api_client.path_builder,
+        )
+        async with session_api_client.session_factory() as db:
+            forecaster = await db.get(AppUser, 2)
+            assert forecaster is not None
+            try:
+                await service.create_session(db, WINDOW_ID, forecaster)
+            except Exception as exc:
+                return {
+                    "code": getattr(exc, "code", ""),
+                    "detail": getattr(exc, "detail", {}),
+                    "lookups": repo.active_lookup_count,
+                }
+            return {"code": "", "detail": {}, "lookups": repo.active_lookup_count}
+
+    result = asyncio.run(run_case())
+    assert result == {
+        "code": "WINDOW_LOCKED",
+        "detail": {"window_id": WINDOW_ID},
+        "lookups": 2,
+    }
+
+
 def test_session_service_with_mocked_repository(
     session_api_client: SessionApiClient,
 ) -> None:
@@ -333,7 +386,8 @@ def test_post_session_start_success_and_concurrent_lock(
     )
     assert lock_response.status_code == 409
     assert lock_response.json()["code"] == "WINDOW_LOCKED"
-    assert lock_response.json()["detail"]["session_id"] == session_id
+    assert lock_response.json()["detail"] == {"window_id": WINDOW_ID}
+    assert session_id
 
 
 def test_post_session_start_viewer_forbidden(
@@ -402,7 +456,22 @@ def test_get_session_field_all_fields(
         headers=_headers(),
     )
     _assert_binary_headers(response, dtype, length)
-    assert response.headers["x-grid-variable"]
+    assert response.headers["x-grid-variable"] == field
+
+
+def test_gzip_content_encoding(session_api_client: SessionApiClient) -> None:
+    session = asyncio.run(
+        _create_session(
+            session_api_client.session_factory, session_api_client.path_builder
+        )
+    )
+    response = session_api_client.client.get(
+        f"/api/session/{session.session_id}/field/qpf_before",
+        headers={**_headers(), "Accept-Encoding": "gzip"},
+    )
+    assert response.status_code == 200
+    assert response.headers["content-encoding"] == "gzip"
+    assert response.headers["x-grid-byte-length"] == str(GRID_BYTES_QPF)
 
 
 @pytest.mark.parametrize(
@@ -463,6 +532,31 @@ def test_session_expired_returns_410(session_api_client: SessionApiClient) -> No
     asyncio.run(expire())
     response = session_api_client.client.get(
         f"/api/session/{session.session_id}/load",
+        headers=_headers(),
+    )
+    assert response.status_code == 410
+    assert response.json()["code"] == "SESSION_EXPIRED"
+
+
+def test_expired_session_field_returns_410(
+    session_api_client: SessionApiClient,
+) -> None:
+    session = asyncio.run(
+        _create_session(
+            session_api_client.session_factory, session_api_client.path_builder
+        )
+    )
+
+    async def expire() -> None:
+        async with session_api_client.session_factory() as db:
+            stored = await db.get(EditSession, session.session_id)
+            assert stored is not None
+            stored.status = "expired"
+            await db.commit()
+
+    asyncio.run(expire())
+    response = session_api_client.client.get(
+        f"/api/session/{session.session_id}/field/qpf_before",
         headers=_headers(),
     )
     assert response.status_code == 410
