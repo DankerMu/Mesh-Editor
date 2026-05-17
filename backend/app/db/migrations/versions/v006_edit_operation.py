@@ -36,12 +36,14 @@ def upgrade() -> None:
         sa.Column(
             "created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()
         ),
+        sa.CheckConstraint("is_undone IN (0, 1)", name="ck_edit_op_is_undone"),
         sa.ForeignKeyConstraint(["session_id"], ["edit_session.session_id"]),
     )
     op.create_index(
         "idx_edit_op_session_seq",
         "edit_operation",
         ["session_id", "sequence_no"],
+        unique=True,
     )
 
 

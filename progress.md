@@ -74,6 +74,7 @@ M0 工程骨架全部完成：后端 FastAPI + SQLAlchemy + Alembic + JWT 认证
 
 | 日期 | 变更 |
 |---|---|
+| 2026-05-17 | **PR #41 Round 1 修复**：edit_operation 增加 session+sequence 唯一索引与 is_undone CHECK 约束，模型/迁移/测试对齐，后端 133 tests + ruff 全绿 |
 | 2026-05-17 | **M3 #36 完成**：新增 shapely 依赖、v006 edit_operation 迁移、EditOperation 模型与 Repository，后端 132 tests + ruff 全绿 |
 | 2026-05-17 | **M1 #17 完成**：新增前端 data API、windowStore、扫描进度/窗口选择/QC 组件及 12 个前端测试，frontend build + 28 tests 全绿 |
 | 2026-05-17 | **M1 #16 完成**：新增 data_scan/windows API、JWT 权限控制、扫描状态查询与 17 个 API 测试，后端 102 tests 全绿 |

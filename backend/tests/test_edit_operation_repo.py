@@ -8,6 +8,7 @@ import pytest
 import sqlalchemy as sa
 from alembic import command
 from alembic.config import Config
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -199,7 +200,11 @@ def test_migration_creates_table(tmp_path: Path) -> None:
     engine = sa.create_engine(f"sqlite:///{db_path}")
     inspector = sa.inspect(engine)
     columns = {column["name"]: column for column in inspector.get_columns("edit_operation")}
-    indexes = inspector.get_indexes("edit_operation")
+    indexes = {index["name"]: index for index in inspector.get_indexes("edit_operation")}
+    check_constraints = {
+        constraint["name"]: constraint
+        for constraint in inspector.get_check_constraints("edit_operation")
+    }
 
     assert set(columns) == {
         "operation_id",
@@ -222,10 +227,51 @@ def test_migration_creates_table(tmp_path: Path) -> None:
     assert columns["session_id"]["nullable"] is False
     assert columns["is_undone"]["nullable"] is False
     assert columns["created_at"]["nullable"] is False
-    assert any(
-        index["name"] == "idx_edit_op_session_seq"
-        and index["column_names"] == ["session_id", "sequence_no"]
-        for index in indexes
-    )
+    assert indexes["idx_edit_op_session_seq"]["column_names"] == [
+        "session_id",
+        "sequence_no",
+    ]
+    assert bool(indexes["idx_edit_op_session_seq"]["unique"]) is True
+    assert "ck_edit_op_is_undone" in check_constraints
+
+    engine.dispose()
+
+
+def test_migration_rejects_invalid_is_undone(tmp_path: Path) -> None:
+    db_path = tmp_path / "migration.db"
+    config = Config("alembic.ini")
+    config.set_main_option("sqlalchemy.url", f"sqlite+aiosqlite:///{db_path}")
+
+    command.upgrade(config, "head")
+
+    engine = sa.create_engine(f"sqlite:///{db_path}")
+    with pytest.raises(IntegrityError), engine.begin() as connection:
+        connection.execute(
+            sa.text(
+                """
+                INSERT INTO edit_operation (
+                    operation_id,
+                    session_id,
+                    window_id,
+                    sequence_no,
+                    tool_name,
+                    variable_name,
+                    operation_type,
+                    is_undone
+                )
+                VALUES (
+                    '00000000-0000-0000-0000-000000000001',
+                    :session_id,
+                    :window_id,
+                    1,
+                    'polygon',
+                    'qpf',
+                    'increase',
+                    2
+                )
+                """
+            ),
+            {"session_id": SESSION_ID, "window_id": WINDOW_ID},
+        )
 
     engine.dispose()

@@ -1,5 +1,6 @@
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     Float,
@@ -26,7 +27,7 @@ class AppUser(Base):
     display_name = Column(String(64), nullable=False)
     role = Column(String(20), nullable=False, server_default="viewer")
     is_active = Column(Boolean, nullable=False, server_default=func.true())
-    created_at = Column(DateTime, nullable=False, server_default=func.now())
+    created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
@@ -125,7 +126,8 @@ class EditSession(Base):
 class EditOperation(Base):
     __tablename__ = "edit_operation"
     __table_args__ = (
-        Index("idx_edit_op_session_seq", "session_id", "sequence_no"),
+        CheckConstraint("is_undone IN (0, 1)", name="ck_edit_op_is_undone"),
+        Index("idx_edit_op_session_seq", "session_id", "sequence_no", unique=True),
     )
 
     operation_id = Column(String(36), primary_key=True)
@@ -144,4 +146,4 @@ class EditOperation(Base):
     after_stats_json = Column(Text, nullable=True)
     op_ptype_transition_json = Column(Text, nullable=True)
     is_undone = Column(Integer, nullable=False, server_default="0")
-    created_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
