@@ -70,28 +70,64 @@ def _apply_operation(ctx: EditContext, operation: Any):
     parameters = _parameters(_getattr(operation, "parameters_json"))
 
     if operation_type in {"set_value", "qpf_set_value", "set"}:
-        return apply_qpf_set_value(ctx, float(_first(parameters, "value", "target_value")))
+        result = apply_qpf_set_value(
+            ctx, float(_first(parameters, "value", "target_value"))
+        )
+        return _apply_target_ptype_if_needed(ctx, result, parameters)
     if operation_type in {"increase", "qpf_increase"}:
-        return apply_qpf_increase(
+        result = apply_qpf_increase(
             ctx,
             float(_first(parameters, "delta_mm", "delta", "value")),
             bool(parameters.get("only_nonzero", False)),
         )
+        return _apply_target_ptype_if_needed(ctx, result, parameters)
     if operation_type in {"decrease", "qpf_decrease"}:
-        return apply_qpf_decrease(
+        result = apply_qpf_decrease(
             ctx, float(_first(parameters, "delta_mm", "delta", "value"))
         )
+        return _apply_target_ptype_if_needed(ctx, result, parameters)
     if operation_type in {"multiply", "qpf_multiply"}:
-        return apply_qpf_multiply(ctx, float(_first(parameters, "factor", "value")))
+        result = apply_qpf_multiply(ctx, float(_first(parameters, "factor", "value")))
+        return _apply_target_ptype_if_needed(ctx, result, parameters)
     if operation_type in {"clear", "qpf_clear"}:
-        return apply_qpf_clear(ctx)
+        result = apply_qpf_clear(ctx)
+        return _apply_target_ptype_if_needed(ctx, result, parameters)
     if operation_type in {"ptype_set", "set_ptype"}:
         return apply_ptype_set(ctx, int(_first(parameters, "target_ptype", "ptype", "value")))
     if operation_type in {"screen_clear", "qpf_screen_clear"}:
         threshold = parameters.get("threshold")
-        return apply_screen_clear(ctx, None if threshold is None else float(threshold))
+        result = apply_screen_clear(ctx, None if threshold is None else float(threshold))
+        return _apply_target_ptype_if_needed(ctx, result, parameters)
 
     raise ValueError(f"unsupported operation_type: {operation_type}")
+
+
+def _apply_target_ptype_if_needed(
+    ctx: EditContext,
+    result: Any,
+    parameters: Mapping[str, Any],
+) -> Any:
+    if parameters.get("target_ptype") is None:
+        return result
+
+    target_ptype = int(parameters["target_ptype"])
+    ptype_after = result.ptype_after.copy()
+    new_precip = (
+        np.asarray(ctx.operation_mask, dtype=bool)
+        & np.asarray(ctx.valid_mask, dtype=bool)
+        & (ctx.qpf_before <= ctx.qpf_ptype_threshold)
+        & (result.qpf_after > ctx.qpf_ptype_threshold)
+        & (ptype_after == 0)
+    )
+    ptype_after[new_precip] = np.uint8(target_ptype)
+    return type(result)(
+        qpf_after=result.qpf_after,
+        ptype_after=ptype_after,
+        affected_grid_count=result.affected_grid_count,
+        warnings=result.warnings,
+        new_precip_needs_ptype=result.new_precip_needs_ptype,
+        new_precip_count=result.new_precip_count,
+    )
 
 
 def _load_operation_mask(operation: Any, shape: tuple[int, ...]) -> npt.NDArray[np.bool_]:

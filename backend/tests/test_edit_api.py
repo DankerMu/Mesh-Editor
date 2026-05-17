@@ -225,6 +225,10 @@ def _qpf(builder: PathBuilder, session_id: str) -> np.ndarray:
     return np.load(builder.session_root(session_id) / "qpf_after.npy")
 
 
+def _ptype(builder: PathBuilder, session_id: str) -> np.ndarray:
+    return np.load(builder.session_root(session_id) / "ptype_after.npy")
+
+
 def test_preview_valid_polygon_qpf_increase_returns_stats(
     edit_api_client: EditApiClient,
 ) -> None:
@@ -292,6 +296,36 @@ def test_new_precip_needs_ptype_error_then_apply_with_target_ptype(
     )
     assert applied["sequence_no"] == 1
     assert np.count_nonzero(ptype_after == 2) > 0
+
+
+def test_redo_preserves_target_ptype_for_new_precip(
+    edit_api_client: EditApiClient,
+) -> None:
+    session_id = _start_session(edit_api_client.client)
+    payload = _polygon_payload(
+        session_id,
+        operation="set_value",
+        delta_mm=None,
+        value=3.0,
+        coordinates=[[75.0, 30.0], [75.3, 30.0], [75.3, 30.3], [75.0, 30.3]],
+    )
+    data = _preview(edit_api_client.client, session_id, payload)
+    assert data["new_precip_needs_ptype"] is True
+
+    _apply(edit_api_client.client, session_id, data["preview_id"], target_ptype=2)
+    applied_ptype = _ptype(edit_api_client.path_builder, session_id).copy()
+    assert np.count_nonzero(applied_ptype == 2) > 0
+
+    undo = edit_api_client.client.post(
+        "/api/edit/undo", json={"session_id": session_id}, headers=_headers()
+    )
+    assert undo.status_code == 200
+    redo = edit_api_client.client.post(
+        "/api/edit/redo", json={"session_id": session_id}, headers=_headers()
+    )
+
+    assert redo.status_code == 200
+    assert np.array_equal(_ptype(edit_api_client.path_builder, session_id), applied_ptype)
 
 
 def test_undo_redo_and_undo_all_restore_expected_states(
@@ -375,6 +409,24 @@ def test_permission_viewer_gets_permission_denied(
 
     assert response.status_code == 403
     assert response.json()["code"] == "PERMISSION_DENIED"
+
+
+def test_preview_rejects_non_finite_geometry_coordinate(
+    edit_api_client: EditApiClient,
+) -> None:
+    session_id = _start_session(edit_api_client.client)
+
+    response = edit_api_client.client.post(
+        "/api/edit/preview",
+        json=_polygon_payload(
+            session_id,
+            coordinates=[["nan", 35.0], [80.2, 35.0], [80.2, 35.2], [80.0, 35.2]],
+        ),
+        headers=_headers(),
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "MASK_INVALID_GEOMETRY"
 
 
 def test_preview_expired_and_conflict_errors(edit_api_client: EditApiClient) -> None:

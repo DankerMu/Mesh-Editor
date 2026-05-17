@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any, cast
 from uuid import uuid4
@@ -165,8 +166,23 @@ def _coordinates(value: Any) -> list[list[float]]:
     for point in value:
         if not isinstance(point, list | tuple) or len(point) != 2:
             raise _domain_error("MASK_INVALID_GEOMETRY", {"reason": "坐标必须为 [lon, lat]"})
-        coordinates.append([float(point[0]), float(point[1])])
+        coordinates.append(
+            [
+                _finite_geometry_float(point[0], "lon"),
+                _finite_geometry_float(point[1], "lat"),
+            ]
+        )
     return coordinates
+
+
+def _finite_geometry_float(value: Any, name: str) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise _domain_error("MASK_INVALID_GEOMETRY", {"reason": f"{name} 必须为数值"}) from exc
+    if not math.isfinite(parsed):
+        raise _domain_error("MASK_INVALID_GEOMETRY", {"reason": f"{name} 必须为有限数值"})
+    return parsed
 
 
 def _build_mask(payload: EditPreviewRequest, valid_mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.bool_]:
@@ -178,12 +194,12 @@ def _build_mask(payload: EditPreviewRequest, valid_mask: npt.NDArray[np.bool_]) 
         if payload.tool == "line_buffer":
             return mask_builder.line_buffer_to_mask(
                 _coordinates(payload.mask.get("coordinates")),
-                float(payload.mask.get("width_grid", 0)),
+                _finite_geometry_float(payload.mask.get("width_grid", 0), "width_grid"),
                 valid_mask,
             )
         return mask_builder.brush_path_to_mask(
             _coordinates(payload.mask.get("points", payload.mask.get("coordinates"))),
-            float(payload.mask.get("radius_grid", 0)),
+            _finite_geometry_float(payload.mask.get("radius_grid", 0), "radius_grid"),
             valid_mask,
         )
     except MaskError as exc:
@@ -420,8 +436,8 @@ async def apply_edit(
     snapshot = preview.get("request_snapshot", {})
     snapshot_dict = snapshot if isinstance(snapshot, dict) else {}
     parameters_value = snapshot_dict.get("parameters", {})
-    parameters = parameters_value if isinstance(parameters_value, dict) else {}
-    if payload.target_ptype is not None:
+    parameters = dict(parameters_value) if isinstance(parameters_value, dict) else {}
+    if bool(preview["new_precip_needs_ptype"]) and payload.target_ptype is not None:
         parameters["target_ptype"] = payload.target_ptype
 
     operation = await edit_operation_repo.create(
@@ -482,6 +498,7 @@ async def undo_edit(
     await edit_operation_repo.update_is_undone(db, str(target.operation_id), 1)
     operations = await edit_operation_repo.query_by_session(db, payload.session_id)
     await _replay_and_save(payload.session_id, operations)
+    preview_cache.cleanup_session(payload.session_id)
     await db.commit()
     can_undo, can_redo = compute_can_undo_redo(operations)
     return ApiResponse(
@@ -514,6 +531,7 @@ async def redo_edit(
     await edit_operation_repo.update_is_undone(db, str(target.operation_id), 0)
     operations = await edit_operation_repo.query_by_session(db, payload.session_id)
     await _replay_and_save(payload.session_id, operations)
+    preview_cache.cleanup_session(payload.session_id)
     await db.commit()
     can_undo, can_redo = compute_can_undo_redo(operations)
     return ApiResponse(
