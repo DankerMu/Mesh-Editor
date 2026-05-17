@@ -97,3 +97,26 @@ class DataScanLog(Base):
     windows_created = Column(Integer, nullable=False, server_default="0")
     windows_updated = Column(Integer, nullable=False, server_default="0")
     errors_json = Column(JSON, nullable=True)
+
+
+class EditSession(Base):
+    __tablename__ = "edit_session"
+    __table_args__ = (
+        Index(
+            "idx_edit_session_window_active",
+            "window_id",
+            "status",
+            unique=True,
+            sqlite_where=Column("status") == "editing",
+        ),
+    )
+
+    session_id = Column(String(36), primary_key=True)
+    window_id = Column(
+        String(32), ForeignKey("product_window.window_id"), nullable=False
+    )
+    user_id = Column(Integer, ForeignKey("app_user.id"), nullable=False)
+    base_version_id = Column(String(36), nullable=True)
+    status = Column(String(20), nullable=False, server_default="editing")
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
