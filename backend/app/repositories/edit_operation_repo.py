@@ -46,7 +46,7 @@ class EditOperationRepository:
             )
         )
         await db.flush()
-        return int(result.rowcount or 0)
+        return int(result.rowcount or 0)  # type: ignore[attr-defined]
 
     async def get_max_sequence(self, db: AsyncSession, session_id: str) -> int:
         result = await db.execute(
