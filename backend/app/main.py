@@ -9,7 +9,9 @@ from fastapi.responses import JSONResponse, Response
 from app.api.dependencies import get_current_user
 from app.api.routes.auth import protected_router as auth_router
 from app.api.routes.auth import public_router as auth_public_router
+from app.api.routes.data_scan import router as data_scan_router
 from app.api.routes.health import router as health_router
+from app.api.routes.windows import router as windows_router
 from app.core.error_registry import get_error
 from app.core.errors import DomainError
 from app.core.logging import (
@@ -101,6 +103,8 @@ async def generic_error_handler(request: Request, exc: Exception) -> JSONRespons
 public_api_router.include_router(health_router)
 public_api_router.include_router(auth_public_router)
 api_router.include_router(auth_router)
+api_router.include_router(data_scan_router)
+api_router.include_router(windows_router)
 
 app.include_router(public_api_router)
 app.include_router(api_router)

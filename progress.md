@@ -35,7 +35,7 @@ openspec/changes/    ← m0-engineering-skeleton (archived), m1-data-ingestion-w
 
 ## 当前阶段
 
-**阶段：M1 #15 服务与仓储层完成，下一步实现 #16 API 层**
+**阶段：M1 #16 API 层完成，下一步实现 #17 前端窗口选择器**
 
 ### M0 完成总结（2026-05-16）
 
@@ -53,7 +53,7 @@ M0 工程骨架全部完成：后端 FastAPI + SQLAlchemy + Alembic + JWT 认证
 - [x] M1 #13: 基础设施与数据模型
 - [x] M1 #14: Engines 纯函数层
 - [x] M1 #15: 服务与仓储层
-- [ ] M1 #16: API 层
+- [x] M1 #16: API 层
 - [ ] M1 #17: 前端窗口选择器
 
 ### 后续里程碑
@@ -72,6 +72,7 @@ M0 工程骨架全部完成：后端 FastAPI + SQLAlchemy + Alembic + JWT 认证
 
 | 日期 | 变更 |
 |---|---|
+| 2026-05-17 | **M1 #16 完成**：新增 data_scan/windows API、JWT 权限控制、扫描状态查询与 17 个 API 测试，后端 102 tests 全绿 |
 | 2026-05-17 | **M1 #15 完成**：新增 forecast_case/product_window/data_scan_log 仓储、DataScanService/worker 与 8 个扫描集成测试，后端 85 tests 全绿 |
 | 2026-05-17 | **M1 #14 完成**：新增 grid_io/qpf_builder/ptype_builder/archive_builder、numpy 依赖与 27 个 engines/storage 测试，后端 77 tests 全绿 |
 | 2026-05-16 | **M1 #13 完成**：新增 grid/config/error registry/PathBuilder、三张数据表模型与 v004 迁移，并补齐后端测试与 Alembic roundtrip 验证 |

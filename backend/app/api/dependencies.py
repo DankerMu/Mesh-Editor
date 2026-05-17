@@ -1,11 +1,11 @@
 from collections.abc import Callable
 
 from fastapi import Depends, Request
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.errors import DomainError
 from app.db.models import AppUser
-from app.db.session import get_db
+from app.db.session import async_session_factory, get_db
 from app.services.auth_service import auth_service
 
 
@@ -36,3 +36,7 @@ def require_role(*roles: str) -> Callable[..., object]:
         return current_user
 
     return role_dependency
+
+
+def get_session_factory() -> async_sessionmaker[AsyncSession]:
+    return async_session_factory

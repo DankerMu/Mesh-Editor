@@ -17,9 +17,10 @@ logger = logging.getLogger(__name__)
 async def run_data_scan(
     case_id: str,
     session_factory: async_sessionmaker[AsyncSession] = async_session_factory,
+    scan_id: str | None = None,
 ) -> None:
     try:
-        await scan_case(case_id, session_factory)
+        await scan_case(case_id, session_factory, scan_id)
     except DomainError as exc:
         if exc.code == "SCAN_ALREADY_RUNNING":
             logger.info("扫描已在运行中，跳过 case_id=%s", case_id)
