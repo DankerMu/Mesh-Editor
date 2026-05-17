@@ -30,7 +30,7 @@ def test_path_builder_eight_methods_return_paths(tmp_path: Path) -> None:
     assert builder.preview_file("session_001", "preview_001").name == "preview_001.npz"
     assert builder.data_source_dir("2024051608") == data_source_root / "2024051608"
     assert builder.window_original_dir("2024051608", "2024051608_W024_000_024") == (
-        tmp_path / "windows" / "2024051608_W024_000_024" / "original"
+        tmp_path / "cases" / "2024051608" / "windows" / "2024051608_W024_000_024" / "original"
     )
     assert (
         builder.tp_file_path("2024051608", 24)

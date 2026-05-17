@@ -70,7 +70,7 @@ class ProductWindow(Base):
     start_lead = Column(Integer, nullable=False)
     end_lead = Column(Integer, nullable=False)
     status = Column(String(32), nullable=False, server_default="pending")
-    qc_status = Column(String(32), nullable=False, server_default="ok")
+    qc_status = Column(String(32), nullable=False, server_default="unchecked")
     negative_count = Column(Integer, nullable=False, server_default="0")
     negative_min_value = Column(Float, nullable=True)
     negative_abs_max = Column(Float, nullable=True)

@@ -49,7 +49,10 @@ def upgrade() -> None:
             "status", sa.String(length=32), nullable=False, server_default="pending"
         ),
         sa.Column(
-            "qc_status", sa.String(length=32), nullable=False, server_default="ok"
+            "qc_status",
+            sa.String(length=32),
+            nullable=False,
+            server_default="unchecked",
         ),
         sa.Column("negative_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("negative_min_value", sa.Float(), nullable=True),

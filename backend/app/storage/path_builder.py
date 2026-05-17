@@ -57,8 +57,7 @@ class PathBuilder:
         return self.data_source_root / _safe_segment(case_id)
 
     def window_original_dir(self, case_id: str, window_id: str) -> Path:
-        _safe_segment(case_id)
-        return self.base_dir / "windows" / _safe_segment(window_id) / "original"
+        return self.case_root(case_id) / "windows" / _safe_segment(window_id) / "original"
 
     def tp_file_path(self, case_id: str, lead: int) -> Path:
         return self.data_source_dir(case_id) / f"tp_{lead:03d}.txt"
