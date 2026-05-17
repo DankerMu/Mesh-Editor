@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+import { editApply, editPreview, editRedo, editUndo, getOperations } from '@/api/edit'
 import { fetchField, loadSession, startSession } from '@/api/sessions'
 import { GRID_COLS, GRID_ROWS } from '@/constants/precipColors'
 import { useEditorStore } from '@/stores/editorStore'
@@ -9,6 +10,14 @@ vi.mock('@/api/sessions', () => ({
   startSession: vi.fn(),
   loadSession: vi.fn(),
   fetchField: vi.fn(),
+}))
+
+vi.mock('@/api/edit', () => ({
+  editPreview: vi.fn(),
+  editApply: vi.fn(),
+  editUndo: vi.fn(),
+  editRedo: vi.fn(),
+  getOperations: vi.fn(),
 }))
 
 const GRID_COUNT = GRID_ROWS * GRID_COLS
@@ -23,6 +32,28 @@ const FIELD_URLS = {
   touched_mask: '/field/touched_mask',
   changed_mask: '/field/changed_mask',
   invalid_mask: '/field/invalid_mask',
+}
+
+const PREVIEW_RESPONSE = {
+  preview_id: 'preview-1',
+  affected_grid_count: 12,
+  affected_area_km2: 34.5,
+  before_stats: { min: 0, max: 3, mean: 1.2, sum: 14.4 },
+  after_stats: { min: 1, max: 5, mean: 2.2, sum: 26.4 },
+  op_ptype_transition: { '0->1': 2 },
+  new_precip_needs_ptype: false,
+  new_precip_count: 0,
+  warnings: [],
+}
+
+const OPERATION = {
+  sequence_no: 1,
+  tool_name: 'polygon',
+  operation_type: 'increase',
+  variable_name: 'qpf',
+  affected_grid_count: 12,
+  is_undone: 0,
+  created_at: '2026-05-17T00:00:00Z',
 }
 
 function mockLoadSession() {
@@ -55,6 +86,11 @@ describe('editorStore', () => {
     vi.mocked(startSession).mockReset()
     vi.mocked(loadSession).mockReset()
     vi.mocked(fetchField).mockReset()
+    vi.mocked(editPreview).mockReset()
+    vi.mocked(editApply).mockReset()
+    vi.mocked(editUndo).mockReset()
+    vi.mocked(editRedo).mockReset()
+    vi.mocked(getOperations).mockReset()
   })
 
   it('startSession 成功后写入会话状态并触发字段加载', async () => {
@@ -214,5 +250,142 @@ describe('editorStore', () => {
     expect(store.saveLoading).toBe(false)
     expect(store.fieldLoadError).toBeNull()
     expect(store.previewError).toBeNull()
+  })
+
+  it('requestPreview 设置 previewResult 并维护 previewLoading', async () => {
+    let resolvePreview: (value: typeof PREVIEW_RESPONSE) => void = () => undefined
+    vi.mocked(editPreview).mockReturnValue(
+      new Promise((resolve) => {
+        resolvePreview = resolve
+      }),
+    )
+
+    const store = useEditorStore()
+    store.sessionId = 'session-1'
+    const request = store.requestPreview(
+      'polygon',
+      'qpf',
+      'increase',
+      { coordinates: [[100, 30]] },
+      { delta_mm: 2 },
+    )
+
+    expect(store.previewLoading).toBe(true)
+    resolvePreview(PREVIEW_RESPONSE)
+    await request
+
+    expect(editPreview).toHaveBeenCalledWith({
+      session_id: 'session-1',
+      tool: 'polygon',
+      variable: 'qpf',
+      operation: 'increase',
+      mask: { coordinates: [[100, 30]] },
+      parameters: { delta_mm: 2 },
+    })
+    expect(store.previewResult).toEqual(PREVIEW_RESPONSE)
+    expect(store.previewId).toBe('preview-1')
+    expect(store.previewLoading).toBe(false)
+  })
+
+  it('applyEdit 调用 API、清空 preview、刷新字段并更新 undo/redo', async () => {
+    mockFieldFetches()
+    vi.mocked(editApply).mockResolvedValue({
+      operation_id: 'operation-1',
+      sequence_no: 1,
+      applied: true,
+      can_undo: true,
+      can_redo: false,
+    })
+    vi.mocked(getOperations).mockResolvedValue({ operations: [OPERATION] })
+
+    const store = useEditorStore()
+    store.sessionId = 'session-1'
+    store.previewResult = PREVIEW_RESPONSE
+    store.previewId = PREVIEW_RESPONSE.preview_id
+
+    await store.applyEdit(2)
+
+    expect(editApply).toHaveBeenCalledWith({
+      session_id: 'session-1',
+      preview_id: 'preview-1',
+      target_ptype: 2,
+    })
+    expect(fetchField).toHaveBeenCalledWith('/api/session/session-1/field/qpf_after')
+    expect(fetchField).toHaveBeenCalledWith('/api/session/session-1/field/ptype_after')
+    expect(getOperations).toHaveBeenCalledWith('session-1')
+    expect(store.previewResult).toBeNull()
+    expect(store.previewId).toBeNull()
+    expect(store.canUndo).toBe(true)
+    expect(store.canRedo).toBe(false)
+    expect(store.operations).toEqual([OPERATION])
+  })
+
+  it('undoEdit 调用 API、刷新字段并更新 undo/redo', async () => {
+    mockFieldFetches()
+    vi.mocked(editUndo).mockResolvedValue({
+      can_undo: false,
+      can_redo: true,
+      operation_count: 1,
+    })
+    vi.mocked(getOperations).mockResolvedValue({
+      operations: [{ ...OPERATION, is_undone: 1 }],
+    })
+
+    const store = useEditorStore()
+    store.sessionId = 'session-1'
+
+    await store.undoEdit()
+
+    expect(editUndo).toHaveBeenCalledWith({ session_id: 'session-1' })
+    expect(fetchField).toHaveBeenCalledWith('/api/session/session-1/field/qpf_after')
+    expect(fetchField).toHaveBeenCalledWith('/api/session/session-1/field/ptype_after')
+    expect(store.canUndo).toBe(false)
+    expect(store.canRedo).toBe(true)
+  })
+
+  it('redoEdit 调用 API、刷新字段并更新 undo/redo', async () => {
+    mockFieldFetches()
+    vi.mocked(editRedo).mockResolvedValue({
+      can_undo: true,
+      can_redo: false,
+      operation_count: 1,
+    })
+    vi.mocked(getOperations).mockResolvedValue({ operations: [OPERATION] })
+
+    const store = useEditorStore()
+    store.sessionId = 'session-1'
+
+    await store.redoEdit()
+
+    expect(editRedo).toHaveBeenCalledWith({ session_id: 'session-1' })
+    expect(fetchField).toHaveBeenCalledWith('/api/session/session-1/field/qpf_after')
+    expect(fetchField).toHaveBeenCalledWith('/api/session/session-1/field/ptype_after')
+    expect(store.canUndo).toBe(true)
+    expect(store.canRedo).toBe(false)
+  })
+
+  it('fetchOperations 填充 operations 列表', async () => {
+    vi.mocked(getOperations).mockResolvedValue({ operations: [OPERATION] })
+
+    const store = useEditorStore()
+    store.sessionId = 'session-1'
+
+    await store.fetchOperations()
+
+    expect(getOperations).toHaveBeenCalledWith('session-1')
+    expect(store.operations).toEqual([OPERATION])
+    expect(store.canUndo).toBe(true)
+    expect(store.canRedo).toBe(false)
+  })
+
+  it('clearPreview 重置 previewResult', () => {
+    const store = useEditorStore()
+    store.previewResult = PREVIEW_RESPONSE
+    store.previewId = PREVIEW_RESPONSE.preview_id
+
+    store.clearPreview()
+
+    expect(store.previewResult).toBeNull()
+    expect(store.previewId).toBeNull()
   })
 })

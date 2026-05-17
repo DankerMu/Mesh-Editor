@@ -1,7 +1,21 @@
 import { defineStore } from 'pinia'
 import { shallowRef, ref } from 'vue'
+import {
+  editApply,
+  editPreview,
+  editRedo,
+  editUndo,
+  getOperations,
+} from '@/api/edit'
+import type {
+  EditOperation,
+  EditPreviewResponse,
+  EditTool,
+  EditVariable,
+  OperationItem,
+} from '@/api/edit'
 import { fetchField, loadSession as loadSessionApi, startSession as startSessionApi } from '@/api/sessions'
-import type { EditOperationDTO, EditStats, MaskGeometry, ToolType, ViewMode } from '@/types/editor'
+import type { MaskGeometry, ToolType, ViewMode } from '@/types/editor'
 import { GRID_COLS, GRID_ROWS } from '@/constants/precipColors'
 
 const FIELD_NAMES = [
@@ -49,8 +63,8 @@ export const useEditorStore = defineStore('editor', () => {
   const currentMaskGeometry = ref<MaskGeometry | null>(null)
   const selectedViewMode = ref<ViewMode>('after')
   const previewId = ref<string | null>(null)
-  const previewStats = ref<EditStats | null>(null)
-  const operations = ref<EditOperationDTO[]>([])
+  const previewResult = ref<EditPreviewResponse | null>(null)
+  const operations = ref<OperationItem[]>([])
   const canUndo = ref(false)
   const canRedo = ref(false)
   const dirty = ref(false)
@@ -82,7 +96,7 @@ export const useEditorStore = defineStore('editor', () => {
     currentMaskGeometry.value = null
     selectedViewMode.value = 'after'
     previewId.value = null
-    previewStats.value = null
+    previewResult.value = null
     operations.value = []
     canUndo.value = false
     canRedo.value = false
@@ -159,6 +173,173 @@ export const useEditorStore = defineStore('editor', () => {
     }
   }
 
+  async function loadSessionField(fieldName: FieldName) {
+    if (sessionId.value === null) {
+      throw new Error('Missing active session')
+    }
+
+    const { buffer } = await fetchField(`/api/session/${sessionId.value}/field/${fieldName}`)
+    assertByteLength(fieldName, buffer)
+
+    if (fieldName === 'qpf_before') {
+      qpfBefore.value = new Float32Array(buffer)
+    } else if (fieldName === 'ptype_before') {
+      ptypeBefore.value = new Uint8Array(buffer)
+    } else if (fieldName === 'qpf_after') {
+      qpfAfter.value = new Float32Array(buffer)
+    } else if (fieldName === 'ptype_after') {
+      ptypeAfter.value = new Uint8Array(buffer)
+    } else if (fieldName === 'touched_mask') {
+      touchedMask.value = new Uint8Array(buffer)
+    } else if (fieldName === 'changed_mask') {
+      changedMask.value = new Uint8Array(buffer)
+    } else {
+      invalidMask.value = new Uint8Array(buffer)
+    }
+  }
+
+  async function refreshAfterEditFields() {
+    loadingFields.value = true
+    fieldLoadError.value = null
+
+    try {
+      await Promise.all([
+        loadSessionField('qpf_after'),
+        loadSessionField('ptype_after'),
+        loadSessionField('touched_mask'),
+      ])
+    } catch (error) {
+      fieldLoadError.value = getErrorMessage(error)
+      throw error
+    } finally {
+      loadingFields.value = false
+    }
+  }
+
+  function requireSessionId() {
+    if (sessionId.value === null) {
+      throw new Error('Missing active session')
+    }
+    return sessionId.value
+  }
+
+  async function fetchOperations() {
+    const activeSessionId = requireSessionId()
+    const response = await getOperations(activeSessionId)
+    operations.value = response.operations
+    canUndo.value = response.operations.some((operation) => operation.is_undone === 0)
+    canRedo.value = response.operations.some((operation) => operation.is_undone === 1)
+  }
+
+  async function requestPreview(
+    tool: EditTool,
+    variable: EditVariable,
+    operation: EditOperation,
+    mask: Record<string, unknown>,
+    parameters: Record<string, unknown>,
+  ) {
+    const activeSessionId = requireSessionId()
+    previewLoading.value = true
+    previewError.value = null
+    clearPreview()
+
+    try {
+      const result = await editPreview({
+        session_id: activeSessionId,
+        tool,
+        variable,
+        operation,
+        mask,
+        parameters,
+      })
+      previewResult.value = result
+      previewId.value = result.preview_id
+      return result
+    } catch (error) {
+      previewError.value = getErrorMessage(error)
+      throw error
+    } finally {
+      previewLoading.value = false
+    }
+  }
+
+  function clearPreview() {
+    previewResult.value = null
+    previewId.value = null
+  }
+
+  async function applyEdit(targetPtype?: number) {
+    const activeSessionId = requireSessionId()
+    if (previewResult.value === null) {
+      throw new Error('Missing preview result')
+    }
+
+    applyLoading.value = true
+    previewError.value = null
+
+    try {
+      const response = await editApply({
+        session_id: activeSessionId,
+        preview_id: previewResult.value.preview_id,
+        target_ptype: targetPtype,
+      })
+      canUndo.value = response.can_undo
+      canRedo.value = response.can_redo
+      dirty.value = true
+      clearPreview()
+      await refreshAfterEditFields()
+      await fetchOperations()
+      return response
+    } catch (error) {
+      previewError.value = getErrorMessage(error)
+      throw error
+    } finally {
+      applyLoading.value = false
+    }
+  }
+
+  async function undoEdit() {
+    const activeSessionId = requireSessionId()
+    applyLoading.value = true
+    previewError.value = null
+
+    try {
+      const response = await editUndo({ session_id: activeSessionId })
+      canUndo.value = response.can_undo
+      canRedo.value = response.can_redo
+      clearPreview()
+      await refreshAfterEditFields()
+      await fetchOperations()
+      return response
+    } catch (error) {
+      previewError.value = getErrorMessage(error)
+      throw error
+    } finally {
+      applyLoading.value = false
+    }
+  }
+
+  async function redoEdit() {
+    const activeSessionId = requireSessionId()
+    applyLoading.value = true
+    previewError.value = null
+
+    try {
+      const response = await editRedo({ session_id: activeSessionId })
+      canUndo.value = response.can_undo
+      canRedo.value = response.can_redo
+      clearPreview()
+      await refreshAfterEditFields()
+      await fetchOperations()
+      return response
+    } catch (error) {
+      previewError.value = getErrorMessage(error)
+      throw error
+    } finally {
+      applyLoading.value = false
+    }
+  }
+
   function setActiveTool(tool: ToolType | null) {
     if (tool === null) {
       activeTool.value = null
@@ -197,7 +378,7 @@ export const useEditorStore = defineStore('editor', () => {
     currentMaskGeometry,
     selectedViewMode,
     previewId,
-    previewStats,
+    previewResult,
     operations,
     canUndo,
     canRedo,
@@ -211,6 +392,13 @@ export const useEditorStore = defineStore('editor', () => {
     previewError,
     startSession,
     loadSession,
+    loadSessionField,
+    requestPreview,
+    applyEdit,
+    undoEdit,
+    redoEdit,
+    fetchOperations,
+    clearPreview,
     setActiveTool,
     setMaskGeometry,
     clearMask,

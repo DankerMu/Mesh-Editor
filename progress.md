@@ -35,7 +35,7 @@ openspec/changes/    ← m0-engineering-skeleton (archived), m1-data-ingestion-w
 
 ## 当前阶段
 
-**阶段：M3 #38 后端 Edit API 层完成，PR #43 Round 1 修复已完成，等待前端编辑面板与接口集成**
+**阶段：M3 #39 前端 editApi + editorStore 集成完成，等待 PreviewStatsPanel 与 OperationHistory 组件落地**
 
 ### M0 完成总结（2026-05-16）
 
@@ -58,7 +58,8 @@ M0 工程骨架全部完成：后端 FastAPI + SQLAlchemy + Alembic + JWT 认证
 - [x] M3 #36: shapely 依赖、edit_operation 迁移/模型/Repository
 - [x] M3 #37: MaskBuilder、EditOps、统计、Preview 缓存、Replay
 - [x] M3 #38: 后端 Edit API preview/apply/undo/redo/operations
-- [ ] M3 后续：前端编辑面板与接口集成
+- [x] M3 #39: 前端 API/Store 集成（editApi + editorStore 扩展）
+- [ ] M3 后续：PreviewStatsPanel 与 OperationHistory 组件集成
 
 ### 后续里程碑
 
@@ -76,6 +77,7 @@ M0 工程骨架全部完成：后端 FastAPI + SQLAlchemy + Alembic + JWT 认证
 
 | 日期 | 变更 |
 |---|---|
+| 2026-05-17 | **M3 #39 完成**：新增前端 editApi 五端点封装，扩展 editorStore preview/apply/undo/redo/operations 状态管理与 after 字段刷新，frontend vue-tsc + 92 tests 全绿 |
 | 2026-05-17 | **PR #43 Round 1 修复**：补齐 target_ptype replay、undo/redo preview 失效、条件化参数持久化与 geometry 有限数校验，后端 204 tests + ruff 全绿 |
 | 2026-05-17 | **M3 #38 完成**：新增 Edit API schemas/routes、preview/apply/undo/redo/operations 集成测试、mask 持久化与缺失错误码/TTL 配置，后端 202 tests + ruff + mypy 全绿 |
 | 2026-05-17 | **PR #42 Round 1 修复**：replay 兼容 ORM 属性对象、统计 transition 纳入 valid_mask、编辑参数拒绝 NaN/Inf、preview cache 错误码与锁保护对齐，后端 187 tests + ruff + mypy 全绿 |
