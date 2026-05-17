@@ -54,8 +54,9 @@ def enumerate_ptype_leads(
 ) -> list[int]:
     max_lead_hours = int(getattr(config, "max_lead_hours", 240))
     lead_step_hours = int(getattr(config, "lead_step_hours", 3))
+    window_step_hours = int(getattr(config, "window_step_hours", 24))
     if (
-        start_lead % 24 != 0
+        start_lead % window_step_hours != 0
         or end_lead > max_lead_hours
         or end_lead <= start_lead
         or end_lead % lead_step_hours != 0

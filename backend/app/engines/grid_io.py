@@ -63,7 +63,7 @@ def read_txt_grid(
         finite_mask = np.isfinite(raw)
         integer_like_mask = finite_mask & (raw == np.floor(raw))
         valid_value_mask = integer_like_mask & np.isin(raw, list(PTYPE_VALID_VALUES))
-        invalid_mask = finite_mask & ~valid_value_mask
+        invalid_mask = ~missing_mask & ~valid_value_mask
         int_raw = np.where(valid_value_mask, raw, -1)
         array = int_raw.astype(int, copy=False)
     else:

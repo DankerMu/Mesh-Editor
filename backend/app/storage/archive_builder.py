@@ -76,21 +76,22 @@ def save_window_original(
     qpf_result: QpfBuildResult,
     ptype_result: PtypeBuildResult,
     path_builder: PathBuilder,
-) -> dict[str, Path]:
+) -> dict[str, str]:
     original_dir = path_builder.window_original_dir(case_id, window_id)
     original_dir.mkdir(parents=True, exist_ok=True)
+    base_dir = path_builder.base_dir
 
     shape = qpf_result.qpf.shape
     zero_float = np.zeros(shape, dtype=np.float64)
     zero_int = np.zeros(shape, dtype=int)
     zero_bool = np.zeros(shape, dtype=bool)
 
-    saved: dict[str, Path] = {}
+    saved: dict[str, str] = {}
 
     def save_npz(key: str, filename: str, **arrays: np.ndarray) -> None:
         path = original_dir / filename
         atomic_write_npz(path, **arrays)
-        saved[key] = path
+        saved[key] = str(path.relative_to(base_dir))
 
     save_npz("qpf_before_path", "qpf_before.npz", qpf=qpf_result.qpf)
     save_npz("ptype_before_path", "ptype_before.npz", ptype=ptype_result.ptype)
@@ -144,6 +145,6 @@ def save_window_original(
     ]:
         path = original_dir / filename
         _atomic_write_json(path, payload)
-        saved[key] = path
+        saved[key] = str(path.relative_to(base_dir))
 
     return saved

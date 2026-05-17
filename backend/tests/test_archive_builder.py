@@ -82,9 +82,13 @@ def test_save_window_original_writes_expected_files(tmp_path: Path) -> None:
         "v000_touched_mask.npz",
         "v000_changed_mask.npz",
     }
-    saved_names = {path.name for path in saved.values()}
+    saved_names = {Path(p).name for p in saved.values()}
     assert expected_names <= saved_names
-    assert saved["qpf_before_path"].exists()
-    assert saved["ptype_before_path"].exists()
-    manifest = json.loads(saved["qpf_build_manifest_path"].read_text(encoding="utf-8"))
+    archive_base = tmp_path / "archive"
+    assert (archive_base / saved["qpf_before_path"]).exists()
+    assert (archive_base / saved["ptype_before_path"]).exists()
+    manifest = json.loads(
+        (archive_base / saved["qpf_build_manifest_path"]).read_text(encoding="utf-8")
+    )
     assert manifest["window_id"] == window_id
+    assert not Path(saved["qpf_before_path"]).is_absolute()
