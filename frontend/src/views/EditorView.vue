@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type Map from 'ol/Map'
+import type { default as Map } from 'ol/Map'
 import BaseMap from '@/components/map/BaseMap.vue'
 import DrawTools from '@/components/map/DrawTools.vue'
 import GridTooltip from '@/components/map/GridTooltip.vue'

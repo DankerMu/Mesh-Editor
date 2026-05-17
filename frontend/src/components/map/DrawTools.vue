@@ -106,6 +106,7 @@ let drawInteraction: Draw | null = null
 let drawInteractionMap: Map | null = null
 let drawEndKey: EventsKey | null = null
 let brushEventKeys: EventsKey[] = []
+let brushViewport: HTMLElement | null = null
 let brushPoints: LonLat[] = []
 let lastBrushPixel: Pixel | null = null
 let lastBrushPointAt = 0
@@ -272,6 +273,12 @@ function removeBrushHandlers(): void {
     brushEventKeys = []
   }
 
+  if (brushViewport) {
+    brushViewport.removeEventListener('pointerdown', onBrushPointerDown as EventListener)
+    brushViewport.removeEventListener('pointerup', onBrushPointerUp as EventListener)
+    brushViewport = null
+  }
+
   if (wheelTarget) {
     wheelTarget.removeEventListener('wheel', onBrushWheel)
     wheelTarget = null
@@ -415,11 +422,13 @@ function setupBrushHandlers(): void {
   }
 
   brushEventKeys = [
-    props.map.on('pointerdown', onBrushPointerDown),
     props.map.on('pointerdrag', onBrushPointerDrag),
     props.map.on('pointermove', onBrushPointerMove),
-    props.map.on('pointerup', onBrushPointerUp),
   ]
+
+  brushViewport = props.map.getViewport()
+  brushViewport.addEventListener('pointerdown', onBrushPointerDown as EventListener)
+  brushViewport.addEventListener('pointerup', onBrushPointerUp as EventListener)
 
   wheelTarget = props.map.getViewport()
   wheelTarget.addEventListener('wheel', onBrushWheel, { passive: false })
