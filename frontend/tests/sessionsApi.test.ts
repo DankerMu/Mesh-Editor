@@ -69,7 +69,7 @@ describe('sessions API', () => {
 
     const result = await fetchField('/api/session/session-1/field/qpf_before')
 
-    expect(http.get).toHaveBeenCalledWith('/api/session/session-1/field/qpf_before', {
+    expect(http.get).toHaveBeenCalledWith('/session/session-1/field/qpf_before', {
       responseType: 'arraybuffer',
     })
     expect(result.buffer).toBe(buffer)
@@ -94,5 +94,29 @@ describe('sessions API', () => {
     await expect(fetchField('/field')).rejects.toThrow(
       'Binary transfer integrity error: expected 8 bytes, got 4',
     )
+  })
+
+  it('fetchField 在缺少 X-Grid-Byte-Length header 时抛错', async () => {
+    vi.mocked(http.get).mockResolvedValue({
+      data: new ArrayBuffer(8),
+      headers: {},
+    })
+
+    await expect(fetchField('/field')).rejects.toThrow(
+      'Binary transfer integrity error: missing X-Grid-Byte-Length header',
+    )
+  })
+
+  it('fetchField 正确去除 /api 前缀', async () => {
+    vi.mocked(http.get).mockResolvedValue({
+      data: new ArrayBuffer(100),
+      headers: { 'x-grid-byte-length': '100' },
+    })
+
+    await fetchField('/api/session/s1/field/qpf_before')
+
+    expect(http.get).toHaveBeenCalledWith('/session/s1/field/qpf_before', {
+      responseType: 'arraybuffer',
+    })
   })
 })

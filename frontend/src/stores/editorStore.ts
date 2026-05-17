@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { shallowRef, ref } from 'vue'
-import { fetchField, loadSession, startSession as startSessionApi } from '@/api/sessions'
+import { fetchField, loadSession as loadSessionApi, startSession as startSessionApi } from '@/api/sessions'
 import type { EditOperationDTO, EditStats, MaskGeometry, ToolType, ViewMode } from '@/types/editor'
 import { GRID_COLS, GRID_ROWS } from '@/constants/precipColors'
 
@@ -106,7 +106,7 @@ export const useEditorStore = defineStore('editor', () => {
       windowId.value = session.window_id
       baseVersionId.value = session.base_version_id
       currentVersionId.value = null
-      await loadFields(session.session_id)
+      await loadSession(session.session_id)
     } catch (error) {
       fieldLoadError.value = getErrorMessage(error)
     } finally {
@@ -114,13 +114,13 @@ export const useEditorStore = defineStore('editor', () => {
     }
   }
 
-  async function loadFields(sessionIdToLoad: string) {
+  async function loadSession(sessionIdToLoad: string) {
     loadingFields.value = true
     fieldLoadError.value = null
     clearArrays()
 
     try {
-      const session = await loadSession(sessionIdToLoad)
+      const session = await loadSessionApi(sessionIdToLoad)
       sessionId.value = session.session_id
       windowId.value = session.window_id
       baseVersionId.value = session.base_version_id
@@ -205,7 +205,7 @@ export const useEditorStore = defineStore('editor', () => {
     fieldLoadError,
     previewError,
     startSession,
-    loadFields,
+    loadSession,
     setActiveTool,
     setMaskGeometry,
     clearMask,

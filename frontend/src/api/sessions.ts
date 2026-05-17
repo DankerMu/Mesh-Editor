@@ -38,7 +38,8 @@ export async function loadSession(sessionId: string): Promise<SessionLoadRespons
 export async function fetchField(
   url: string,
 ): Promise<{ buffer: ArrayBuffer; headers: Record<string, string> }> {
-  const response = await http.get<ArrayBuffer>(url, { responseType: 'arraybuffer' })
+  const normalizedUrl = url.startsWith('/api/') ? url.slice(4) : url
+  const response = await http.get<ArrayBuffer>(normalizedUrl, { responseType: 'arraybuffer' })
   const headers: Record<string, string> = {}
 
   for (const key of [
@@ -55,8 +56,15 @@ export async function fetchField(
     }
   }
 
-  const expectedLength = parseInt(headers['x-grid-byte-length'] || '0', 10)
-  if (expectedLength > 0 && response.data.byteLength !== expectedLength) {
+  const rawLength = headers['x-grid-byte-length']
+  if (!rawLength) {
+    throw new Error('Binary transfer integrity error: missing X-Grid-Byte-Length header')
+  }
+  const expectedLength = parseInt(rawLength, 10)
+  if (!Number.isFinite(expectedLength) || expectedLength <= 0) {
+    throw new Error(`Binary transfer integrity error: invalid X-Grid-Byte-Length: ${rawLength}`)
+  }
+  if (response.data.byteLength !== expectedLength) {
     throw new Error(
       `Binary transfer integrity error: expected ${expectedLength} bytes, got ${response.data.byteLength}`,
     )

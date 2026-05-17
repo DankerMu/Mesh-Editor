@@ -91,12 +91,12 @@ describe('editorStore', () => {
     expect(store.loadingSession).toBe(false)
   })
 
-  it('loadFields 成功后填充 7 个 TypedArray', async () => {
+  it('loadSession 成功后填充 7 个 TypedArray', async () => {
     mockLoadSession()
     mockFieldFetches()
 
     const store = useEditorStore()
-    await store.loadFields('session-1')
+    await store.loadSession('session-1')
 
     expect(store.qpfBefore).toBeInstanceOf(Float32Array)
     expect(store.qpfBefore).toHaveLength(GRID_COUNT)
@@ -112,12 +112,12 @@ describe('editorStore', () => {
     expect(store.loadingFields).toBe(false)
   })
 
-  it('loadFields byte-length 不匹配时写入错误并清空数组', async () => {
+  it('loadSession byte-length 不匹配时写入错误并清空数组', async () => {
     mockLoadSession()
     vi.mocked(fetchField).mockResolvedValue({ buffer: new ArrayBuffer(4), headers: {} })
 
     const store = useEditorStore()
-    await store.loadFields('session-1')
+    await store.loadSession('session-1')
 
     expect(store.fieldLoadError).toContain('byte-length mismatch')
     expect(store.qpfBefore).toBeNull()
@@ -183,7 +183,7 @@ describe('editorStore', () => {
     mockLoadSession()
     mockFieldFetches()
     const store = useEditorStore()
-    await store.loadFields('session-1')
+    await store.loadSession('session-1')
     store.setActiveTool('line_buffer')
     store.setMaskGeometry({
       type: 'line_buffer',
