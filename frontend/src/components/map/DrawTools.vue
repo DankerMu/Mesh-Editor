@@ -414,6 +414,7 @@ function setupBrushHandlers(): void {
     return
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OL runtime dispatches these events but TS defs omit them
   const mapAny = props.map as any
   brushEventKeys = [
     mapAny.on('pointerdown', onBrushPointerDown),
