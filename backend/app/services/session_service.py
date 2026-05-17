@@ -173,7 +173,7 @@ class EditSessionService:
                 {"window_id": window_id, "status": window.status},
             )
         return self._read_npz_field_file(
-            self.path_builder.window_original_dir(window.case_id, window_id)
+            self.path_builder.window_original_dir(str(window.case_id), window_id)
             / self._window_original_filename(field_name),
             self._window_original_key(field_name),
             field_name,
@@ -191,7 +191,7 @@ class EditSessionService:
         )
         sessions = list(result.scalars().all())
         for session in sessions:
-            session.status = "expired"
+            session.status = "expired"  # type: ignore[assignment]
             db.add(session)
         await db.flush()
         return len(sessions)

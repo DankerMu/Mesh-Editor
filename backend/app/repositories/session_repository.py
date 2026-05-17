@@ -34,7 +34,7 @@ class SessionRepository:
         session = await self.get_by_id(db, session_id)
         if session is None:
             return
-        session.status = "expired"
+        session.status = "expired"  # type: ignore[assignment]
         db.add(session)
         await db.flush()
 
