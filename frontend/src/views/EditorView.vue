@@ -8,6 +8,8 @@ import GridTooltip from '@/components/map/GridTooltip.vue'
 import { MaskOverlayLayer } from '@/components/map/MaskOverlayLayer'
 import { PrecipPhaseGridLayer, getGridDataValue } from '@/components/map/PrecipPhaseGridLayer'
 import { SelectionOverlay } from '@/components/map/SelectionOverlay'
+import OperationHistory from '@/components/editor/OperationHistory.vue'
+import PreviewStatsPanel from '@/components/editor/PreviewStatsPanel.vue'
 import { GRID_COLS } from '@/constants/precipColors'
 import WindowSelector from '@/components/WindowSelector.vue'
 import { useEditorStore } from '@/stores/editorStore'
@@ -419,6 +421,7 @@ onBeforeUnmount(disposeLayers)
                 <p v-else class="editor-tab__hint">降水调整将在 M3 开放</p>
                 <t-button data-test="preview-button" disabled>预览</t-button>
                 <t-button data-test="apply-button" disabled>应用</t-button>
+                <PreviewStatsPanel />
               </div>
             </t-tab-panel>
             <t-tab-panel value="ptype" label="相态调整">
@@ -431,11 +434,12 @@ onBeforeUnmount(disposeLayers)
                 <p v-else class="editor-tab__hint">相态调整将在 M3 开放</p>
                 <t-button data-test="ptype-preview-button" disabled>预览</t-button>
                 <t-button data-test="ptype-apply-button" disabled>应用</t-button>
+                <PreviewStatsPanel />
               </div>
             </t-tab-panel>
             <t-tab-panel value="history" label="操作历史">
               <div class="editor-tab" data-test="history-panel">
-                <p class="editor-tab__empty">暂无操作记录</p>
+                <OperationHistory />
               </div>
             </t-tab-panel>
           </t-tabs>
