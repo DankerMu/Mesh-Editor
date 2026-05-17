@@ -57,7 +57,7 @@ def test_load_wrong_session_error(tmp_path: Path) -> None:
     with pytest.raises(PreviewError) as exc_info:
         load_preview(preview_id, "other-session", tmp_path)
 
-    assert exc_info.value.code == "PREVIEW_CONFLICT"
+    assert exc_info.value.code == "PREVIEW_SESSION_MISMATCH"
 
 
 def test_load_wrong_status_error(tmp_path: Path) -> None:

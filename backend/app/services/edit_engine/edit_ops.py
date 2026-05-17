@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -35,6 +36,8 @@ class EditResult:
 def apply_qpf_set_value(ctx: EditContext, value: float) -> EditResult:
     if value < 0:
         raise EditOpError("INVALID_OPERATION_PARAM", "qpf 设定值必须 >= 0")
+    if not math.isfinite(value):
+        raise EditOpError("INVALID_OPERATION_PARAM", "参数必须是有限数值")
     qpf_after, ptype_after = _copy_fields(ctx)
     mask = _effective_mask(ctx)
     qpf_after[mask] = np.float32(value)
@@ -48,6 +51,8 @@ def apply_qpf_increase(
 ) -> EditResult:
     if delta_mm <= 0:
         raise EditOpError("INVALID_OPERATION_PARAM", "qpf 增量必须 > 0")
+    if not math.isfinite(delta_mm):
+        raise EditOpError("INVALID_OPERATION_PARAM", "参数必须是有限数值")
     qpf_after, ptype_after = _copy_fields(ctx)
     mask = _effective_mask(ctx)
     if only_nonzero:
@@ -59,6 +64,8 @@ def apply_qpf_increase(
 def apply_qpf_decrease(ctx: EditContext, delta_mm: float) -> EditResult:
     if delta_mm <= 0:
         raise EditOpError("INVALID_OPERATION_PARAM", "qpf 减量必须 > 0")
+    if not math.isfinite(delta_mm):
+        raise EditOpError("INVALID_OPERATION_PARAM", "参数必须是有限数值")
     qpf_after, ptype_after = _copy_fields(ctx)
     mask = _effective_mask(ctx)
     qpf_after[mask] = np.maximum(qpf_after[mask] - np.float32(delta_mm), np.float32(0))
@@ -68,6 +75,8 @@ def apply_qpf_decrease(ctx: EditContext, delta_mm: float) -> EditResult:
 def apply_qpf_multiply(ctx: EditContext, factor: float) -> EditResult:
     if factor < 0:
         raise EditOpError("INVALID_OPERATION_PARAM", "qpf 乘数必须 >= 0")
+    if not math.isfinite(factor):
+        raise EditOpError("INVALID_OPERATION_PARAM", "参数必须是有限数值")
     qpf_after, ptype_after = _copy_fields(ctx)
     mask = _effective_mask(ctx)
     qpf_after[mask] = qpf_after[mask] * np.float32(factor)
@@ -99,6 +108,8 @@ def apply_screen_clear(
     active_threshold = ctx.qpf_ptype_threshold if threshold is None else threshold
     if active_threshold < 0:
         raise EditOpError("INVALID_OPERATION_PARAM", "筛除阈值必须 >= 0")
+    if not math.isfinite(active_threshold):
+        raise EditOpError("INVALID_OPERATION_PARAM", "参数必须是有限数值")
     qpf_after, ptype_after = _copy_fields(ctx)
     mask = _effective_mask(ctx) & (ctx.qpf_before <= active_threshold)
     qpf_after[mask] = 0

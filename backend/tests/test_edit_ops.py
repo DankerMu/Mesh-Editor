@@ -55,6 +55,14 @@ def test_set_value_rejects_negative_value() -> None:
     assert exc_info.value.code == "INVALID_OPERATION_PARAM"
 
 
+@pytest.mark.parametrize("value", [float("nan"), float("inf")])
+def test_set_value_rejects_non_finite_value(value: float) -> None:
+    with pytest.raises(EditOpError) as exc_info:
+        apply_qpf_set_value(_ctx(), value)
+
+    assert exc_info.value.code == "INVALID_OPERATION_PARAM"
+
+
 def test_increase_normal() -> None:
     result = apply_qpf_increase(_ctx(qpf=[[0, 2, 5]]), 3)
 
@@ -87,6 +95,14 @@ def test_multiply_normal_and_zero_clear() -> None:
 def test_multiply_rejects_negative_factor() -> None:
     with pytest.raises(EditOpError) as exc_info:
         apply_qpf_multiply(_ctx(), -1)
+
+    assert exc_info.value.code == "INVALID_OPERATION_PARAM"
+
+
+@pytest.mark.parametrize("factor", [float("nan"), float("inf")])
+def test_multiply_rejects_non_finite_factor(factor: float) -> None:
+    with pytest.raises(EditOpError) as exc_info:
+        apply_qpf_multiply(_ctx(), factor)
 
     assert exc_info.value.code == "INVALID_OPERATION_PARAM"
 

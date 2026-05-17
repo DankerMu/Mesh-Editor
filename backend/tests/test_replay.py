@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import numpy as np
 
 from app.services.edit_engine.edit_ops import (
@@ -57,6 +59,32 @@ def test_redo_restores_undone_operation() -> None:
     replay_qpf, _, _ = replay_operations(operations, qpf, ptype, valid)
 
     assert np.allclose(replay_qpf, [[3, 10, 10]])
+
+
+def test_replay_operations_accepts_attribute_objects() -> None:
+    qpf, ptype, valid, left, right = _base()
+    operations = [
+        SimpleNamespace(
+            sequence_no=2,
+            operation_type="set_value",
+            parameters_json={"value": 10},
+            operation_mask=right,
+            is_undone=0,
+        ),
+        SimpleNamespace(
+            sequence_no=1,
+            operation_type="increase",
+            parameters_json={"delta_mm": 3},
+            operation_mask=left,
+            is_undone=0,
+        ),
+    ]
+
+    replay_qpf, replay_ptype, touched = replay_operations(operations, qpf, ptype, valid)
+
+    assert np.allclose(replay_qpf, [[3, 10, 10]])
+    assert np.array_equal(replay_ptype, [[0, 1, 2]])
+    assert np.array_equal(touched, left | right)
 
 
 def test_new_operation_discards_redo_stack_by_input_operations() -> None:

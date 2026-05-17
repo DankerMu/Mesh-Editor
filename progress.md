@@ -35,7 +35,7 @@ openspec/changes/    ← m0-engineering-skeleton (archived), m1-data-ingestion-w
 
 ## 当前阶段
 
-**阶段：M3 #37 后端编辑引擎核心完成，等待 Edit API 与前端集成**
+**阶段：M3 #37 后端编辑引擎核心完成，PR #42 Round 1 修复已完成，等待 Edit API 与前端集成**
 
 ### M0 完成总结（2026-05-16）
 
@@ -75,6 +75,7 @@ M0 工程骨架全部完成：后端 FastAPI + SQLAlchemy + Alembic + JWT 认证
 
 | 日期 | 变更 |
 |---|---|
+| 2026-05-17 | **PR #42 Round 1 修复**：replay 兼容 ORM 属性对象、统计 transition 纳入 valid_mask、编辑参数拒绝 NaN/Inf、preview cache 错误码与锁保护对齐，后端 187 tests + ruff + mypy 全绿 |
 | 2026-05-17 | **M3 #37 完成**：新增 edit_engine 纯函数模块（MaskBuilder/EditOps/Stats/PreviewCache/Replay）与 48 个专项测试，后端 181 tests + ruff + mypy 全绿 |
 | 2026-05-17 | **PR #41 Round 1 修复**：edit_operation 增加 session+sequence 唯一索引与 is_undone CHECK 约束，模型/迁移/测试对齐，后端 133 tests + ruff 全绿 |
 | 2026-05-17 | **M3 #36 完成**：新增 shapely 依赖、v006 edit_operation 迁移、EditOperation 模型与 Repository，后端 132 tests + ruff 全绿 |

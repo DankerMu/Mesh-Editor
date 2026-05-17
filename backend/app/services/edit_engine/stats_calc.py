@@ -55,8 +55,9 @@ def compute_ptype_transition(
     ptype_before: npt.NDArray[np.uint8],
     ptype_after: npt.NDArray[np.uint8],
     mask: npt.NDArray[np.bool_],
+    valid_mask: npt.NDArray[np.bool_],
 ) -> dict[str, int]:
-    effective_mask = np.asarray(mask, dtype=bool)
+    effective_mask = np.asarray(mask, dtype=bool) & np.asarray(valid_mask, dtype=bool)
     transitions: dict[str, int] = {}
     for old in range(4):
         for new in range(4):

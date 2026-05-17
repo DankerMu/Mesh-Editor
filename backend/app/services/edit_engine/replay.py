@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -8,6 +9,7 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 
+from app.core.constants import NX, NY
 from app.services.edit_engine.edit_ops import (
     EditContext,
     apply_ptype_set,
@@ -19,9 +21,12 @@ from app.services.edit_engine.edit_ops import (
     apply_screen_clear,
 )
 
+logger = logging.getLogger(__name__)
+GRID_SHAPE = (NY, NX)
+
 
 def replay_operations(
-    operations: list[dict[str, Any]],
+    operations: list[Any],
     qpf_base: npt.NDArray[np.float32],
     ptype_base: npt.NDArray[np.uint8],
     valid_mask: npt.NDArray[np.bool_],
@@ -32,10 +37,12 @@ def replay_operations(
     valid = np.asarray(valid_mask, dtype=bool)
     touched_mask = np.zeros(valid.shape, dtype=bool)
 
-    for operation in sorted(operations, key=lambda item: int(item.get("sequence_no", 0))):
+    for operation in sorted(
+        operations, key=lambda item: int(_getattr(item, "sequence_no", 0))
+    ):
         operation_mask = _load_operation_mask(operation, valid.shape) & valid
         touched_mask |= operation_mask
-        if int(operation.get("is_undone", 0)) == 1:
+        if int(_getattr(operation, "is_undone", 0)) == 1:
             continue
 
         ctx = EditContext(
@@ -58,9 +65,9 @@ def compute_can_undo_redo(operations: list[Any]) -> tuple[bool, bool]:
     return can_undo, can_redo
 
 
-def _apply_operation(ctx: EditContext, operation: Mapping[str, Any]):
-    operation_type = str(operation.get("operation_type", "")).lower()
-    parameters = _parameters(operation.get("parameters_json"))
+def _apply_operation(ctx: EditContext, operation: Any):
+    operation_type = str(_getattr(operation, "operation_type", "")).lower()
+    parameters = _parameters(_getattr(operation, "parameters_json"))
 
     if operation_type in {"set_value", "qpf_set_value", "set"}:
         return apply_qpf_set_value(ctx, float(_first(parameters, "value", "target_value")))
@@ -87,23 +94,41 @@ def _apply_operation(ctx: EditContext, operation: Mapping[str, Any]):
     raise ValueError(f"unsupported operation_type: {operation_type}")
 
 
-def _load_operation_mask(
-    operation: Mapping[str, Any], shape: tuple[int, ...]
-) -> npt.NDArray[np.bool_]:
+def _load_operation_mask(operation: Any, shape: tuple[int, ...]) -> npt.NDArray[np.bool_]:
     for key in ("operation_mask", "mask", "mask_data"):
-        value = operation.get(key)
+        value = _getattr(operation, key)
         if value is not None:
             return np.asarray(value, dtype=bool)
 
-    path_value = operation.get("mask_raster_path")
+    path_value = _getattr(operation, "mask_raster_path")
     if path_value:
-        with np.load(Path(str(path_value))) as data:
-            if "operation_mask" in data:
-                return np.asarray(data["operation_mask"], dtype=bool)
-            if "mask" in data:
-                return np.asarray(data["mask"], dtype=bool)
+        return _load_mask_from_path(path_value, shape)
 
     return np.zeros(shape, dtype=bool)
+
+
+def _load_mask_from_path(path_value: Any, shape: tuple[int, ...]) -> npt.NDArray[np.bool_]:
+    try:
+        path = Path(str(path_value)).resolve()
+        if path.suffix != ".npz":
+            raise ValueError("mask path must end with .npz")
+
+        with np.load(path) as data:
+            if "operation_mask" in data:
+                mask = data["operation_mask"]
+            elif "mask" in data:
+                mask = data["mask"]
+            else:
+                raise ValueError("mask npz missing operation_mask or mask array")
+
+            if mask.shape != GRID_SHAPE or mask.shape != shape:
+                raise ValueError(f"mask shape mismatch: {mask.shape}")
+            if mask.dtype != np.dtype(bool):
+                raise ValueError(f"mask dtype mismatch: {mask.dtype}")
+            return mask.copy()
+    except Exception as exc:
+        logger.warning("failed to load replay mask from %s: %s", path_value, exc)
+        return np.zeros(shape, dtype=bool)
 
 
 def _parameters(value: Any) -> dict[str, Any]:
@@ -125,6 +150,13 @@ def _first(parameters: Mapping[str, Any], *keys: str) -> Any:
 
 
 def _get_is_undone(operation: Any) -> int:
-    if isinstance(operation, Mapping):
-        return int(operation.get("is_undone", 0))
-    return int(getattr(operation, "is_undone", 0))
+    return int(_getattr(operation, "is_undone", 0))
+
+
+def _getattr(obj: Any, key: str, default: Any = None) -> Any:
+    if isinstance(obj, Mapping):
+        return obj.get(key, default)
+    try:
+        return obj[key]
+    except (KeyError, IndexError, TypeError):
+        return getattr(obj, key, default)

@@ -67,7 +67,9 @@ def test_area_km2_latitude_weighted_calculation() -> None:
 def test_compute_ptype_transition_16_keys_and_counts() -> None:
     before = np.array([[0, 1, 1, 2]], dtype=np.uint8)
     after = np.array([[0, 1, 2, 2]], dtype=np.uint8)
-    transition = compute_ptype_transition(before, after, np.ones(before.shape, dtype=bool))
+    transition = compute_ptype_transition(
+        before, after, np.ones(before.shape, dtype=bool), np.ones(before.shape, dtype=bool)
+    )
 
     assert len(transition) == 16
     assert transition["0_to_0"] == 1
@@ -79,9 +81,24 @@ def test_compute_ptype_transition_16_keys_and_counts() -> None:
 
 def test_compute_ptype_transition_no_change_scenario() -> None:
     before = np.array([[0, 1, 1, 2]], dtype=np.uint8)
-    transition = compute_ptype_transition(before, before, np.ones(before.shape, dtype=bool))
+    transition = compute_ptype_transition(
+        before, before, np.ones(before.shape, dtype=bool), np.ones(before.shape, dtype=bool)
+    )
 
     assert transition["0_to_0"] == 1
     assert transition["1_to_1"] == 2
     assert transition["2_to_2"] == 1
     assert sum(value for key, value in transition.items() if key[:1] != key[-1:]) == 0
+
+
+def test_compute_ptype_transition_excludes_invalid_points() -> None:
+    before = np.array([[1, 1, 2]], dtype=np.uint8)
+    after = np.array([[2, 2, 3]], dtype=np.uint8)
+    mask = np.ones(before.shape, dtype=bool)
+    valid_mask = np.array([[True, False, True]], dtype=bool)
+
+    transition = compute_ptype_transition(before, after, mask, valid_mask)
+
+    assert transition["1_to_2"] == 1
+    assert transition["2_to_3"] == 1
+    assert sum(transition.values()) == 2
