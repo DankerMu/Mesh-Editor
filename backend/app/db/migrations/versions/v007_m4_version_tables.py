@@ -61,6 +61,13 @@ def upgrade() -> None:
         ["window_id", "version_no"],
         unique=True,
     )
+    op.create_index(
+        "ux_edit_version_released",
+        "edit_version",
+        ["window_id"],
+        unique=True,
+        sqlite_where=sa.text("status = 'released'"),
+    )
 
     op.create_table(
         "review_approval",
@@ -118,6 +125,7 @@ def downgrade() -> None:
     op.drop_table("release_product")
     op.drop_index("idx_review_approval_version", table_name="review_approval")
     op.drop_table("review_approval")
+    op.drop_index("ux_edit_version_released", table_name="edit_version")
     op.drop_index("ux_edit_version_window_no", table_name="edit_version")
     op.drop_index("idx_edit_version_window", table_name="edit_version")
     op.drop_table("edit_version")

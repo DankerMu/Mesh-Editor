@@ -154,6 +154,12 @@ class EditVersion(Base):
     __table_args__ = (
         Index("idx_edit_version_window", "window_id", "status"),
         Index("ux_edit_version_window_no", "window_id", "version_no", unique=True),
+        Index(
+            "ux_edit_version_released",
+            "window_id",
+            unique=True,
+            sqlite_where=Column("status") == "released",
+        ),
     )
 
     version_id = Column(String(64), primary_key=True)
