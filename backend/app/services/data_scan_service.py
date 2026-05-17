@@ -249,20 +249,32 @@ class DataScanService:
         self.scan_logs = scan_logs or data_scan_log_repo
         self.expected_shape = expected_shape
 
-    async def scan_case(self, case_id: str, session_factory: SessionFactory) -> str:
+    async def scan_case(
+        self,
+        case_id: str,
+        session_factory: SessionFactory,
+        scan_id: str | None = None,
+    ) -> str:
         init_time = validate_case_id(case_id, self.config)
-        scan_id = str(uuid4())
+        scan_id = scan_id or str(uuid4())
         case_dir = self.path_builder.data_source_dir(case_id)
         windows_created = 0
         windows_updated = 0
         window_errors: list[dict[str, Any]] = []
 
         async with session_factory() as db:
-            if await self.scan_logs.has_running_scan(db, case_id):
+            existing_scan = await self.scan_logs.get_by_scan_id(db, scan_id)
+            running_scan_exists = await self.scan_logs.has_running_scan(db, case_id)
+            if running_scan_exists and (
+                existing_scan is None
+                or existing_scan.case_id != case_id
+                or existing_scan.status != "running"
+            ):
                 raise _domain_error("SCAN_ALREADY_RUNNING", {"case_id": case_id})
 
             await self.forecast_cases.create_or_update(db, case_id, init_time, case_dir)
-            await self.scan_logs.create(db, scan_id, case_id, datetime.now(UTC))
+            if existing_scan is None:
+                await self.scan_logs.create(db, scan_id, case_id, datetime.now(UTC))
             await db.commit()
 
         if not case_dir.exists() or not case_dir.is_dir():
@@ -378,5 +390,7 @@ def _count_files(directory: Path, pattern: str) -> int:
 data_scan_service = DataScanService()
 
 
-async def scan_case(case_id: str, session_factory: SessionFactory) -> str:
-    return await data_scan_service.scan_case(case_id, session_factory)
+async def scan_case(
+    case_id: str, session_factory: SessionFactory, scan_id: str | None = None
+) -> str:
+    return await data_scan_service.scan_case(case_id, session_factory, scan_id)
