@@ -7,7 +7,12 @@ config.global.stubs = {
   },
   't-button': {
     props: ['disabled', 'type'],
-    template: '<button :type="type || \'button\'" :disabled="disabled"><slot /></button>',
+    template: '<button :type="type || \'button\'" :disabled="disabled"><slot name="icon" /><slot /></button>',
+  },
+  't-dialog': {
+    props: ['visible', 'header'],
+    emits: ['update:visible'],
+    template: '<div v-if="visible" role="dialog"><h3>{{ header }}</h3><slot /></div>',
   },
   't-form': {
     template: '<form @submit.prevent="$emit(\'submit\', { validateResult: true })"><slot /></form>',
@@ -34,6 +39,15 @@ config.global.stubs = {
   't-progress': {
     props: ['percentage', 'status'],
     template: '<div data-test="progress">{{ percentage }}</div>',
+  },
+  't-radio-group': {
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+    template: '<div><slot /></div>',
+  },
+  't-radio-button': {
+    props: ['value'],
+    template: '<button type="button" @click="$parent.$emit(\'update:modelValue\', value)"><slot /></button>',
   },
   't-tabs': {
     props: ['modelValue'],
