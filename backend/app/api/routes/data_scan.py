@@ -121,7 +121,7 @@ async def get_scan_status(
     if scan_log is None:
         raise _domain_error("SCAN_NOT_FOUND")
 
-    counts = await product_window_repo.count_by_status(db, scan_log.case_id)
+    counts = await product_window_repo.count_by_status(db, str(scan_log.case_id))
     total = sum(counts.values())
     response = ScanStatusResponse.model_validate(scan_log)
     response.total_windows = total
