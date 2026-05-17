@@ -60,6 +60,7 @@ import Draw from 'ol/interaction/Draw'
 import VectorSource from 'ol/source/Vector'
 import type Map from 'ol/Map'
 import type { Coordinate } from 'ol/coordinate'
+import type { Pixel } from 'ol/pixel'
 import type { EventsKey } from 'ol/events'
 import type { DrawEvent } from 'ol/interaction/Draw'
 import LineString from 'ol/geom/LineString'
@@ -93,7 +94,6 @@ const emit = defineEmits<{
 const editorStore = useEditorStore()
 const widthGrid = ref(5)
 const radiusGrid = ref(3)
-const brushPoints = ref<LonLat[]>([])
 const isBrushing = ref(false)
 const brushCursor = reactive({
   visible: false,
@@ -103,8 +103,12 @@ const brushCursor = reactive({
 
 let drawSource: VectorSource | null = null
 let drawInteraction: Draw | null = null
+let drawInteractionMap: Map | null = null
 let drawEndKey: EventsKey | null = null
 let brushEventKeys: EventsKey[] = []
+let brushPoints: LonLat[] = []
+let lastBrushPixel: Pixel | null = null
+let lastBrushPointAt = 0
 let wheelTarget: HTMLElement | null = null
 let contextMenuTarget: HTMLElement | null = null
 
@@ -179,13 +183,13 @@ function emitLineBuffer(points: LonLat[]): void {
 }
 
 function emitBrushPath(): void {
-  if (brushPoints.value.length === 0) {
+  if (brushPoints.length === 0) {
     return
   }
 
   const geometry: BrushPathGeometry = {
     type: 'brush_path',
-    points: [...brushPoints.value],
+    points: [...brushPoints],
     radius_grid: clampGridValue(radiusGrid.value, 1, 30),
   }
 
@@ -222,13 +226,14 @@ function removeDrawInteraction(): void {
     drawEndKey = null
   }
 
-  if (drawInteraction && props.map) {
-    props.map.removeInteraction(drawInteraction)
+  if (drawInteraction && drawInteractionMap) {
+    drawInteractionMap.removeInteraction(drawInteraction)
   }
 
   drawSource?.clear()
   drawSource = null
   drawInteraction = null
+  drawInteractionMap = null
 }
 
 function setupDrawInteraction(tool: 'polygon' | 'line_buffer'): void {
@@ -257,7 +262,8 @@ function setupDrawInteraction(tool: 'polygon' | 'line_buffer'): void {
     }
   })
 
-  props.map.addInteraction(drawInteraction)
+  drawInteractionMap = props.map
+  drawInteractionMap.addInteraction(drawInteraction)
 }
 
 function removeBrushHandlers(): void {
@@ -307,11 +313,43 @@ function updateBrushCursor(event: unknown): void {
   brushCursor.visible = true
 }
 
-function appendBrushPoint(event: unknown): void {
-  const coordinate = getMapCoordinate(event)
-  if (coordinate) {
-    brushPoints.value = [...brushPoints.value, coordinate]
+function getMapPixel(event: unknown): Pixel | null {
+  if (typeof event !== 'object' || event === null || !('pixel' in event)) {
+    return null
   }
+
+  const pixel = (event as { pixel?: Pixel }).pixel
+  return pixel ?? null
+}
+
+function appendBrushPoint(event: unknown): boolean {
+  const coordinate = getMapCoordinate(event)
+  if (!coordinate) {
+    return false
+  }
+
+  brushPoints.push(coordinate)
+  lastBrushPixel = getMapPixel(event)
+  lastBrushPointAt = Date.now()
+  return true
+}
+
+function shouldAppendBrushPoint(event: unknown): boolean {
+  if (brushPoints.length === 0) {
+    return true
+  }
+
+  const now = Date.now()
+  if (now - lastBrushPointAt >= 16) {
+    return true
+  }
+
+  const pixel = getMapPixel(event)
+  if (!pixel || !lastBrushPixel) {
+    return false
+  }
+
+  return Math.hypot(pixel[0] - lastBrushPixel[0], pixel[1] - lastBrushPixel[1]) >= 4
 }
 
 function isPrimaryPointerEvent(event: unknown): boolean {
@@ -335,7 +373,9 @@ function onBrushPointerDrag(event: unknown): void {
     return
   }
 
-  appendBrushPoint(event)
+  if (shouldAppendBrushPoint(event)) {
+    appendBrushPoint(event)
+  }
   updateBrushCursor(event)
 }
 
@@ -374,11 +414,13 @@ function setupBrushHandlers(): void {
     return
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OL runtime dispatches these events but TS defs omit them
+  const mapAny = props.map as any
   brushEventKeys = [
-    props.map.on('pointerdown', onBrushPointerDown),
-    props.map.on('pointerdrag', onBrushPointerDrag),
-    props.map.on('pointermove', onBrushPointerMove),
-    props.map.on('pointerup', onBrushPointerUp),
+    mapAny.on('pointerdown', onBrushPointerDown),
+    mapAny.on('pointerdrag', onBrushPointerDrag),
+    mapAny.on('pointermove', onBrushPointerMove),
+    mapAny.on('pointerup', onBrushPointerUp),
   ]
 
   wheelTarget = props.map.getViewport()
@@ -393,7 +435,9 @@ function cancelDrawing(): void {
 }
 
 function clearBrushPath(): void {
-  brushPoints.value = []
+  brushPoints = []
+  lastBrushPixel = null
+  lastBrushPointAt = 0
   isBrushing.value = false
   brushCursor.visible = false
 }
@@ -413,6 +457,7 @@ function onKeydown(event: KeyboardEvent): void {
     event.preventDefault()
     if (activeTool.value === 'brush_path') {
       clearBrushPath()
+      editorStore.clearMask()
     } else {
       drawInteraction?.abortDrawing()
     }
@@ -518,7 +563,7 @@ function completeLineBufferForTest(points: LonLat[]): void {
 }
 
 function completeBrushStrokeForTest(points: LonLat[]): void {
-  brushPoints.value = [...brushPoints.value, ...points]
+  brushPoints.push(...points)
   emitBrushPath()
 }
 

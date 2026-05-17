@@ -146,6 +146,14 @@ export class PrecipPhaseGridLayer {
     this.assertDataLength(ptypeArray.length, 'ptypeArray')
     this.qpfArray = qpfArray
     this.ptypeArray = ptypeArray
+    this.layer.setVisible(true)
+    this.source.refresh()
+  }
+
+  clearData(): void {
+    this.qpfArray = null
+    this.ptypeArray = null
+    this.layer.setVisible(false)
     this.source.refresh()
   }
 
@@ -157,8 +165,7 @@ export class PrecipPhaseGridLayer {
   }
 
   dispose(): void {
-    this.qpfArray = null
-    this.ptypeArray = null
+    this.clearData()
     this.layer.setSource(null)
     this.source.clear()
   }

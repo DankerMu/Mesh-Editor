@@ -7,15 +7,17 @@ import { GRID_COLS, GRID_ROWS } from '@/constants/precipColors'
 const GRID_EXTENT = [70, 25, 111, 50] as const
 const GRID_STEP = 0.05
 const SOURCE_TILE_SIZE: [number, number] = [GRID_COLS, GRID_ROWS]
-const MASK_COLOR: [number, number, number, number] = [128, 128, 128, 100]
+const DEFAULT_MASK_COLOR: [number, number, number, number] = [128, 128, 128, 100]
 
 export class MaskOverlayLayer {
   private maskArray: Uint8Array | null = null
   private hasInvalidCells = false
+  private readonly maskColor: [number, number, number, number]
   private readonly source: DataTileSource
   private readonly layer: WebGLTileLayer
 
-  constructor() {
+  constructor(maskColor: [number, number, number, number] = DEFAULT_MASK_COLOR) {
+    this.maskColor = maskColor
     const projection = getProjection('EPSG:4326')
 
     if (!projection) {
@@ -74,9 +76,15 @@ export class MaskOverlayLayer {
     this.source.refresh()
   }
 
-  dispose(): void {
+  clearData(): void {
     this.maskArray = null
     this.hasInvalidCells = false
+    this.layer.setVisible(false)
+    this.source.refresh()
+  }
+
+  dispose(): void {
+    this.clearData()
     this.layer.setSource(null)
     this.source.clear()
   }
@@ -99,10 +107,10 @@ export class MaskOverlayLayer {
         }
 
         const targetIndex = (tileRow * GRID_COLS + gridJ) * 4
-        tileData[targetIndex] = MASK_COLOR[0]
-        tileData[targetIndex + 1] = MASK_COLOR[1]
-        tileData[targetIndex + 2] = MASK_COLOR[2]
-        tileData[targetIndex + 3] = MASK_COLOR[3]
+        tileData[targetIndex] = this.maskColor[0]
+        tileData[targetIndex + 1] = this.maskColor[1]
+        tileData[targetIndex + 2] = this.maskColor[2]
+        tileData[targetIndex + 3] = this.maskColor[3]
       }
     }
 

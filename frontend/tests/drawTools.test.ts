@@ -186,4 +186,32 @@ describe('DrawTools', () => {
     expect(store.currentMaskGeometry).toBeNull()
     expect(store.activeTool).toBeNull()
   })
+
+  it('brush_path 完成后按 Esc 清除 store geometry', async () => {
+    const store = useEditorStore()
+    store.sessionId = 'session-1'
+    const wrapper = mountDrawTools()
+    const vm = wrapper.vm as DrawToolsVm
+
+    vm.activateTool('brush_path')
+    vm.completeBrushStrokeForTest([
+      [100, 30],
+      [100.1, 30.2],
+    ])
+
+    expect(store.currentMaskGeometry).toEqual({
+      type: 'brush_path',
+      points: [
+        [100, 30],
+        [100.1, 30.2],
+      ],
+      radius_grid: 3,
+    })
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await wrapper.vm.$nextTick()
+
+    expect(store.currentMaskGeometry).toBeNull()
+    expect(store.activeTool).toBeNull()
+  })
 })

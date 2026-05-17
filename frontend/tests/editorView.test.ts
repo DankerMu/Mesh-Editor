@@ -6,11 +6,85 @@ import { useEditorStore } from '@/stores/editorStore'
 import { useWindowStore } from '@/stores/windowStore'
 import type { WindowItem } from '@/api/data'
 
+const layerMocks = vi.hoisted(() => {
+  const precipInstances: Array<{
+    layer: { id: string }
+    updateData: ReturnType<typeof vi.fn>
+    clearData: ReturnType<typeof vi.fn>
+    dispose: ReturnType<typeof vi.fn>
+    getLayer: ReturnType<typeof vi.fn>
+  }> = []
+  const maskInstances: Array<{
+    layer: { id: string }
+    updateData: ReturnType<typeof vi.fn>
+    clearData: ReturnType<typeof vi.fn>
+    dispose: ReturnType<typeof vi.fn>
+    getLayer: ReturnType<typeof vi.fn>
+  }> = []
+  const selectionInstances: Array<{
+    updateGeometry: ReturnType<typeof vi.fn>
+    dispose: ReturnType<typeof vi.fn>
+  }> = []
+
+  return {
+    precipInstances,
+    maskInstances,
+    selectionInstances,
+  }
+})
+
 vi.mock('@/components/map/BaseMap.vue', () => ({
   default: {
+    name: 'BaseMap',
     emits: ['map-ready', 'grid-hover'],
     template: '<div class="base-map-stub" data-test="base-map"></div>',
   },
+}))
+
+vi.mock('@/components/map/PrecipPhaseGridLayer', () => ({
+  getGridDataValue: vi.fn(() => null),
+  PrecipPhaseGridLayer: vi.fn(function MockPrecipPhaseGridLayer(this: {
+    layer: { id: string }
+    updateData: ReturnType<typeof vi.fn>
+    clearData: ReturnType<typeof vi.fn>
+    dispose: ReturnType<typeof vi.fn>
+    getLayer: ReturnType<typeof vi.fn>
+  }) {
+    this.layer = { id: `precip-${layerMocks.precipInstances.length}` }
+    this.updateData = vi.fn()
+    this.clearData = vi.fn()
+    this.dispose = vi.fn()
+    this.getLayer = vi.fn(() => this.layer)
+    layerMocks.precipInstances.push(this)
+  }),
+}))
+
+vi.mock('@/components/map/MaskOverlayLayer', () => ({
+  MaskOverlayLayer: vi.fn(function MockMaskOverlayLayer(this: {
+    layer: { id: string }
+    updateData: ReturnType<typeof vi.fn>
+    clearData: ReturnType<typeof vi.fn>
+    dispose: ReturnType<typeof vi.fn>
+    getLayer: ReturnType<typeof vi.fn>
+  }) {
+    this.layer = { id: `mask-${layerMocks.maskInstances.length}` }
+    this.updateData = vi.fn()
+    this.clearData = vi.fn()
+    this.dispose = vi.fn()
+    this.getLayer = vi.fn(() => this.layer)
+    layerMocks.maskInstances.push(this)
+  }),
+}))
+
+vi.mock('@/components/map/SelectionOverlay', () => ({
+  SelectionOverlay: vi.fn(function MockSelectionOverlay(this: {
+    updateGeometry: ReturnType<typeof vi.fn>
+    dispose: ReturnType<typeof vi.fn>
+  }) {
+    this.updateGeometry = vi.fn()
+    this.dispose = vi.fn()
+    layerMocks.selectionInstances.push(this)
+  }),
 }))
 
 vi.mock('vue-router', async (importOriginal) => {
@@ -72,11 +146,32 @@ function mountEditor() {
   return { wrapper, editorStore, windowStore }
 }
 
+function makeMapMock() {
+  return {
+    addLayer: vi.fn(),
+    removeLayer: vi.fn(),
+    getViewport: vi.fn(() => document.createElement('div')),
+  }
+}
+
+async function mountEditorWithMap() {
+  const mounted = mountEditor()
+  await flushPromises()
+  const map = makeMapMock()
+  mounted.wrapper.findComponent({ name: 'BaseMap' }).vm.$emit('map-ready', map)
+  await flushPromises()
+
+  return { ...mounted, map }
+}
+
 describe('EditorView', () => {
   beforeEach(() => {
     routeMock.path = '/editor/2026010108_ACC24_024_048'
     routeMock.params = { windowId: '2026010108_ACC24_024_048' }
     routerMock.push.mockReset()
+    layerMocks.precipInstances.length = 0
+    layerMocks.maskInstances.length = 0
+    layerMocks.selectionInstances.length = 0
   })
 
   it('渲染顶部窗口信息和 M2 禁用按钮', async () => {
@@ -180,5 +275,76 @@ describe('EditorView', () => {
 
     expect(wrapper.find('[data-test="field-loading-overlay"]').exists()).toBe(true)
     expect(wrapper.find('[data-test="field-error"]').text()).toContain('字段加载失败')
+  })
+
+  it('before 和 after 模式使用不同字段数据', async () => {
+    const { wrapper, editorStore } = await mountEditorWithMap()
+    const precipLayer = layerMocks.precipInstances[0]
+    const qpfBefore = new Float32Array([1])
+    const ptypeBefore = new Uint8Array([1])
+    const qpfAfter = new Float32Array([2])
+    const ptypeAfter = new Uint8Array([2])
+
+    editorStore.qpfBefore = qpfBefore
+    editorStore.ptypeBefore = ptypeBefore
+    editorStore.qpfAfter = qpfAfter
+    editorStore.ptypeAfter = ptypeAfter
+    await flushPromises()
+
+    expect(precipLayer.updateData).toHaveBeenLastCalledWith(qpfAfter, ptypeAfter)
+
+    await wrapper.find('input[value="before"]').setValue()
+    await flushPromises()
+
+    expect(precipLayer.updateData).toHaveBeenLastCalledWith(qpfBefore, ptypeBefore)
+  })
+
+  it('delta 和 change 模式隐藏 precipitation raster', async () => {
+    const { wrapper, editorStore } = await mountEditorWithMap()
+    const precipLayer = layerMocks.precipInstances[0]
+    editorStore.qpfAfter = new Float32Array([2])
+    editorStore.ptypeAfter = new Uint8Array([2])
+    await flushPromises()
+
+    await wrapper.find('input[value="delta"]').setValue()
+    await flushPromises()
+
+    expect(precipLayer.clearData).toHaveBeenCalled()
+    expect(wrapper.find('[data-test="mode-hint"]').text()).toContain('无差异')
+
+    precipLayer.clearData.mockClear()
+    await wrapper.find('input[value="change"]').setValue()
+    await flushPromises()
+
+    expect(precipLayer.clearData).toHaveBeenCalled()
+    expect(wrapper.find('[data-test="mode-hint"]').text()).toContain('无变化')
+  })
+
+  it('字段数组变为 null 时清理 stale layer data', async () => {
+    const { editorStore } = await mountEditorWithMap()
+    const precipLayer = layerMocks.precipInstances[0]
+    const invalidMaskLayer = layerMocks.maskInstances[0]
+    const viewMaskLayer = layerMocks.maskInstances[1]
+
+    editorStore.qpfAfter = new Float32Array([2])
+    editorStore.ptypeAfter = new Uint8Array([2])
+    editorStore.invalidMask = new Uint8Array([1])
+    editorStore.touchedMask = new Uint8Array([1])
+    editorStore.selectedViewMode = 'review'
+    await flushPromises()
+
+    precipLayer.clearData.mockClear()
+    invalidMaskLayer.clearData.mockClear()
+    viewMaskLayer.clearData.mockClear()
+
+    editorStore.qpfAfter = null
+    editorStore.ptypeAfter = null
+    editorStore.invalidMask = null
+    editorStore.touchedMask = null
+    await flushPromises()
+
+    expect(precipLayer.clearData).toHaveBeenCalled()
+    expect(invalidMaskLayer.clearData).toHaveBeenCalled()
+    expect(viewMaskLayer.clearData).toHaveBeenCalled()
   })
 })
