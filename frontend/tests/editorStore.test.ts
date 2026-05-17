@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { editApply, editPreview, editRedo, editUndo, getOperations } from '@/api/edit'
 import { fetchField, loadSession, startSession } from '@/api/sessions'
+import { saveVersion } from '@/api/version'
 import { GRID_COLS, GRID_ROWS } from '@/constants/precipColors'
 import { useEditorStore } from '@/stores/editorStore'
 import type { MaskGeometry } from '@/types/editor'
@@ -18,6 +19,10 @@ vi.mock('@/api/edit', () => ({
   editUndo: vi.fn(),
   editRedo: vi.fn(),
   getOperations: vi.fn(),
+}))
+
+vi.mock('@/api/version', () => ({
+  saveVersion: vi.fn(),
 }))
 
 const GRID_COUNT = GRID_ROWS * GRID_COLS
@@ -91,6 +96,7 @@ describe('editorStore', () => {
     vi.mocked(editUndo).mockReset()
     vi.mocked(editRedo).mockReset()
     vi.mocked(getOperations).mockReset()
+    vi.mocked(saveVersion).mockReset()
   })
 
   it('startSession 成功后写入会话状态并触发字段加载', async () => {
@@ -387,5 +393,26 @@ describe('editorStore', () => {
 
     expect(store.previewResult).toBeNull()
     expect(store.previewId).toBeNull()
+  })
+
+  it('saveVersion 调用版本保存并更新本地保存状态', async () => {
+    vi.mocked(saveVersion).mockResolvedValue({
+      session_id: 'session-1',
+      version_id: 'version-1',
+      before_image: null,
+      after_image: null,
+      review_image: null,
+    })
+
+    const store = useEditorStore()
+    store.sessionId = 'session-1'
+    store.dirty = true
+
+    await store.saveVersion()
+
+    expect(saveVersion).toHaveBeenCalledWith('session-1')
+    expect(store.currentVersionId).toBe('version-1')
+    expect(store.dirty).toBe(false)
+    expect(store.saveLoading).toBe(false)
   })
 })
