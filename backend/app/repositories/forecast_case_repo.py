@@ -17,11 +17,8 @@ class ForecastCaseRepository:
         init_time: datetime,
         data_source_path: str | Path,
     ) -> ForecastCase:
-        now = datetime.now(UTC)
         existing = await self.get_by_case_id(db, case_id)
         if existing is not None:
-            setattr(existing, "scan_count", int(existing.scan_count or 0) + 1)
-            setattr(existing, "last_scan_at", now)
             setattr(existing, "data_source_path", str(data_source_path))
             db.add(existing)
             await db.flush()
@@ -32,14 +29,21 @@ class ForecastCaseRepository:
             case_id=case_id,
             init_time=init_time,
             data_source_path=str(data_source_path),
-            scan_count=1,
-            last_scan_at=now,
+            scan_count=0,
             status="pending",
         )
         db.add(forecast_case)
         await db.flush()
         await db.refresh(forecast_case)
         return forecast_case
+
+    async def mark_scan_completed(self, db: AsyncSession, case_id: str) -> None:
+        existing = await self.get_by_case_id(db, case_id)
+        if existing is not None:
+            setattr(existing, "scan_count", int(existing.scan_count or 0) + 1)
+            setattr(existing, "last_scan_at", datetime.now(UTC))
+            db.add(existing)
+            await db.flush()
 
     async def get_by_case_id(
         self, db: AsyncSession, case_id: str

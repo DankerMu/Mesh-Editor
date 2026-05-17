@@ -6,6 +6,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.errors import DomainError
 from app.db.session import async_session_factory
 from app.repositories.data_scan_log_repo import data_scan_log_repo
 from app.services.data_scan_service import scan_case
@@ -19,6 +20,12 @@ async def run_data_scan(
 ) -> None:
     try:
         await scan_case(case_id, session_factory)
+    except DomainError as exc:
+        if exc.code == "SCAN_ALREADY_RUNNING":
+            logger.info("扫描已在运行中，跳过 case_id=%s", case_id)
+            return
+        logger.exception("数据扫描任务失败 case_id=%s", case_id)
+        await _mark_latest_running_failed(case_id, session_factory)
     except Exception:
         logger.exception("数据扫描任务失败 case_id=%s", case_id)
         await _mark_latest_running_failed(case_id, session_factory)

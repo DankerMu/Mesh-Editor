@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import traceback
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -28,6 +29,8 @@ from app.repositories.product_window_repo import (
 )
 from app.storage import archive_builder
 from app.storage.path_builder import PathBuilder, path_builder as default_path_builder
+
+logger = logging.getLogger(__name__)
 
 SessionFactory = async_sessionmaker[AsyncSession] | Callable[[], AsyncSession]
 
@@ -222,10 +225,10 @@ def _forecast_case_status(counts_by_status: dict[str, int]) -> str:
 
 
 def _traceback_error(exc: BaseException) -> dict[str, Any]:
+    logger.error("Scan exception: %s", traceback.format_exc())
     return {
         "code": getattr(exc, "code", exc.__class__.__name__),
-        "message": str(exc),
-        "traceback": traceback.format_exc(),
+        "message": str(exc)[:500],
     }
 
 
@@ -308,6 +311,7 @@ class DataScanService:
                     db.add(forecast_case)
                     await db.flush()
 
+                await self.forecast_cases.mark_scan_completed(db, case_id)
                 await self.scan_logs.update_finished(
                     db,
                     scan_id,
