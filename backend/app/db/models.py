@@ -147,3 +147,61 @@ class EditOperation(Base):
     op_ptype_transition_json = Column(Text, nullable=True)
     is_undone = Column(Integer, nullable=False, server_default="0")
     created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+
+class EditVersion(Base):
+    __tablename__ = "edit_version"
+    __table_args__ = (Index("idx_edit_version_window", "window_id", "status"),)
+
+    version_id = Column(String(64), primary_key=True)
+    window_id = Column(
+        String(32), ForeignKey("product_window.window_id"), nullable=False
+    )
+    version_no = Column(Integer, nullable=False)
+    base_version_id = Column(String(64), nullable=True)
+    session_id = Column(String(36), nullable=True)
+    status = Column(String(20), nullable=False, server_default="draft")
+    qpf_after_path = Column(String(512), nullable=False)
+    ptype_after_path = Column(String(512), nullable=False)
+    delta_qpf_path = Column(String(512), nullable=False)
+    change_ptype_path = Column(String(512), nullable=False)
+    touched_mask_path = Column(String(512), nullable=False)
+    changed_mask_path = Column(String(512), nullable=False)
+    version_ptype_transition_path = Column(String(512), nullable=True)
+    before_image_path = Column(String(512), nullable=True)
+    after_image_path = Column(String(512), nullable=True)
+    delta_qpf_image_path = Column(String(512), nullable=True)
+    change_ptype_image_path = Column(String(512), nullable=True)
+    touched_mask_image_path = Column(String(512), nullable=True)
+    changed_mask_image_path = Column(String(512), nullable=True)
+    review_image_path = Column(String(512), nullable=True)
+    created_by = Column(String(64), nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+
+class ReviewApproval(Base):
+    __tablename__ = "review_approval"
+
+    approval_id = Column(String(36), primary_key=True)
+    version_id = Column(String(64), nullable=False)
+    reviewer_id = Column(String(64), nullable=False)
+    action = Column(String(20), nullable=False)
+    comment = Column(Text, nullable=True)
+    reviewed_at = Column(DateTime, nullable=False)
+
+
+class ReleaseProduct(Base):
+    __tablename__ = "release_product"
+    __table_args__ = (
+        Index("idx_release_product_window", "window_id", "release_status"),
+    )
+
+    release_id = Column(String(36), primary_key=True)
+    version_id = Column(String(64), nullable=False)
+    window_id = Column(String(32), nullable=False)
+    release_status = Column(String(20), nullable=False, server_default="active")
+    product_path = Column(String(512), nullable=True)
+    manifest_path = Column(String(512), nullable=True)
+    released_by = Column(String(64), nullable=False)
+    released_at = Column(DateTime, nullable=False)
+    superseded_at = Column(DateTime, nullable=True)
