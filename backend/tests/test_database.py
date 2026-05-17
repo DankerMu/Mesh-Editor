@@ -30,6 +30,48 @@ AUDIT_LOG_COLUMNS = {
     "ip_address",
     "created_at",
 }
+FORECAST_CASE_COLUMNS = {
+    "case_id",
+    "init_time",
+    "region_id",
+    "grid_id",
+    "data_source_path",
+    "scan_count",
+    "last_scan_at",
+    "status",
+    "created_at",
+}
+PRODUCT_WINDOW_COLUMNS = {
+    "window_id",
+    "case_id",
+    "accum_hours",
+    "start_lead",
+    "end_lead",
+    "status",
+    "qc_status",
+    "negative_count",
+    "negative_min_value",
+    "negative_abs_max",
+    "missing_count",
+    "ptype_missing_leads",
+    "qpf_before_path",
+    "ptype_before_path",
+    "data_ready_at",
+    "created_at",
+    "updated_at",
+}
+DATA_SCAN_LOG_COLUMNS = {
+    "scan_id",
+    "case_id",
+    "status",
+    "scan_started_at",
+    "scan_finished_at",
+    "tp_files_found",
+    "ptype_files_found",
+    "windows_created",
+    "windows_updated",
+    "errors_json",
+}
 
 
 def sqlite_async_url(db_path: Path) -> str:
@@ -76,7 +118,13 @@ def test_alembic_upgrade_head(tmp_path: Path) -> None:
 
     upgrade_head(db_path)
 
-    assert {"app_user", "audit_log"}.issubset(table_names(db_path))
+    assert {
+        "app_user",
+        "audit_log",
+        "forecast_case",
+        "product_window",
+        "data_scan_log",
+    }.issubset(table_names(db_path))
 
 
 def test_alembic_roundtrip(tmp_path: Path) -> None:
@@ -89,7 +137,13 @@ def test_alembic_roundtrip(tmp_path: Path) -> None:
     assert "audit_log" not in tables_after_downgrade
     upgrade_head(db_path)
 
-    assert {"app_user", "audit_log"}.issubset(table_names(db_path))
+    assert {
+        "app_user",
+        "audit_log",
+        "forecast_case",
+        "product_window",
+        "data_scan_log",
+    }.issubset(table_names(db_path))
 
 
 def test_app_user_columns(tmp_path: Path) -> None:
@@ -150,4 +204,37 @@ def test_audit_log_indexes(tmp_path: Path) -> None:
         index["name"] == "idx_audit_log_resource"
         and index["column_names"] == ["resource_type", "resource_id"]
         for index in indexes
+    )
+
+
+def test_m1_data_table_columns(tmp_path: Path) -> None:
+    db_path = tmp_path / "m1_columns.db"
+
+    upgrade_head(db_path)
+
+    assert FORECAST_CASE_COLUMNS.issubset(column_names(db_path, "forecast_case"))
+    assert PRODUCT_WINDOW_COLUMNS.issubset(column_names(db_path, "product_window"))
+    assert DATA_SCAN_LOG_COLUMNS.issubset(column_names(db_path, "data_scan_log"))
+
+
+def test_m1_data_table_indexes(tmp_path: Path) -> None:
+    db_path = tmp_path / "m1_indexes.db"
+    upgrade_head(db_path)
+    engine = sa.create_engine(sqlite_sync_url(db_path))
+
+    try:
+        product_window_indexes = inspect(engine).get_indexes("product_window")
+        data_scan_log_indexes = inspect(engine).get_indexes("data_scan_log")
+    finally:
+        engine.dispose()
+
+    assert any(
+        index["name"] == "idx_product_window_case_id"
+        and index["column_names"] == ["case_id"]
+        for index in product_window_indexes
+    )
+    assert any(
+        index["name"] == "idx_data_scan_log_case_id"
+        and index["column_names"] == ["case_id"]
+        for index in data_scan_log_indexes
     )

@@ -61,7 +61,9 @@ def test_validation_error_handler(client: TestClient) -> None:
     assert_uuid4(body["trace_id"])
 
 
-def test_unhandled_exception_handler_hides_exception_details(client: TestClient) -> None:
+def test_unhandled_exception_handler_hides_exception_details(
+    client: TestClient,
+) -> None:
     response = client.get("/tests/runtime-error")
 
     assert response.status_code == 500

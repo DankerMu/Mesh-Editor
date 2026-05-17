@@ -23,7 +23,9 @@ def _load_members(path: Path) -> dict[str, str]:
 
     members: dict[str, str] = {}
     for category, codes in payload.items():
-        if not isinstance(codes, list) or not all(isinstance(code, str) for code in codes):
+        if not isinstance(codes, list) or not all(
+            isinstance(code, str) for code in codes
+        ):
             raise ErrorCodeLoadError(f"错误码分类 {category} 必须是字符串数组")
         for code in codes:
             members[code] = code

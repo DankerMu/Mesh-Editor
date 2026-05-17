@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -34,13 +35,23 @@ class StorageConfig(BaseModel):
     base_dir: Path = REPO_ROOT / "data"
 
 
+class ProductConfig(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    init_time_zone: str = "UTC"
+    ptype_qpf_threshold_mm: float = 0.1
+    allow_zero_start_lead_fallback: bool = True
+
+
 class Settings(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     product_config: dict[str, Any]
+    product: ProductConfig
     grid_definition: GridDefinition
     plot_config: PlotConfig
     storage: StorageConfig
+    data_source_root: Path
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -57,11 +68,14 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def load_settings(schemas_dir: Path = DEFAULT_SCHEMAS_DIR) -> Settings:
     product_config = _load_json(schemas_dir / "product_config.json")
+    data_source_root = Path(os.environ.get("DATA_SOURCE_ROOT", "/data/source"))
     return Settings(
         product_config=product_config,
+        product=ProductConfig.model_validate(product_config),
         grid_definition=GridDefinition(),
         plot_config=PlotConfig(),
         storage=StorageConfig(),
+        data_source_root=data_source_root,
     )
 
 

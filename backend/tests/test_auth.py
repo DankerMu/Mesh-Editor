@@ -72,7 +72,9 @@ def auth_client() -> Iterator[AuthClient]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    session_factory = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
 
     async def setup_database() -> None:
         async with engine.begin() as connection:
@@ -87,7 +89,9 @@ def auth_client() -> Iterator[AuthClient]:
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async def admin_test_route(_: AppUser = Depends(require_role("admin"))) -> ApiResponse[dict[str, bool]]:
+    async def admin_test_route(
+        _: AppUser = Depends(require_role("admin")),
+    ) -> ApiResponse[dict[str, bool]]:
         return ApiResponse(data={"admin": True}, trace_id=get_trace_id())
 
     include_test_route("/admin/test", admin_test_route)
@@ -100,13 +104,19 @@ def auth_client() -> Iterator[AuthClient]:
 
 
 def login(client: TestClient, username: str, password: str) -> dict:
-    response = client.post("/api/auth/login", json={"username": username, "password": password})
+    response = client.post(
+        "/api/auth/login", json={"username": username, "password": password}
+    )
     return response.json()
 
 
-async def get_user_id(session_factory: async_sessionmaker[AsyncSession], username: str) -> int:
+async def get_user_id(
+    session_factory: async_sessionmaker[AsyncSession], username: str
+) -> int:
     async with session_factory() as db:
-        result = await db.execute(select(AppUser.id).where(AppUser.username == username))
+        result = await db.execute(
+            select(AppUser.id).where(AppUser.username == username)
+        )
         user_id = result.scalar_one()
         return int(user_id)
 
@@ -152,7 +162,9 @@ def include_test_route(path: str, endpoint: object) -> None:
     router = APIRouter()
     router.add_api_route(path, endpoint, methods=["GET"])
     before = list(app.router.routes)
-    app.include_router(router, prefix=api_router.prefix, dependencies=api_router.dependencies)
+    app.include_router(
+        router, prefix=api_router.prefix, dependencies=api_router.dependencies
+    )
     app.state.test_routes = getattr(app.state, "test_routes", []) + [
         route for route in app.router.routes if route not in before
     ]
@@ -184,7 +196,9 @@ def test_t4_1_login_success_returns_token(auth_client: AuthClient) -> None:
     assert body["data"]["expires_at"]
 
 
-def test_t4_2_login_wrong_password_returns_auth_required(auth_client: AuthClient) -> None:
+def test_t4_2_login_wrong_password_returns_auth_required(
+    auth_client: AuthClient,
+) -> None:
     response = auth_client.client.post(
         "/api/auth/login",
         json={"username": "admin", "password": "wrong"},
@@ -225,7 +239,9 @@ def test_t4_5_me_without_token_returns_auth_required(auth_client: AuthClient) ->
     assert response.json()["code"] == "AUTH_REQUIRED"
 
 
-def test_t4_6_me_with_expired_token_returns_token_expired(auth_client: AuthClient) -> None:
+def test_t4_6_me_with_expired_token_returns_token_expired(
+    auth_client: AuthClient,
+) -> None:
     user_id = asyncio.run(get_user_id(auth_client.session_factory, "admin"))
     token, _ = create_access_token(
         user_id=user_id,
@@ -241,7 +257,9 @@ def test_t4_6_me_with_expired_token_returns_token_expired(auth_client: AuthClien
     assert response.json()["code"] == "TOKEN_EXPIRED"
 
 
-def test_t4_7_protected_route_without_token_returns_auth_required(auth_client: AuthClient) -> None:
+def test_t4_7_protected_route_without_token_returns_auth_required(
+    auth_client: AuthClient,
+) -> None:
     response = auth_client.client.get("/api/auth/me")
 
     assert response.status_code == 401
@@ -261,16 +279,22 @@ def test_t4_8_health_and_login_are_public(auth_client: AuthClient) -> None:
     assert login_response.json()["code"] == "OK"
 
 
-def test_default_api_router_protects_route_without_explicit_auth(auth_client: AuthClient) -> None:
+def test_default_api_router_protects_route_without_explicit_auth(
+    auth_client: AuthClient,
+) -> None:
     async def test_unprotected_route(request: Request) -> ApiResponse[dict[str, str]]:
         current_user: AppUser = request.state.current_user
-        return ApiResponse(data={"username": str(current_user.username)}, trace_id=get_trace_id())
+        return ApiResponse(
+            data={"username": str(current_user.username)}, trace_id=get_trace_id()
+        )
 
     include_test_route("/test-unprotected", test_unprotected_route)
     try:
         unauthenticated_response = auth_client.client.get("/api/test-unprotected")
         token = login(auth_client.client, "viewer", "viewer123")["data"]["token"]
-        authenticated_response = auth_client.client.get("/api/test-unprotected", headers=bearer(token))
+        authenticated_response = auth_client.client.get(
+            "/api/test-unprotected", headers=bearer(token)
+        )
     finally:
         remove_test_routes()
 
@@ -298,7 +322,9 @@ def test_t4_10_viewer_cannot_access_admin_route(auth_client: AuthClient) -> None
     assert response.json()["code"] == "PERMISSION_DENIED"
 
 
-def test_t4_11_disabled_user_with_valid_token_returns_user_disabled(auth_client: AuthClient) -> None:
+def test_t4_11_disabled_user_with_valid_token_returns_user_disabled(
+    auth_client: AuthClient,
+) -> None:
     user_id = asyncio.run(get_user_id(auth_client.session_factory, "disabled"))
     token, _ = create_access_token(
         user_id=user_id,
@@ -340,7 +366,9 @@ def test_t4_12_successful_login_writes_audit_log(auth_client: AuthClient) -> Non
 
     assert response.status_code == 200
     count = asyncio.run(count_audit_logs(auth_client.session_factory, "admin", "login"))
-    detail = asyncio.run(get_audit_detail(auth_client.session_factory, "admin", "login"))
+    detail = asyncio.run(
+        get_audit_detail(auth_client.session_factory, "admin", "login")
+    )
     assert count == 1
     assert detail["result"] == "success"
 
@@ -353,7 +381,9 @@ def test_t4_13_failed_login_writes_audit_log(auth_client: AuthClient) -> None:
 
     assert response.status_code == 401
     count = asyncio.run(count_audit_logs(auth_client.session_factory, "admin", "login"))
-    detail = asyncio.run(get_audit_detail(auth_client.session_factory, "admin", "login"))
+    detail = asyncio.run(
+        get_audit_detail(auth_client.session_factory, "admin", "login")
+    )
     assert count == 1
     assert detail["result"] == "failure"
 
@@ -376,7 +406,9 @@ def test_t4_15_seed_admin_user_can_login_through_migration(tmp_path: Path) -> No
     command.upgrade(cfg, "head")
 
     engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    session_factory = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
 
     async def override_get_db() -> AsyncIterator[AsyncSession]:
         async with session_factory() as session:

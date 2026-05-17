@@ -5,7 +5,12 @@ from passlib.context import CryptContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
-from app.core.security import create_access_token, decode_access_token, get_jwt_expire_minutes, get_jwt_secret
+from app.core.security import (
+    create_access_token,
+    decode_access_token,
+    get_jwt_expire_minutes,
+    get_jwt_secret,
+)
 from app.db.models import AppUser, AuditLog
 from app.repositories.user_repo import UserRepository
 from app.schemas.auth import LoginResponse
@@ -35,7 +40,9 @@ class AuthService:
                 result="failure",
                 ip_address=ip_address,
             )
-            raise DomainError(code="AUTH_REQUIRED", message="需要登录认证", http_status=401)
+            raise DomainError(
+                code="AUTH_REQUIRED", message="需要登录认证", http_status=401
+            )
 
         if not pwd_context.verify(password, str(user.password_hash)):
             await self._write_login_audit(
@@ -47,7 +54,9 @@ class AuthService:
                 result="failure",
                 ip_address=ip_address,
             )
-            raise DomainError(code="AUTH_REQUIRED", message="需要登录认证", http_status=401)
+            raise DomainError(
+                code="AUTH_REQUIRED", message="需要登录认证", http_status=401
+            )
 
         if not bool(user.is_active):
             await self._write_login_audit(
@@ -59,7 +68,9 @@ class AuthService:
                 result="failure",
                 ip_address=ip_address,
             )
-            raise DomainError(code="USER_DISABLED", message="用户已被禁用", http_status=403)
+            raise DomainError(
+                code="USER_DISABLED", message="用户已被禁用", http_status=403
+            )
 
         await self._write_login_audit(
             db,
@@ -91,20 +102,30 @@ class AuthService:
         subject = payload.get("sub")
         username = payload.get("username")
         if not isinstance(subject, str) or not subject:
-            raise DomainError(code="AUTH_REQUIRED", message="需要登录认证", http_status=401)
+            raise DomainError(
+                code="AUTH_REQUIRED", message="需要登录认证", http_status=401
+            )
         if not isinstance(username, str) or not username:
-            raise DomainError(code="AUTH_REQUIRED", message="需要登录认证", http_status=401)
+            raise DomainError(
+                code="AUTH_REQUIRED", message="需要登录认证", http_status=401
+            )
 
         try:
             user_id = int(subject)
         except ValueError as exc:
-            raise DomainError(code="AUTH_REQUIRED", message="需要登录认证", http_status=401) from exc
+            raise DomainError(
+                code="AUTH_REQUIRED", message="需要登录认证", http_status=401
+            ) from exc
 
         user = await self.user_repo.get_by_id(db, user_id)
         if user is None or user.username != username:
-            raise DomainError(code="AUTH_REQUIRED", message="需要登录认证", http_status=401)
+            raise DomainError(
+                code="AUTH_REQUIRED", message="需要登录认证", http_status=401
+            )
         if not bool(user.is_active):
-            raise DomainError(code="USER_DISABLED", message="用户已被禁用", http_status=403)
+            raise DomainError(
+                code="USER_DISABLED", message="用户已被禁用", http_status=403
+            )
         return user
 
     async def _write_login_audit(

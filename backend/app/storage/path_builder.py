@@ -13,8 +13,17 @@ def _safe_segment(value: str) -> str:
 
 
 class PathBuilder:
-    def __init__(self, base_dir: Path | None = None) -> None:
-        self.base_dir = Path(base_dir) if base_dir is not None else settings.storage.base_dir
+    def __init__(
+        self, base_dir: Path | None = None, data_source_root: Path | None = None
+    ) -> None:
+        self.base_dir = (
+            Path(base_dir) if base_dir is not None else settings.storage.base_dir
+        )
+        self.data_source_root = (
+            Path(data_source_root)
+            if data_source_root is not None
+            else settings.data_source_root
+        )
 
     def case_root(self, case_id: str) -> Path:
         return self.base_dir / "cases" / _safe_segment(case_id)
@@ -29,7 +38,11 @@ class PathBuilder:
         return self.base_dir / "sessions" / _safe_segment(session_id)
 
     def preview_file(self, session_id: str, preview_id: str) -> Path:
-        return self.session_root(session_id) / "previews" / f"{_safe_segment(preview_id)}.npz"
+        return (
+            self.session_root(session_id)
+            / "previews"
+            / f"{_safe_segment(preview_id)}.npz"
+        )
 
     def version_root(self, window_id: str, version_id: str) -> Path:
         return self.window_root(window_id) / "versions" / _safe_segment(version_id)
@@ -39,6 +52,19 @@ class PathBuilder:
 
     def release_root(self, window_id: str, version_id: str) -> Path:
         return self.window_root(window_id) / "releases" / _safe_segment(version_id)
+
+    def data_source_dir(self, case_id: str) -> Path:
+        return self.data_source_root / _safe_segment(case_id)
+
+    def window_original_dir(self, case_id: str, window_id: str) -> Path:
+        _safe_segment(case_id)
+        return self.base_dir / "windows" / _safe_segment(window_id) / "original"
+
+    def tp_file_path(self, case_id: str, lead: int) -> Path:
+        return self.data_source_dir(case_id) / f"tp_{lead:03d}.txt"
+
+    def ptype_file_path(self, case_id: str, lead: int) -> Path:
+        return self.data_source_dir(case_id) / f"ptype_{lead:03d}.txt"
 
 
 path_builder = PathBuilder()

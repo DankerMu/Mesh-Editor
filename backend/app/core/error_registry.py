@@ -30,6 +30,13 @@ ERROR_INFO: dict[str, ErrorInfo] = {
     "FILE_NOT_FOUND": ErrorInfo("文件未找到", 404),
     "DIMENSION_MISMATCH": ErrorInfo("变量维度不一致", 422),
     "QPF_NEGATIVE_WARNING": ErrorInfo("qpf 差分存在负值，按配置决定是否阻止", 409),
+    "INVALID_CASE_ID": ErrorInfo(
+        "case_id 格式非法（须为 YYYYMMDDHH，HH=08 或 20）", 422
+    ),
+    "CASE_DIR_NOT_FOUND": ErrorInfo("数据源目录未找到", 404),
+    "PTYPE_INVALID_VALUE": ErrorInfo("ptype 文件含非法值（仅允许 0/1/2/3）", 422),
+    "SCAN_ALREADY_RUNNING": ErrorInfo("该 case 已有扫描任务运行中", 409),
+    "SCAN_NOT_FOUND": ErrorInfo("扫描记录未找到", 404),
     "SESSION_NOT_FOUND": ErrorInfo("会话未找到", 404),
     "SESSION_NOT_EDITING": ErrorInfo("session 不是 editing", 409),
     "SESSION_EXPIRED": ErrorInfo("session 过期", 409),
@@ -44,8 +51,12 @@ ERROR_INFO: dict[str, ErrorInfo] = {
     ),
     "INVALID_OPERATION_PARAM": ErrorInfo("编辑参数非法", 422),
     "INVALID_PTYPE": ErrorInfo("ptype 非 0/1/2/3", 422),
-    "NEW_PRECIP_NEEDS_PTYPE": ErrorInfo("新增降水落区未指定 target_ptype（见 docs/14 §14.8.1）", 422),
-    "FIELD_NOT_AVAILABLE": ErrorInfo("请求的字段数据不可用（preview 过期或尚未生成）", 404),
+    "NEW_PRECIP_NEEDS_PTYPE": ErrorInfo(
+        "新增降水落区未指定 target_ptype（见 docs/14 §14.8.1）", 422
+    ),
+    "FIELD_NOT_AVAILABLE": ErrorInfo(
+        "请求的字段数据不可用（preview 过期或尚未生成）", 404
+    ),
     "VERSION_NOT_FOUND": ErrorInfo("版本未找到", 404),
     "VERSION_STATUS_CONFLICT": ErrorInfo("当前状态不允许该操作", 409),
     "VERSION_BASE_OUTDATED": ErrorInfo("session 基线不是最新版本", 409),
@@ -83,13 +94,17 @@ def load_error_codes(path: Path = DEFAULT_ERROR_CODES_PATH) -> set[str]:
 
     codes: set[str] = set()
     for category, values in payload.items():
-        if not isinstance(values, list) or not all(isinstance(item, str) for item in values):
+        if not isinstance(values, list) or not all(
+            isinstance(item, str) for item in values
+        ):
             raise ErrorRegistryLoadError(f"错误码分类 {category} 必须是字符串数组")
         codes.update(values)
 
     missing_mapping = sorted(codes - ERROR_INFO.keys())
     if missing_mapping:
-        raise ErrorRegistryLoadError(f"错误码缺少中文文案或 HTTP 状态: {', '.join(missing_mapping)}")
+        raise ErrorRegistryLoadError(
+            f"错误码缺少中文文案或 HTTP 状态: {', '.join(missing_mapping)}"
+        )
     return codes
 
 

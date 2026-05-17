@@ -12,7 +12,12 @@ from app.api.routes.auth import public_router as auth_public_router
 from app.api.routes.health import router as health_router
 from app.core.error_registry import get_error
 from app.core.errors import DomainError
-from app.core.logging import configure_logging, new_trace_id, reset_trace_id, set_trace_id
+from app.core.logging import (
+    configure_logging,
+    new_trace_id,
+    reset_trace_id,
+    set_trace_id,
+)
 from app.schemas.common import ErrorResponse
 
 
@@ -24,6 +29,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
     from app.db.session import engine
+
     await engine.dispose()
 
 
@@ -62,7 +68,9 @@ async def domain_error_handler(request: Request, exc: DomainError) -> JSONRespon
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+async def validation_error_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
     message, http_status = get_error("VALIDATION_ERROR")
     return JSONResponse(
         status_code=http_status,
