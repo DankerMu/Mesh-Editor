@@ -44,6 +44,7 @@ ERROR_INFO: dict[str, ErrorInfo] = {
     "PREVIEW_EXPIRED": ErrorInfo("preview 过期或被覆盖", 409),
     "PREVIEW_CONFLICT": ErrorInfo("preview 已被 apply 或被新 preview 覆盖", 409),
     "PREVIEW_SESSION_MISMATCH": ErrorInfo("preview 不属于 session", 400),
+    "MASK_INVALID_GEOMETRY": ErrorInfo("mask 几何参数非法", 422),
     "MASK_OUT_OF_BOUNDS": ErrorInfo("mask 超出网格范围", 422),
     "MASK_EMPTY": ErrorInfo(
         "mask 栅格化后无有效格点（mask 本身为空、全部落在 invalid_mask 上、或经 only_nonzero 过滤后无有效格点）",
