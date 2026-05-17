@@ -25,6 +25,18 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ErrorView.vue'),
     meta: { public: true },
   },
+  {
+    path: '/editor',
+    name: 'Editor',
+    component: () => import('@/views/EditorView.vue'),
+    meta: { roles: ['admin', 'reviewer', 'forecaster'] },
+  },
+  {
+    path: '/editor/:windowId',
+    name: 'EditorWindow',
+    component: () => import('@/views/EditorView.vue'),
+    meta: { roles: ['admin', 'reviewer', 'forecaster'] },
+  },
 ]
 
 export function createAppRouter() {
@@ -42,6 +54,11 @@ export function createAppRouter() {
 
     if (to.path === '/login' && authStore.isAuthenticated) {
       return '/'
+    }
+
+    const roles = to.meta.roles as string[] | undefined
+    if (roles && (!authStore.role || !roles.includes(authStore.role))) {
+      return '/forbidden'
     }
 
     return true
