@@ -124,7 +124,7 @@ def _version_list_item(version: EditVersion) -> VersionListItem:
             bool(getattr(version, attr_name)) for attr_name in IMAGE_KEYS.values()
         ),
         created_by=None if version.created_by is None else str(version.created_by),
-        created_at=version.created_at,
+        created_at=version.created_at,  # type: ignore[arg-type]
     )
 
 
