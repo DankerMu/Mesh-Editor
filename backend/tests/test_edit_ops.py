@@ -63,6 +63,22 @@ def test_set_value_rejects_non_finite_value(value: float) -> None:
     assert exc_info.value.code == "INVALID_OPERATION_PARAM"
 
 
+@pytest.mark.parametrize("delta", [float("nan"), float("inf")])
+def test_increase_rejects_non_finite_delta(delta: float) -> None:
+    with pytest.raises(EditOpError) as exc_info:
+        apply_qpf_increase(_ctx(), delta)
+
+    assert exc_info.value.code == "INVALID_OPERATION_PARAM"
+
+
+@pytest.mark.parametrize("delta", [float("nan"), float("inf")])
+def test_decrease_rejects_non_finite_delta(delta: float) -> None:
+    with pytest.raises(EditOpError) as exc_info:
+        apply_qpf_decrease(_ctx(), delta)
+
+    assert exc_info.value.code == "INVALID_OPERATION_PARAM"
+
+
 def test_increase_normal() -> None:
     result = apply_qpf_increase(_ctx(qpf=[[0, 2, 5]]), 3)
 
@@ -134,6 +150,14 @@ def test_screen_clear_clears_weak_precip_only() -> None:
 
     assert np.allclose(result.qpf_after, [[0, 0, 2, 5]])
     assert result.ptype_after.tolist() == [[0, 0, 2, 3]]
+
+
+@pytest.mark.parametrize("threshold", [float("nan"), float("inf")])
+def test_screen_clear_rejects_non_finite_threshold(threshold: float) -> None:
+    with pytest.raises(EditOpError) as exc_info:
+        apply_screen_clear(_ctx(), threshold=threshold)
+
+    assert exc_info.value.code == "INVALID_OPERATION_PARAM"
 
 
 def test_consistency_corrects_invalid_ptype_and_warns() -> None:
