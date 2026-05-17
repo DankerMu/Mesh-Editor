@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import {
   BrushIcon,
   EditIcon,
-  HistoryIcon,
   MapEditIcon,
   PenBrushIcon,
   RefreshIcon,
@@ -14,6 +13,12 @@ import { useEditorStore } from '@/stores/editorStore'
 import type { OperationItem } from '@/api/edit'
 
 const editorStore = useEditorStore()
+
+onMounted(() => {
+  if (editorStore.sessionId && editorStore.operations.length === 0) {
+    editorStore.fetchOperations().catch(() => {})
+  }
+})
 
 const toolMeta: Record<string, { label: string; icon: unknown }> = {
   polygon: { label: '多边形', icon: MapEditIcon },
