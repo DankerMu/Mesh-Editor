@@ -110,6 +110,26 @@ def _write_session_fields(builder: PathBuilder) -> None:
         np.savez_compressed(session_dir / f"{name}.npz", data=data)
 
 
+def _write_inconsistent_session_fields(builder: PathBuilder) -> None:
+    session_dir = builder.session_root(SESSION_ID)
+    session_dir.mkdir(parents=True, exist_ok=True)
+    qpf_before = np.zeros(GRID_SHAPE, dtype=np.float32)
+    qpf_after = qpf_before.copy()
+    qpf_after[0, 0] = 1.25
+    ptype_before = np.zeros(GRID_SHAPE, dtype=np.uint8)
+    ptype_after = ptype_before.copy()
+    touched_mask = np.zeros(GRID_SHAPE, dtype=np.uint8)
+    touched_mask[0, 0] = 1
+    for name, data in [
+        ("qpf_before", qpf_before),
+        ("qpf_after", qpf_after),
+        ("ptype_before", ptype_before),
+        ("ptype_after", ptype_after),
+        ("touched_mask", touched_mask),
+    ]:
+        np.savez_compressed(session_dir / f"{name}.npz", data=data)
+
+
 def _version_kwargs(version_no: int = 1, **overrides: object) -> dict[str, object]:
     data: dict[str, object] = {
         "version_id": f"{WINDOW_ID}_v{version_no:03d}",
@@ -224,6 +244,19 @@ async def test_save_version_image_failure_still_saves(
     assert version.status == "draft"
     assert version.before_image_path is None
     assert version.after_image_path is None
+
+
+async def test_save_version_consistency_violation(
+    db_session: AsyncSession, service: VersionService
+) -> None:
+    _write_inconsistent_session_fields(service.path_builder)
+
+    with pytest.raises(DomainError) as exc_info:
+        await service.save_version(db_session, SESSION_ID)
+
+    assert exc_info.value.code == "CONSISTENCY_VIOLATION"
+    assert exc_info.value.http_status == 422
+    assert exc_info.value.detail["violation_count"] == 1
 
 
 async def test_submit_happy_path(db_session: AsyncSession, service: VersionService) -> None:

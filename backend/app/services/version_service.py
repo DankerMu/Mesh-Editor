@@ -5,9 +5,11 @@ import logging
 import shutil
 from pathlib import Path
 from typing import Any, Callable
+from uuid import uuid4
 
 import numpy as np
 from numpy.typing import NDArray
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -114,6 +116,15 @@ class VersionService:
             ptype_after,
             threshold_mm=float(settings.product.ptype_qpf_threshold_mm),
         )
+        if consistency_violation_count > 0:
+            raise _domain_error(
+                "CONSISTENCY_VIOLATION",
+                {
+                    "session_id": session_id,
+                    "violation_count": consistency_violation_count,
+                },
+            )
+
         delta_qpf = compute_delta_qpf(qpf_before, qpf_after)
         change_ptype = compute_change_ptype(ptype_before, ptype_after)
         touched_mask = compute_touched_mask(touched_mask_session).astype(
@@ -127,52 +138,66 @@ class VersionService:
             epsilon=float(settings.product_config.get("qpf_change_epsilon", 0.001)),
         )
 
-        version_no = await self.versions.get_max_version_no(db, window_id) + 1
-        version_id = f"{window_id}_v{version_no:03d}"
-        version_dir = self.path_builder.version_root(window_id, version_id)
-        if version_dir.exists():
-            raise _domain_error(
-                "VERSION_STATUS_CONFLICT",
-                {"version_id": version_id, "path": str(version_dir)},
-            )
-
-        paths: dict[str, Path] = {
-            "qpf_after_path": version_dir / "qpf_after.npz",
-            "ptype_after_path": version_dir / "ptype_after.npz",
-            "delta_qpf_path": version_dir / "delta_qpf.npz",
-            "change_ptype_path": version_dir / "change_ptype.npz",
-            "touched_mask_path": version_dir / "touched_mask.npz",
-            "changed_mask_path": version_dir / "changed_mask.npz",
-        }
-        image_paths: dict[str, Path | None] = {
-            "before_image_path": None,
-            "after_image_path": None,
-            "delta_qpf_image_path": None,
-            "change_ptype_image_path": None,
-            "touched_mask_image_path": None,
-            "changed_mask_image_path": None,
-            "review_image_path": None,
-        }
-
-        try:
-            version_dir.mkdir(parents=True, exist_ok=False)
-            np.savez_compressed(paths["qpf_after_path"], data=qpf_after)
-            np.savez_compressed(paths["ptype_after_path"], data=ptype_after)
-            np.savez_compressed(paths["delta_qpf_path"], data=delta_qpf)
-            np.savez_compressed(paths["change_ptype_path"], data=change_ptype)
-            np.savez_compressed(paths["touched_mask_path"], data=touched_mask)
-            np.savez_compressed(paths["changed_mask_path"], data=changed_mask)
-
-            operations = await self.operations.query_by_session(
+        operations = self._serialize_operations(
+            await self.operations.query_by_session(
                 db, session_id, include_undone=False
             )
-            self._write_operations_jsonl(version_dir / "operations.jsonl", operations)
+        )
+        created_by = str(session.user_id) if session.user_id is not None else None
+        first_version_no = await self.versions.get_max_version_no(db, window_id) + 1
+        version = None
+        last_version_id = ""
+
+        for attempt in range(3):
+            version_no = first_version_no + attempt
+            version_id = f"{window_id}_v{version_no:03d}"
+            last_version_id = version_id
+            final_dir = self.path_builder.version_root(window_id, version_id)
+            temp_dir = self.path_builder.base_dir / "tmp" / f"version_{uuid4().hex}"
+            db_written = False
 
             try:
-                image_paths.update(
-                    self._generate_images(
-                        window_id=window_id,
-                        version_id=version_id,
+                if final_dir.exists():
+                    if attempt == 2:
+                        raise _domain_error(
+                            "VERSION_STATUS_CONFLICT",
+                            {"version_id": version_id, "path": str(final_dir)},
+                        )
+                    continue
+
+                temp_dir.mkdir(parents=True, exist_ok=False)
+                temp_paths: dict[str, Path] = {
+                    "qpf_after_path": temp_dir / "qpf_after.npz",
+                    "ptype_after_path": temp_dir / "ptype_after.npz",
+                    "delta_qpf_path": temp_dir / "delta_qpf.npz",
+                    "change_ptype_path": temp_dir / "change_ptype.npz",
+                    "touched_mask_path": temp_dir / "touched_mask.npz",
+                    "changed_mask_path": temp_dir / "changed_mask.npz",
+                }
+                final_paths: dict[str, Path] = {
+                    key: final_dir / path.name for key, path in temp_paths.items()
+                }
+                image_paths: dict[str, Path | None] = {
+                    "before_image_path": None,
+                    "after_image_path": None,
+                    "delta_qpf_image_path": None,
+                    "change_ptype_image_path": None,
+                    "touched_mask_image_path": None,
+                    "changed_mask_image_path": None,
+                    "review_image_path": None,
+                }
+
+                np.savez_compressed(temp_paths["qpf_after_path"], data=qpf_after)
+                np.savez_compressed(temp_paths["ptype_after_path"], data=ptype_after)
+                np.savez_compressed(temp_paths["delta_qpf_path"], data=delta_qpf)
+                np.savez_compressed(temp_paths["change_ptype_path"], data=change_ptype)
+                np.savez_compressed(temp_paths["touched_mask_path"], data=touched_mask)
+                np.savez_compressed(temp_paths["changed_mask_path"], data=changed_mask)
+                self._write_operations_jsonl(temp_dir / "operations.jsonl", operations)
+
+                try:
+                    temp_image_paths = self._generate_images(
+                        images_dir=temp_dir / "images",
                         qpf_before=qpf_before,
                         ptype_before=ptype_before,
                         qpf_after=qpf_after,
@@ -183,39 +208,80 @@ class VersionService:
                         changed_mask=changed_mask,
                         generate_review=generate_review,
                     )
-                )
-            except Exception:
-                logger.warning("version image generation failed", exc_info=True)
+                    image_paths.update(
+                        {
+                            key: (
+                                None
+                                if path is None
+                                else final_dir / path.relative_to(temp_dir)
+                            )
+                            for key, path in temp_image_paths.items()
+                        }
+                    )
+                except Exception:
+                    logger.warning("version image generation failed", exc_info=True)
 
-            version = await self.versions.create(
-                db,
-                version_id=version_id,
-                window_id=window_id,
-                version_no=version_no,
-                base_version_id=base_version_id,
-                session_id=session_id,
-                status="draft",
-                created_by=str(session.user_id) if session.user_id is not None else None,
-                **{key: str(path) for key, path in paths.items()},
-                **{
-                    key: None if path is None else str(path)
-                    for key, path in image_paths.items()
-                },
-            )
-            session.status = "saved"  # type: ignore[assignment]
-            if hasattr(session, "saved_version_id"):
-                session.saved_version_id = version_id  # type: ignore[attr-defined]
-            db.add(session)
-            await db.flush()
-        except DomainError:
-            shutil.rmtree(version_dir, ignore_errors=True)
-            raise
-        except Exception as exc:
-            shutil.rmtree(version_dir, ignore_errors=True)
+                version = await self.versions.create(
+                    db,
+                    version_id=version_id,
+                    window_id=window_id,
+                    version_no=version_no,
+                    base_version_id=base_version_id,
+                    session_id=session_id,
+                    status="draft",
+                    created_by=created_by,
+                    **{key: str(path) for key, path in final_paths.items()},
+                    **{
+                        key: None if path is None else str(path)
+                        for key, path in image_paths.items()
+                    },
+                )
+                db_written = True
+                session.status = "saved"  # type: ignore[assignment]
+                if hasattr(session, "saved_version_id"):
+                    session.saved_version_id = version_id  # type: ignore[attr-defined]
+                db.add(session)
+                await db.flush()
+
+                final_dir.parent.mkdir(parents=True, exist_ok=True)
+                temp_dir.rename(final_dir)
+                break
+            except IntegrityError:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                await db.rollback()
+                session = await self.sessions.get_by_id(db, session_id)
+                if session is None:
+                    raise _domain_error("SESSION_NOT_FOUND", {"session_id": session_id})
+                if attempt == 2:
+                    raise _domain_error(
+                        "VERSION_SAVE_FAILED",
+                        {"session_id": session_id, "version_id": version_id},
+                    )
+                continue
+            except SQLAlchemyError as exc:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                await db.rollback()
+                raise _domain_error(
+                    "VERSION_SAVE_FAILED",
+                    {"session_id": session_id, "version_id": version_id},
+                ) from exc
+            except DomainError:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                raise
+            except Exception as exc:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                if db_written:
+                    await db.rollback()
+                raise _domain_error(
+                    "VERSION_SAVE_FAILED",
+                    {"session_id": session_id, "version_id": version_id},
+                ) from exc
+
+        if version is None:
             raise _domain_error(
                 "VERSION_SAVE_FAILED",
-                {"session_id": session_id, "version_id": version_id},
-            ) from exc
+                {"session_id": session_id, "version_id": last_version_id},
+            )
 
         return {
             "session_id": session_id,
@@ -293,44 +359,45 @@ class VersionService:
             )
         return array.astype(dtype, copy=False)
 
+    def _serialize_operations(
+        self, operations: list[EditOperation]
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "operation_id": operation.operation_id,
+                "session_id": operation.session_id,
+                "window_id": operation.window_id,
+                "sequence_no": operation.sequence_no,
+                "tool_name": operation.tool_name,
+                "variable_name": operation.variable_name,
+                "operation_type": operation.operation_type,
+                "parameters_json": operation.parameters_json,
+                "mask_geometry_json": operation.mask_geometry_json,
+                "mask_raster_path": operation.mask_raster_path,
+                "before_stats_json": operation.before_stats_json,
+                "after_stats_json": operation.after_stats_json,
+                "op_ptype_transition_json": operation.op_ptype_transition_json,
+                "is_undone": operation.is_undone,
+                "created_at": (
+                    operation.created_at.isoformat()
+                    if operation.created_at is not None
+                    else None
+                ),
+            }
+            for operation in operations
+        ]
+
     def _write_operations_jsonl(
-        self, output_path: Path, operations: list[EditOperation]
+        self, output_path: Path, operations: list[dict[str, Any]]
     ) -> None:
         with output_path.open("w", encoding="utf-8") as handle:
             for operation in operations:
-                handle.write(
-                    json.dumps(
-                        {
-                            "operation_id": operation.operation_id,
-                            "session_id": operation.session_id,
-                            "window_id": operation.window_id,
-                            "sequence_no": operation.sequence_no,
-                            "tool_name": operation.tool_name,
-                            "variable_name": operation.variable_name,
-                            "operation_type": operation.operation_type,
-                            "parameters_json": operation.parameters_json,
-                            "mask_geometry_json": operation.mask_geometry_json,
-                            "mask_raster_path": operation.mask_raster_path,
-                            "before_stats_json": operation.before_stats_json,
-                            "after_stats_json": operation.after_stats_json,
-                            "op_ptype_transition_json": operation.op_ptype_transition_json,
-                            "is_undone": operation.is_undone,
-                            "created_at": (
-                                operation.created_at.isoformat()
-                                if operation.created_at is not None
-                                else None
-                            ),
-                        },
-                        ensure_ascii=False,
-                    )
-                    + "\n"
-                )
+                handle.write(json.dumps(operation, ensure_ascii=False) + "\n")
 
     def _generate_images(
         self,
         *,
-        window_id: str,
-        version_id: str,
+        images_dir: Path,
         qpf_before: NDArray[np.float32],
         ptype_before: NDArray[np.uint8],
         qpf_after: NDArray[np.float32],
@@ -341,7 +408,6 @@ class VersionService:
         changed_mask: NDArray[np.uint8],
         generate_review: bool,
     ) -> dict[str, Path | None]:
-        images_dir = self.path_builder.version_images_dir(window_id, version_id)
         images_dir.mkdir(parents=True, exist_ok=True)
         outputs: dict[str, Path | None] = {
             "before_image_path": images_dir / "before_product.png",

@@ -12,7 +12,7 @@ import numpy as np
 from numpy.typing import NDArray
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.constants import DLAT, DLON, LAT_MAX, LON_MIN, NX, NY, PROJECTION
+from app.core.constants import DLAT, DLON, LAT_MAX, LAT_MIN, LON_MIN, NX, NY, PROJECTION
 from app.core.error_registry import get_error
 from app.core.errors import DomainError
 from app.db.models import EditVersion, ProductWindow
@@ -39,9 +39,9 @@ def npz_to_txt(npz_path: Path, output_path: Path, dtype: str) -> None:
         data = payload["data"]
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if dtype == "float32":
-        np.savetxt(output_path, data, fmt="%.2f", delimiter=" ")
+        np.savetxt(output_path, data, fmt="%.2f", delimiter=",")
     else:
-        np.savetxt(output_path, data, fmt="%d", delimiter=" ")
+        np.savetxt(output_path, data, fmt="%d", delimiter=",")
 
 
 def generate_ptype_transition_csv(
@@ -73,8 +73,7 @@ def generate_product_manifest(
     release_id: str,
     released_by: str,
     released_at: datetime,
-    product_path: str,
-    images: dict[str, str],
+    images: dict[str, str | None],
 ) -> dict[str, Any]:
     return {
         "release_id": release_id,
@@ -86,7 +85,6 @@ def generate_product_manifest(
         "end_lead": int(window.end_lead),
         "released_by": released_by,
         "released_at": released_at.replace(tzinfo=UTC).isoformat(),
-        "product_path": product_path,
         "fields": {
             "qpf_after_npz": "fields/qpf_after.npz",
             "ptype_after_npz": "fields/ptype_after.npz",
@@ -107,7 +105,8 @@ def generate_product_manifest(
             "cols": NX,
             "projection": PROJECTION,
             "lon_start": LON_MIN,
-            "lat_start": LAT_MAX,
+            "lat_start": LAT_MIN,
+            "lat_end": LAT_MAX,
             "dlon": DLON,
             "dlat": DLAT,
             "row_order": "y_desc_x_asc",
@@ -146,12 +145,11 @@ class ReleaseService:
         window_id = str(version.window_id)
         release_id = str(uuid4())
         released_at = datetime.now(UTC).replace(tzinfo=None)
-        temp_dir = self.path_builder.release_temp_dir(window_id, version_id)
+        temp_dir = self.path_builder.base_dir / "tmp" / f"release_{release_id}"
         final_dir = self.path_builder.release_root(window_id, version_id)
+        renamed = False
 
         try:
-            if temp_dir.exists():
-                shutil.rmtree(temp_dir)
             if final_dir.exists():
                 raise _domain_error(
                     "RELEASE_CONFLICT",
@@ -166,7 +164,6 @@ class ReleaseService:
                 release_id=release_id,
                 released_by=released_by,
                 released_at=released_at,
-                product_path=str(final_dir),
                 images=copied_images,
             )
             manifest_path = temp_dir / "product_manifest.json"
@@ -177,6 +174,7 @@ class ReleaseService:
 
             final_dir.parent.mkdir(parents=True, exist_ok=True)
             temp_dir.rename(final_dir)
+            renamed = True
 
             active = await self.releases.get_active_by_window(db, window_id)
             if active is not None:
@@ -203,10 +201,16 @@ class ReleaseService:
             )
             await self.versions.update_status(db, version_id, "released")
         except DomainError:
-            shutil.rmtree(temp_dir, ignore_errors=True)
+            if renamed and final_dir.exists():
+                shutil.rmtree(final_dir, ignore_errors=True)
+            else:
+                shutil.rmtree(temp_dir, ignore_errors=True)
             raise
         except Exception as exc:
-            shutil.rmtree(temp_dir, ignore_errors=True)
+            if renamed and final_dir.exists():
+                shutil.rmtree(final_dir, ignore_errors=True)
+            else:
+                shutil.rmtree(temp_dir, ignore_errors=True)
             raise _domain_error(
                 "RELEASE_CONFLICT",
                 {"version_id": version_id, "release_path": str(final_dir)},
@@ -225,7 +229,7 @@ class ReleaseService:
 
     def _build_release_dir(
         self, version: EditVersion, temp_dir: Path
-    ) -> dict[str, str]:
+    ) -> dict[str, str | None]:
         fields_dir = temp_dir / "fields"
         derived_dir = temp_dir / "derived"
         images_dir = temp_dir / "images"
@@ -268,19 +272,26 @@ class ReleaseService:
             derived_dir / "version_ptype_transition.csv",
         )
 
-        images = {}
-        for attr, name in [
-            ("before_image_path", "before_product.png"),
-            ("after_image_path", "after_product.png"),
-            ("delta_qpf_image_path", "delta_qpf.png"),
-            ("change_ptype_image_path", "change_ptype.png"),
-            ("touched_mask_image_path", "touched_mask.png"),
-            ("changed_mask_image_path", "changed_mask.png"),
+        images: dict[str, str | None] = {
+            "before_product": None,
+            "after_product": None,
+            "delta_qpf": None,
+            "change_ptype": None,
+            "touched_mask": None,
+            "changed_mask": None,
+        }
+        for attr, key, name in [
+            ("before_image_path", "before_product", "before_product.png"),
+            ("after_image_path", "after_product", "after_product.png"),
+            ("delta_qpf_image_path", "delta_qpf", "delta_qpf.png"),
+            ("change_ptype_image_path", "change_ptype", "change_ptype.png"),
+            ("touched_mask_image_path", "touched_mask", "touched_mask.png"),
+            ("changed_mask_image_path", "changed_mask", "changed_mask.png"),
         ]:
             source_value = getattr(version, attr)
             if source_value and Path(str(source_value)).exists():
                 shutil.copy2(Path(str(source_value)), images_dir / name)
-                images[name.removesuffix(".png")] = f"images/{name}"
+                images[key] = f"images/{name}"
         return images
 
 

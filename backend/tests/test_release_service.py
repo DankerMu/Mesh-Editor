@@ -170,6 +170,19 @@ async def test_release_happy_path(
     )
     assert manifest["version_id"] == f"{WINDOW_ID}_v001"
     assert manifest["grid"]["rows"] == 501
+    assert manifest["grid"]["lat_start"] == 25.0
+    assert manifest["grid"]["lat_end"] == 50.0
+    assert "product_path" not in manifest
+    assert set(manifest["images"]) == {
+        "before_product",
+        "after_product",
+        "delta_qpf",
+        "change_ptype",
+        "touched_mask",
+        "changed_mask",
+    }
+    assert manifest["images"]["after_product"] == "images/after_product.png"
+    assert manifest["images"]["before_product"] is None
     version = await db_session.get(EditVersion, f"{WINDOW_ID}_v001")
     assert version is not None
     assert version.status == "released"
@@ -234,7 +247,7 @@ def test_npz_to_txt_float32(tmp_path: Path) -> None:
 
     npz_to_txt(npz_path, output_path, "float32")
 
-    assert output_path.read_text(encoding="utf-8").strip() == "1.23 0.00"
+    assert output_path.read_text(encoding="utf-8").strip() == "1.23,0.00"
 
 
 def test_npz_to_txt_uint8(tmp_path: Path) -> None:
@@ -244,7 +257,7 @@ def test_npz_to_txt_uint8(tmp_path: Path) -> None:
 
     npz_to_txt(npz_path, output_path, "uint8")
 
-    assert output_path.read_text(encoding="utf-8").strip() == "1 2 3"
+    assert output_path.read_text(encoding="utf-8").strip() == "1,2,3"
 
 
 def test_ptype_transition_csv(tmp_path: Path) -> None:
