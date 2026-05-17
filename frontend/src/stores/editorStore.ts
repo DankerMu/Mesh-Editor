@@ -203,7 +203,11 @@ export const useEditorStore = defineStore('editor', () => {
     fieldLoadError.value = null
 
     try {
-      await Promise.all([loadSessionField('qpf_after'), loadSessionField('ptype_after')])
+      await Promise.all([
+        loadSessionField('qpf_after'),
+        loadSessionField('ptype_after'),
+        loadSessionField('touched_mask'),
+      ])
     } catch (error) {
       fieldLoadError.value = getErrorMessage(error)
       throw error
@@ -237,6 +241,7 @@ export const useEditorStore = defineStore('editor', () => {
     const activeSessionId = requireSessionId()
     previewLoading.value = true
     previewError.value = null
+    clearPreview()
 
     try {
       const result = await editPreview({
