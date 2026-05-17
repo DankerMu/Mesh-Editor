@@ -26,3 +26,7 @@ class ScanStatusResponse(BaseModel):
     windows_created: int
     windows_updated: int
     errors_json: list[dict[str, Any]] | None
+    total_windows: int = 0
+    available_count: int = 0
+    partial_count: int = 0
+    invalid_count: int = 0

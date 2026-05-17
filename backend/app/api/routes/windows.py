@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,6 +9,8 @@ from app.db.session import get_db
 from app.repositories.product_window_repo import product_window_repo
 from app.schemas.common import ApiResponse
 from app.schemas.window import WindowItem
+
+_CASE_ID_RE = re.compile(r"^\d{10}$")
 
 router = APIRouter(tags=["windows"])
 
@@ -34,6 +38,8 @@ async def list_windows(
 ) -> ApiResponse[list[WindowItem]]:
     if not case_id:
         raise _validation_error("case_id 为必填参数")
+    if not _CASE_ID_RE.match(case_id):
+        raise _validation_error("case_id 格式错误，要求 YYYYMMDDHH（10 位数字）")
     if accum_hours is not None and accum_hours not in {24, 48, 168}:
         raise _validation_error("accum_hours 仅支持 24/48/168")
 

@@ -12,6 +12,7 @@ from app.db.models import AppUser
 from app.db.session import get_db
 from app.repositories.data_scan_log_repo import data_scan_log_repo
 from app.repositories.forecast_case_repo import forecast_case_repo
+from app.repositories.product_window_repo import product_window_repo
 from app.schemas.common import ApiResponse
 from app.schemas.data_scan import ScanRequest, ScanResponse, ScanStatusResponse
 from app.services.data_scan_service import validate_case_id
@@ -120,7 +121,15 @@ async def get_scan_status(
     if scan_log is None:
         raise _domain_error("SCAN_NOT_FOUND")
 
+    counts = await product_window_repo.count_by_status(db, scan_log.case_id)
+    total = sum(counts.values())
+    response = ScanStatusResponse.model_validate(scan_log)
+    response.total_windows = total
+    response.available_count = counts.get("available", 0)
+    response.partial_count = counts.get("partial", 0)
+    response.invalid_count = counts.get("invalid", 0)
+
     return ApiResponse(
-        data=ScanStatusResponse.model_validate(scan_log),
+        data=response,
         trace_id=_trace_id(request),
     )
