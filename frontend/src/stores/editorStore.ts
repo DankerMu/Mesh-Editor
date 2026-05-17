@@ -15,6 +15,7 @@ import type {
   OperationItem,
 } from '@/api/edit'
 import { fetchField, loadSession as loadSessionApi, startSession as startSessionApi } from '@/api/sessions'
+import { saveVersion as saveVersionApi } from '@/api/version'
 import type { MaskGeometry, ToolType, ViewMode } from '@/types/editor'
 import { GRID_COLS, GRID_ROWS } from '@/constants/precipColors'
 
@@ -340,6 +341,24 @@ export const useEditorStore = defineStore('editor', () => {
     }
   }
 
+  async function saveVersion() {
+    const activeSessionId = requireSessionId()
+    saveLoading.value = true
+    previewError.value = null
+
+    try {
+      const response = await saveVersionApi(activeSessionId)
+      currentVersionId.value = response.version_id
+      dirty.value = false
+      return response
+    } catch (error) {
+      previewError.value = getErrorMessage(error)
+      throw error
+    } finally {
+      saveLoading.value = false
+    }
+  }
+
   function setActiveTool(tool: ToolType | null) {
     if (tool === null) {
       activeTool.value = null
@@ -397,6 +416,7 @@ export const useEditorStore = defineStore('editor', () => {
     applyEdit,
     undoEdit,
     redoEdit,
+    saveVersion,
     fetchOperations,
     clearPreview,
     setActiveTool,

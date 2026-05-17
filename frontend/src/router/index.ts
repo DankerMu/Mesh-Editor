@@ -37,6 +37,12 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/EditorView.vue'),
     meta: { roles: ['admin', 'reviewer', 'forecaster'] },
   },
+  {
+    path: '/approval',
+    name: 'approval',
+    component: () => import('@/views/ApprovalView.vue'),
+    meta: { requiresAuth: true },
+  },
 ]
 
 export function createAppRouter() {
