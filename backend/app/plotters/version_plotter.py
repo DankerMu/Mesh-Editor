@@ -1,14 +1,18 @@
 import io
 
-import matplotlib
-
-matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.figure import Figure
 from numpy.typing import NDArray
 
 DEFAULT_EXTENT = (70.0, 111.0, 25.0, 50.0)
+
+
+def _render_png(fig: Figure) -> bytes:
+    canvas = FigureCanvasAgg(fig)
+    buf = io.BytesIO()
+    canvas.print_png(buf)
+    return buf.getvalue()
 
 
 def plot_precip_product(
@@ -17,10 +21,11 @@ def plot_precip_product(
     extent: tuple[float, float, float, float] = DEFAULT_EXTENT,
 ) -> bytes:
     """Plot precipitation product and return PNG bytes."""
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig = Figure(figsize=(10, 8))
+    ax = fig.subplots()
     im = ax.imshow(
         qpf,
-        origin="lower",
+        origin="upper",
         extent=extent,
         aspect="auto",
         cmap="YlGnBu",
@@ -30,7 +35,7 @@ def plot_precip_product(
     ptype_overlay = np.ma.masked_where(ptype == 0, ptype)
     ax.imshow(
         ptype_overlay,
-        origin="lower",
+        origin="upper",
         extent=extent,
         aspect="auto",
         cmap="Set1",
@@ -38,14 +43,11 @@ def plot_precip_product(
         vmax=3,
         alpha=0.18,
     )
-    plt.colorbar(im, ax=ax, label="QPF (mm)")
+    fig.colorbar(im, ax=ax, label="QPF (mm)")
     ax.set_title("降水产品")
     ax.set_xlabel("经度")
     ax.set_ylabel("纬度")
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
-    plt.close(fig)
-    return buf.getvalue()
+    return _render_png(fig)
 
 
 def plot_delta_qpf(
@@ -53,25 +55,23 @@ def plot_delta_qpf(
     extent: tuple[float, float, float, float] = DEFAULT_EXTENT,
 ) -> bytes:
     """Plot delta QPF with a diverging colormap and return PNG bytes."""
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig = Figure(figsize=(10, 8))
+    ax = fig.subplots()
     vmax = max(float(np.abs(delta).max()), 1.0)
     im = ax.imshow(
         delta,
-        origin="lower",
+        origin="upper",
         extent=extent,
         aspect="auto",
         cmap="RdBu_r",
         vmin=-vmax,
         vmax=vmax,
     )
-    plt.colorbar(im, ax=ax, label="ΔQPF (mm)")
+    fig.colorbar(im, ax=ax, label="ΔQPF (mm)")
     ax.set_title("降水变化量")
     ax.set_xlabel("经度")
     ax.set_ylabel("纬度")
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
-    plt.close(fig)
-    return buf.getvalue()
+    return _render_png(fig)
 
 
 def plot_change_ptype(
@@ -79,24 +79,22 @@ def plot_change_ptype(
     extent: tuple[float, float, float, float] = DEFAULT_EXTENT,
 ) -> bytes:
     """Plot precipitation type changes and return PNG bytes."""
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig = Figure(figsize=(10, 8))
+    ax = fig.subplots()
     im = ax.imshow(
         change,
-        origin="lower",
+        origin="upper",
         extent=extent,
         aspect="auto",
         cmap="coolwarm",
         vmin=-3,
         vmax=3,
     )
-    plt.colorbar(im, ax=ax, label="相态变化")
+    fig.colorbar(im, ax=ax, label="相态变化")
     ax.set_title("相态变化")
     ax.set_xlabel("经度")
     ax.set_ylabel("纬度")
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
-    plt.close(fig)
-    return buf.getvalue()
+    return _render_png(fig)
 
 
 def plot_mask(
@@ -105,10 +103,11 @@ def plot_mask(
     title: str = "掩膜",
 ) -> bytes:
     """Plot binary mask and return PNG bytes."""
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig = Figure(figsize=(10, 8))
+    ax = fig.subplots()
     ax.imshow(
         mask,
-        origin="lower",
+        origin="upper",
         extent=extent,
         aspect="auto",
         cmap="Greys",
@@ -118,7 +117,4 @@ def plot_mask(
     ax.set_title(title)
     ax.set_xlabel("经度")
     ax.set_ylabel("纬度")
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=100, bbox_inches="tight")
-    plt.close(fig)
-    return buf.getvalue()
+    return _render_png(fig)
