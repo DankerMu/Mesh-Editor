@@ -35,7 +35,7 @@ openspec/changes/    ← m0-engineering-skeleton (archived), m1-data-ingestion-w
 
 ## 当前阶段
 
-**阶段：M3 #36 后端基础设施完成，编辑引擎与操作留痕启动**
+**阶段：M3 #37 后端编辑引擎核心完成，等待 Edit API 与前端集成**
 
 ### M0 完成总结（2026-05-16）
 
@@ -56,7 +56,8 @@ M0 工程骨架全部完成：后端 FastAPI + SQLAlchemy + Alembic + JWT 认证
 - [x] M1 #16: API 层
 - [x] M1 #17: 前端窗口选择器
 - [x] M3 #36: shapely 依赖、edit_operation 迁移/模型/Repository
-- [ ] M3 后续：MaskBuilder、EditOps、统计、Preview 缓存、Undo/Redo、Edit API、前端集成
+- [x] M3 #37: MaskBuilder、EditOps、统计、Preview 缓存、Replay
+- [ ] M3 后续：Edit API、前端集成
 
 ### 后续里程碑
 
@@ -74,6 +75,7 @@ M0 工程骨架全部完成：后端 FastAPI + SQLAlchemy + Alembic + JWT 认证
 
 | 日期 | 变更 |
 |---|---|
+| 2026-05-17 | **M3 #37 完成**：新增 edit_engine 纯函数模块（MaskBuilder/EditOps/Stats/PreviewCache/Replay）与 48 个专项测试，后端 181 tests + ruff + mypy 全绿 |
 | 2026-05-17 | **PR #41 Round 1 修复**：edit_operation 增加 session+sequence 唯一索引与 is_undone CHECK 约束，模型/迁移/测试对齐，后端 133 tests + ruff 全绿 |
 | 2026-05-17 | **M3 #36 完成**：新增 shapely 依赖、v006 edit_operation 迁移、EditOperation 模型与 Repository，后端 132 tests + ruff 全绿 |
 | 2026-05-17 | **M1 #17 完成**：新增前端 data API、windowStore、扫描进度/窗口选择/QC 组件及 12 个前端测试，frontend build + 28 tests 全绿 |
