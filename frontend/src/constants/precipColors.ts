@@ -29,5 +29,31 @@ export const PTYPE_COLORS: Record<number, [number, number, number, number]> = {
   3: [255, 165, 0, 180], // 雨夹雪 - 橙
 }
 
+export const PHASE_QPF_THRESHOLDS = [0.1, 1, 5, 10, 25, 50, 100, 250] as const
+
+export const RAIN_PHASE_COLORS: readonly [number, number, number, number][] = [
+  [166, 242, 143, 200],
+  [61, 186, 61, 200],
+  [97, 184, 255, 200],
+  [0, 0, 225, 200],
+  [255, 0, 255, 200],
+  [128, 0, 64, 200],
+  [255, 128, 0, 200],
+  [255, 0, 0, 200],
+]
+
+export const SNOW_PHASE_COLORS: readonly [number, number, number, number][] = [
+  [240, 240, 240, 200],
+  [220, 220, 220, 200],
+  [190, 190, 190, 200],
+  [160, 160, 160, 200],
+  [130, 130, 130, 200],
+  [100, 100, 100, 200],
+  [70, 70, 70, 200],
+  [40, 40, 40, 200],
+]
+
+export const MIXED_PHASE_COLOR: [number, number, number, number] = [251, 201, 252, 255]
+
 export const GRID_ROWS = 501
 export const GRID_COLS = 821
