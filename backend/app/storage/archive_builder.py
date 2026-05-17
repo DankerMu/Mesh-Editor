@@ -25,7 +25,7 @@ def atomic_write_npz(path: Path, **arrays: np.ndarray) -> None:
             delete=False,
         ) as tmp_file:
             tmp_path = Path(tmp_file.name)
-            np.savez(tmp_file, **arrays)
+            np.savez(tmp_file, **arrays)  # type: ignore[arg-type]
             tmp_file.flush()
             os.fsync(tmp_file.fileno())
         os.replace(tmp_path, target)
