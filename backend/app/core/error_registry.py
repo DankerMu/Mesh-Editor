@@ -39,6 +39,7 @@ ERROR_INFO: dict[str, ErrorInfo] = {
     "SCAN_NOT_FOUND": ErrorInfo("扫描记录未找到", 404),
     "SESSION_NOT_FOUND": ErrorInfo("会话未找到", 404),
     "SESSION_NOT_EDITING": ErrorInfo("session 不是 editing", 409),
+    "SESSION_STATUS_INVALID": ErrorInfo("session 状态不允许该操作", 409),
     "SESSION_EXPIRED": ErrorInfo("session 过期", 410),
     "PREVIEW_NOT_FOUND": ErrorInfo("预览未找到", 404),
     "PREVIEW_EXPIRED": ErrorInfo("preview 过期或被覆盖", 409),
