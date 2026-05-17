@@ -57,7 +57,7 @@ describe('WindowSelector', () => {
     await buttons[0].trigger('click')
 
     expect(store.selectedWindowId).toBe('ACC24_024_048')
-    expect(buttons[1].attributes('disabled')).toBeDefined()
+    expect(buttons[1].attributes('aria-disabled')).toBe('true')
     expect(wrapper.html()).toContain('数据异常，不可编辑')
   })
 })

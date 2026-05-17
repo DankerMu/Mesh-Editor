@@ -67,7 +67,7 @@ function selectWindow(window: WindowItem) {
               class="window-selector__item"
               :class="{ 'window-selector__item--selected': windowStore.selectedWindowId === window.window_id }"
               type="button"
-              :disabled="!canSelect(window)"
+              :aria-disabled="!canSelect(window)"
               @click="selectWindow(window)"
             >
               <span class="window-selector__range">
