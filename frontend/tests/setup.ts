@@ -6,7 +6,8 @@ config.global.stubs = {
     template: '<div><slot />{{ message }}</div>',
   },
   't-button': {
-    template: '<button><slot /></button>',
+    props: ['disabled', 'type'],
+    template: '<button :type="type || \'button\'" :disabled="disabled"><slot /></button>',
   },
   't-form': {
     template: '<form @submit.prevent="$emit(\'submit\', { validateResult: true })"><slot /></form>',
@@ -16,12 +17,39 @@ config.global.stubs = {
     template: '<label>{{ label }}<slot /></label>',
   },
   't-input': {
-    template: '<input />',
+    props: ['modelValue', 'maxlength', 'placeholder'],
+    emits: ['update:modelValue', 'blur'],
+    template:
+      '<input :value="modelValue" :maxlength="maxlength" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)" @blur="$emit(\'blur\')" />',
   },
   't-menu': {
     template: '<nav><slot /></nav>',
   },
   't-menu-item': {
     template: '<span><slot /></span>',
+  },
+  't-loading': {
+    template: '<span data-test="loading"></span>',
+  },
+  't-progress': {
+    props: ['percentage', 'status'],
+    template: '<div data-test="progress">{{ percentage }}</div>',
+  },
+  't-tabs': {
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+    template: '<div data-test="tabs"><slot /></div>',
+  },
+  't-tab-panel': {
+    props: ['value', 'label'],
+    template: '<section :data-tab="value"><slot /></section>',
+  },
+  't-tag': {
+    props: ['theme', 'variant'],
+    template: '<span :data-theme="theme"><slot /></span>',
+  },
+  't-tooltip': {
+    props: ['content', 'disabled'],
+    template: '<span :title="disabled ? undefined : content"><slot /></span>',
   },
 }
