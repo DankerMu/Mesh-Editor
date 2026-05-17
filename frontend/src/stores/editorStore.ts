@@ -160,6 +160,11 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   function setActiveTool(tool: ToolType | null) {
+    if (tool === null) {
+      activeTool.value = null
+      return
+    }
+
     if (sessionId.value === null) {
       return
     }
