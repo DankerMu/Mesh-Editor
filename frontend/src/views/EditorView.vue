@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import type { default as Map } from 'ol/Map'
+import Map from 'ol/Map'
 import BaseMap from '@/components/map/BaseMap.vue'
 import DrawTools from '@/components/map/DrawTools.vue'
 import GridTooltip from '@/components/map/GridTooltip.vue'
@@ -24,7 +24,7 @@ const leftCollapsed = ref(false)
 const rightCollapsed = ref(false)
 const activeRightTab = ref('mask')
 const hoverPayload = ref<GridHoverPayload | null>(null)
-const mapInstance = ref<Map | null>(null)
+const mapInstance = shallowRef<Map | null>(null)
 
 let precipLayer: PrecipPhaseGridLayer | null = null
 let invalidMaskLayer: MaskOverlayLayer | null = null
