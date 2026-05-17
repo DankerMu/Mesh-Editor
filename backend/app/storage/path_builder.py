@@ -47,11 +47,17 @@ class PathBuilder:
     def version_root(self, window_id: str, version_id: str) -> Path:
         return self.window_root(window_id) / "versions" / _safe_segment(version_id)
 
+    def version_images_dir(self, window_id: str, version_id: str) -> Path:
+        return self.version_root(window_id, version_id) / "images"
+
     def review_root(self, window_id: str, review_id: str) -> Path:
         return self.window_root(window_id) / "reviews" / _safe_segment(review_id)
 
     def release_root(self, window_id: str, version_id: str) -> Path:
         return self.window_root(window_id) / "releases" / _safe_segment(version_id)
+
+    def release_temp_dir(self, window_id: str, version_id: str) -> Path:
+        return self.base_dir / "tmp" / f"release_{_safe_segment(version_id)}"
 
     def data_source_dir(self, case_id: str) -> Path:
         return self.data_source_root / _safe_segment(case_id)
