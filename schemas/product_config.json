@@ -6,6 +6,7 @@
   "init_time_zone": "UTC",
   "qpf_change_epsilon": 0.001,
   "ptype_qpf_threshold_mm": 0.1,
+  "preview_ttl_minutes": 10,
   "allow_zero_start_lead_fallback": true,
   "allow_partial_window_edit": true,
   "accum_products": {

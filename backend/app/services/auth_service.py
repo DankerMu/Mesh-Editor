@@ -1,7 +1,7 @@
 import json
 from typing import Any
 
-from passlib.context import CryptContext
+from passlib.context import CryptContext  # type: ignore[import-untyped]
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import DomainError
