@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class VersionSaveRequest(BaseModel):
@@ -28,6 +28,12 @@ class VersionReviewRequest(BaseModel):
     action: Literal["approve", "reject"]
     comment: str | None = None
 
+    @model_validator(mode="after")
+    def validate_reject_requires_comment(self) -> Self:
+        if self.action == "reject" and not self.comment:
+            raise ValueError("审核退回时必须填写意见")
+        return self
+
 
 class VersionReleaseRequest(BaseModel):
     version_id: str
@@ -39,7 +45,9 @@ class VersionListItem(BaseModel):
     version_id: str
     window_id: str
     version_no: int
+    base_version_id: str | None = None
     status: str
+    has_images: bool = False
     created_by: str | None = None
     created_at: datetime
 

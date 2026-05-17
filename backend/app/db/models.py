@@ -117,7 +117,7 @@ class EditSession(Base):
         String(32), ForeignKey("product_window.window_id"), nullable=False
     )
     user_id = Column(Integer, ForeignKey("app_user.id"), nullable=False)
-    base_version_id = Column(String(36), nullable=True)
+    base_version_id = Column(String(64), nullable=True)
     status = Column(String(20), nullable=False, server_default="editing")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -151,7 +151,10 @@ class EditOperation(Base):
 
 class EditVersion(Base):
     __tablename__ = "edit_version"
-    __table_args__ = (Index("idx_edit_version_window", "window_id", "status"),)
+    __table_args__ = (
+        Index("idx_edit_version_window", "window_id", "status"),
+        Index("ux_edit_version_window_no", "window_id", "version_no", unique=True),
+    )
 
     version_id = Column(String(64), primary_key=True)
     window_id = Column(
@@ -181,9 +184,12 @@ class EditVersion(Base):
 
 class ReviewApproval(Base):
     __tablename__ = "review_approval"
+    __table_args__ = (
+        Index("idx_review_approval_version", "version_id", "reviewed_at"),
+    )
 
     approval_id = Column(String(36), primary_key=True)
-    version_id = Column(String(64), nullable=False)
+    version_id = Column(String(64), ForeignKey("edit_version.version_id"), nullable=False)
     reviewer_id = Column(String(64), nullable=False)
     action = Column(String(20), nullable=False)
     comment = Column(Text, nullable=True)
@@ -193,12 +199,17 @@ class ReviewApproval(Base):
 class ReleaseProduct(Base):
     __tablename__ = "release_product"
     __table_args__ = (
-        Index("idx_release_product_window", "window_id", "release_status"),
+        Index(
+            "ux_release_active_window",
+            "window_id",
+            unique=True,
+            sqlite_where=Column("release_status") == "active",
+        ),
     )
 
     release_id = Column(String(36), primary_key=True)
-    version_id = Column(String(64), nullable=False)
-    window_id = Column(String(32), nullable=False)
+    version_id = Column(String(64), ForeignKey("edit_version.version_id"), nullable=False)
+    window_id = Column(String(32), ForeignKey("product_window.window_id"), nullable=False)
     release_status = Column(String(20), nullable=False, server_default="active")
     product_path = Column(String(512), nullable=True)
     manifest_path = Column(String(512), nullable=True)

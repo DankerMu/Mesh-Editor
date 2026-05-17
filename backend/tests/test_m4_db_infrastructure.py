@@ -9,6 +9,7 @@ import sqlalchemy as sa
 from alembic import command
 from alembic.config import Config
 from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -99,6 +100,7 @@ async def _seed_parent_rows(db: AsyncSession) -> None:
             session_id=SESSION_ID,
             window_id=WINDOW_ID,
             user_id=1,
+            base_version_id=f"{WINDOW_ID}_v000",
             status="editing",
         )
     )
@@ -265,17 +267,51 @@ def test_m4_migration_creates_tables_with_correct_schema(tmp_path: Path) -> None
     edit_indexes = {
         index["name"]: index for index in inspector.get_indexes("edit_version")
     }
+    review_indexes = {
+        index["name"]: index for index in inspector.get_indexes("review_approval")
+    }
     release_indexes = {
         index["name"]: index for index in inspector.get_indexes("release_product")
+    }
+    edit_session_columns = {
+        column["name"]: column for column in inspector.get_columns("edit_session")
     }
     assert edit_indexes["idx_edit_version_window"]["column_names"] == [
         "window_id",
         "status",
     ]
-    assert release_indexes["idx_release_product_window"]["column_names"] == [
+    assert edit_indexes["ux_edit_version_window_no"]["column_names"] == [
         "window_id",
-        "release_status",
+        "version_no",
     ]
+    assert edit_indexes["ux_edit_version_window_no"]["unique"] == 1
+    assert review_indexes["idx_review_approval_version"]["column_names"] == [
+        "version_id",
+        "reviewed_at",
+    ]
+    assert release_indexes["ux_release_active_window"]["column_names"] == [
+        "window_id",
+    ]
+    assert release_indexes["ux_release_active_window"]["unique"] == 1
+    assert edit_session_columns["base_version_id"]["type"].length == 64
+
+    review_fks = inspector.get_foreign_keys("review_approval")
+    release_fks = inspector.get_foreign_keys("release_product")
+    assert any(
+        fk["constrained_columns"] == ["version_id"]
+        and fk["referred_table"] == "edit_version"
+        for fk in review_fks
+    )
+    assert any(
+        fk["constrained_columns"] == ["version_id"]
+        and fk["referred_table"] == "edit_version"
+        for fk in release_fks
+    )
+    assert any(
+        fk["constrained_columns"] == ["window_id"]
+        and fk["referred_table"] == "product_window"
+        for fk in release_fks
+    )
 
     engine.dispose()
 
@@ -395,9 +431,26 @@ async def test_edit_version_repo_latest_update_and_max(
     assert await edit_version_repo.get_max_version_no(db_session, WINDOW_ID) == 4
 
 
+async def test_edit_version_rejects_duplicate_version_no_per_window(
+    db_session: AsyncSession,
+) -> None:
+    await edit_version_repo.create(db_session, **_version_kwargs(version_no=1))
+
+    with pytest.raises(IntegrityError):
+        await edit_version_repo.create(
+            db_session,
+            **_version_kwargs(
+                version_no=1,
+                version_id=f"{WINDOW_ID}_duplicate_v001",
+            ),
+        )
+
+
 async def test_review_approval_repo_create_and_list(
     db_session: AsyncSession,
 ) -> None:
+    await edit_version_repo.create(db_session, **_version_kwargs())
+
     first = await review_approval_repo.create(db_session, **_approval_kwargs(index=1))
     second = await review_approval_repo.create(
         db_session,
@@ -429,6 +482,8 @@ async def test_review_approval_repo_create_and_list(
 async def test_release_product_repo_create_get_active_and_update(
     db_session: AsyncSession,
 ) -> None:
+    await edit_version_repo.create(db_session, **_version_kwargs())
+
     release = await release_product_repo.create(db_session, **_release_kwargs(index=1))
 
     assert release.release_id == "release-1"
@@ -463,6 +518,23 @@ async def test_release_product_repo_create_get_active_and_update(
     assert await release_product_repo.get_active_by_window(db_session, WINDOW_ID) is None
 
 
+async def test_release_product_allows_only_one_active_release_per_window(
+    db_session: AsyncSession,
+) -> None:
+    await edit_version_repo.create(db_session, **_version_kwargs(version_no=1))
+    await edit_version_repo.create(db_session, **_version_kwargs(version_no=2))
+    await release_product_repo.create(db_session, **_release_kwargs(index=1))
+
+    with pytest.raises(IntegrityError):
+        await release_product_repo.create(
+            db_session,
+            **_release_kwargs(
+                index=2,
+                version_id=f"{WINDOW_ID}_v002",
+            ),
+        )
+
+
 def test_version_schema_validation_required_fields() -> None:
     with pytest.raises(ValidationError):
         VersionSaveRequest.model_validate({})
@@ -479,14 +551,30 @@ def test_version_schema_validation_required_fields() -> None:
         VersionReleaseRequest.model_validate({})
 
 
+def test_version_review_request_reject_requires_comment() -> None:
+    with pytest.raises(ValidationError):
+        VersionReviewRequest(version_id="x", action="reject", comment=None)
+    with pytest.raises(ValidationError):
+        VersionReviewRequest(version_id="x", action="reject", comment="")
+
+    reject = VersionReviewRequest(version_id="x", action="reject", comment="需修订")
+    assert reject.comment == "需修订"
+
+    approve = VersionReviewRequest(version_id="x", action="approve", comment=None)
+    assert approve.comment is None
+
+
 async def test_version_schema_from_attributes(db_session: AsyncSession) -> None:
     version = await edit_version_repo.create(db_session, **_version_kwargs())
+    version.has_images = True
 
     list_item = VersionListItem.model_validate(version)
     assert list_item.version_id == f"{WINDOW_ID}_v001"
     assert list_item.window_id == WINDOW_ID
     assert list_item.version_no == 1
+    assert list_item.base_version_id == f"{WINDOW_ID}_v000"
     assert list_item.status == "draft"
+    assert list_item.has_images is True
     assert list_item.created_by == "forecaster"
 
     detail = VersionDetail.model_validate(version)

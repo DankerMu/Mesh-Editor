@@ -55,6 +55,12 @@ def upgrade() -> None:
         ["window_id", "status"],
         unique=False,
     )
+    op.create_index(
+        "ux_edit_version_window_no",
+        "edit_version",
+        ["window_id", "version_no"],
+        unique=True,
+    )
 
     op.create_table(
         "review_approval",
@@ -64,6 +70,13 @@ def upgrade() -> None:
         sa.Column("action", sa.String(length=20), nullable=False),
         sa.Column("comment", sa.Text(), nullable=True),
         sa.Column("reviewed_at", sa.DateTime(), nullable=False),
+        sa.ForeignKeyConstraint(["version_id"], ["edit_version.version_id"]),
+    )
+    op.create_index(
+        "idx_review_approval_version",
+        "review_approval",
+        ["version_id", "reviewed_at"],
+        unique=False,
     )
 
     op.create_table(
@@ -82,18 +95,29 @@ def upgrade() -> None:
         sa.Column("released_by", sa.String(length=64), nullable=False),
         sa.Column("released_at", sa.DateTime(), nullable=False),
         sa.Column("superseded_at", sa.DateTime(), nullable=True),
+        sa.ForeignKeyConstraint(["version_id"], ["edit_version.version_id"]),
+        sa.ForeignKeyConstraint(["window_id"], ["product_window.window_id"]),
     )
     op.create_index(
-        "idx_release_product_window",
+        "ux_release_active_window",
         "release_product",
-        ["window_id", "release_status"],
-        unique=False,
+        ["window_id"],
+        unique=True,
+        sqlite_where=sa.text("release_status = 'active'"),
     )
+
+    with op.batch_alter_table("edit_session") as batch_op:
+        batch_op.alter_column("base_version_id", type_=sa.String(length=64))
 
 
 def downgrade() -> None:
-    op.drop_index("idx_release_product_window", table_name="release_product")
+    with op.batch_alter_table("edit_session") as batch_op:
+        batch_op.alter_column("base_version_id", type_=sa.String(length=36))
+
+    op.drop_index("ux_release_active_window", table_name="release_product")
     op.drop_table("release_product")
+    op.drop_index("idx_review_approval_version", table_name="review_approval")
     op.drop_table("review_approval")
+    op.drop_index("ux_edit_version_window_no", table_name="edit_version")
     op.drop_index("idx_edit_version_window", table_name="edit_version")
     op.drop_table("edit_version")
