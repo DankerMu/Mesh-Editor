@@ -55,6 +55,8 @@ ERROR_INFO: dict[str, ErrorInfo] = {
     "NEW_PRECIP_NEEDS_PTYPE": ErrorInfo(
         "新增降水落区未指定 target_ptype（见 docs/14 §14.8.1）", 422
     ),
+    "NOTHING_TO_UNDO": ErrorInfo("没有可撤销的编辑操作", 409),
+    "NOTHING_TO_REDO": ErrorInfo("没有可重做的编辑操作", 409),
     "FIELD_NOT_AVAILABLE": ErrorInfo(
         "请求的字段数据不可用（preview 过期或尚未生成）", 404
     ),

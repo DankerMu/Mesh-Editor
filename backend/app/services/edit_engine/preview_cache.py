@@ -29,6 +29,8 @@ def create_preview(
     new_precip_needs_ptype: bool,
     new_precip_count: int,
     preview_dir: str | Path,
+    request_snapshot: dict[str, object] | None = None,
+    new_precip_mask: npt.NDArray[np.bool_] | None = None,
 ) -> str:
     with _lock:
         for metadata in _previews.values():
@@ -44,6 +46,11 @@ def create_preview(
             qpf_after=qpf_after,
             ptype_after=ptype_after,
             operation_mask=operation_mask,
+            new_precip_mask=(
+                np.zeros(operation_mask.shape, dtype=bool)
+                if new_precip_mask is None
+                else new_precip_mask
+            ),
         )
         _previews[preview_id] = {
             "session_id": session_id,
@@ -54,6 +61,7 @@ def create_preview(
             "warnings": warnings,
             "new_precip_needs_ptype": new_precip_needs_ptype,
             "new_precip_count": new_precip_count,
+            "request_snapshot": request_snapshot or {},
         }
     return preview_id
 
@@ -83,6 +91,11 @@ def load_preview(
                 "qpf_after": data["qpf_after"].copy(),
                 "ptype_after": data["ptype_after"].copy(),
                 "operation_mask": data["operation_mask"].copy(),
+                "new_precip_mask": (
+                    data["new_precip_mask"].copy()
+                    if "new_precip_mask" in data
+                    else np.zeros(data["operation_mask"].shape, dtype=bool)
+                ),
             }
         return {**metadata, **arrays, "preview_id": preview_id}
 

@@ -11,6 +11,7 @@ from app.api.dependencies import get_current_user
 from app.api.routes.auth import protected_router as auth_router
 from app.api.routes.auth import public_router as auth_public_router
 from app.api.routes.data_scan import router as data_scan_router
+from app.api.routes.edit import router as edit_router
 from app.api.routes.health import router as health_router
 from app.api.routes.session import router as session_router
 from app.api.routes.session import window_router as session_window_router
@@ -108,6 +109,7 @@ public_api_router.include_router(health_router)
 public_api_router.include_router(auth_public_router)
 api_router.include_router(auth_router)
 api_router.include_router(data_scan_router)
+api_router.include_router(edit_router)
 api_router.include_router(session_router)
 api_router.include_router(session_window_router)
 api_router.include_router(windows_router)
