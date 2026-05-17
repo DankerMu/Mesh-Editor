@@ -7,6 +7,7 @@ import DrawTools from '@/components/map/DrawTools.vue'
 import GridTooltip from '@/components/map/GridTooltip.vue'
 import { MaskOverlayLayer } from '@/components/map/MaskOverlayLayer'
 import { PrecipPhaseGridLayer, getGridDataValue } from '@/components/map/PrecipPhaseGridLayer'
+import { SelectionOverlay } from '@/components/map/SelectionOverlay'
 import { GRID_COLS } from '@/constants/precipColors'
 import WindowSelector from '@/components/WindowSelector.vue'
 import { useEditorStore } from '@/stores/editorStore'
@@ -26,15 +27,17 @@ const hoverPayload = ref<GridHoverPayload | null>(null)
 const mapInstance = ref<Map | null>(null)
 
 let precipLayer: PrecipPhaseGridLayer | null = null
-let maskLayer: MaskOverlayLayer | null = null
+let invalidMaskLayer: MaskOverlayLayer | null = null
+let viewMaskLayer: MaskOverlayLayer | null = null
+let selectionOverlay: SelectionOverlay | null = null
 
 const viewModes: Array<{ value: ViewMode; label: string; hint?: string }> = [
   { value: 'before', label: '订正前' },
   { value: 'after', label: '订正后' },
   { value: 'delta', label: '差值', hint: '无差异' },
   { value: 'change', label: '相态变化', hint: '无变化' },
-  { value: 'touched', label: '已触达', hint: '无变化' },
-  { value: 'changed', label: '已改变', hint: '无变化' },
+  { value: 'touched', label: '已触达' },
+  { value: 'changed', label: '已改变' },
   { value: 'review', label: '审核视图' },
 ]
 
@@ -137,12 +140,17 @@ function setViewMode(viewMode: ViewMode): void {
 }
 
 function onMapReady(map: Map): void {
+  disposeLayers()
   mapInstance.value = map
   precipLayer = new PrecipPhaseGridLayer()
-  maskLayer = new MaskOverlayLayer()
+  invalidMaskLayer = new MaskOverlayLayer()
+  viewMaskLayer = new MaskOverlayLayer([22, 93, 255, 130])
+  selectionOverlay = new SelectionOverlay(map)
   map.addLayer(precipLayer.getLayer())
-  map.addLayer(maskLayer.getLayer())
-  syncMapLayers()
+  map.addLayer(invalidMaskLayer.getLayer())
+  map.addLayer(viewMaskLayer.getLayer())
+  syncMapLayers(editorStore.selectedViewMode)
+  syncSelectionOverlay()
 }
 
 function onGridHover(payload: GridHoverPayload | null): void {
@@ -173,22 +181,69 @@ function onGridHover(payload: GridHoverPayload | null): void {
   }
 }
 
-function syncMapLayers(): void {
-  if (!precipLayer || !maskLayer) {
+function updatePrecipData(qpf: Float32Array | null, ptype: Uint8Array | null): void {
+  if (!precipLayer) {
     return
   }
 
-  const useBefore = editorStore.selectedViewMode === 'before'
-  const qpf = useBefore ? editorStore.qpfBefore : editorStore.qpfAfter
-  const ptype = useBefore ? editorStore.ptypeBefore : editorStore.ptypeAfter
-
   if (qpf && ptype) {
     precipLayer.updateData(qpf, ptype)
+    return
   }
 
-  if (editorStore.invalidMask) {
-    maskLayer.updateData(editorStore.invalidMask)
+  precipLayer.clearData()
+}
+
+function updateMaskLayer(layer: MaskOverlayLayer | null, mask: Uint8Array | null): void {
+  if (!layer) {
+    return
   }
+
+  if (mask) {
+    layer.updateData(mask)
+    return
+  }
+
+  layer.clearData()
+}
+
+function syncMapLayers(mode: ViewMode = editorStore.selectedViewMode): void {
+  if (!precipLayer || !invalidMaskLayer || !viewMaskLayer) {
+    return
+  }
+
+  updateMaskLayer(invalidMaskLayer, editorStore.invalidMask)
+  viewMaskLayer.clearData()
+
+  if (mode === 'before') {
+    updatePrecipData(editorStore.qpfBefore, editorStore.ptypeBefore)
+    return
+  }
+
+  if (mode === 'after') {
+    updatePrecipData(editorStore.qpfAfter, editorStore.ptypeAfter)
+    return
+  }
+
+  if (mode === 'review') {
+    updatePrecipData(editorStore.qpfAfter, editorStore.ptypeAfter)
+    updateMaskLayer(viewMaskLayer, editorStore.touchedMask)
+    return
+  }
+
+  precipLayer.clearData()
+
+  if (mode === 'touched') {
+    updateMaskLayer(viewMaskLayer, editorStore.touchedMask)
+  }
+
+  if (mode === 'changed') {
+    updateMaskLayer(viewMaskLayer, editorStore.changedMask)
+  }
+}
+
+function syncSelectionOverlay(): void {
+  selectionOverlay?.updateGeometry(editorStore.currentMaskGeometry)
 }
 
 function disposeLayers(): void {
@@ -197,15 +252,24 @@ function disposeLayers(): void {
       mapInstance.value.removeLayer(precipLayer.getLayer())
     }
 
-    if (maskLayer) {
-      mapInstance.value.removeLayer(maskLayer.getLayer())
+    if (invalidMaskLayer) {
+      mapInstance.value.removeLayer(invalidMaskLayer.getLayer())
+    }
+
+    if (viewMaskLayer) {
+      mapInstance.value.removeLayer(viewMaskLayer.getLayer())
     }
   }
 
+  selectionOverlay?.dispose()
   precipLayer?.dispose()
-  maskLayer?.dispose()
+  invalidMaskLayer?.dispose()
+  viewMaskLayer?.dispose()
+  selectionOverlay = null
   precipLayer = null
-  maskLayer = null
+  invalidMaskLayer = null
+  viewMaskLayer = null
+  mapInstance.value = null
 }
 
 watch(
@@ -237,8 +301,15 @@ watch(
     editorStore.qpfAfter,
     editorStore.ptypeAfter,
     editorStore.invalidMask,
+    editorStore.touchedMask,
+    editorStore.changedMask,
   ],
-  syncMapLayers,
+  () => syncMapLayers(editorStore.selectedViewMode),
+)
+
+watch(
+  () => editorStore.currentMaskGeometry,
+  syncSelectionOverlay,
 )
 
 onBeforeUnmount(disposeLayers)
@@ -559,8 +630,9 @@ onBeforeUnmount(disposeLayers)
 }
 
 .editor-view__mode-hint {
-  top: 16px;
-  right: 16px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   border: 1px solid #d9e1ec;
   border-radius: 4px;
   background: #ffffff;
