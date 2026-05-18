@@ -56,7 +56,7 @@ describe('views', () => {
     await wrapper.find('form').trigger('submit')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('登录失败，请检查用户名和密码')
+    expect(wrapper.text()).toContain('用户名或密码错误')
     expect(wrapper.text()).not.toContain('用户 admin 不存在或密码错误')
   })
 

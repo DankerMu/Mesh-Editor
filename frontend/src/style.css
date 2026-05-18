@@ -340,7 +340,6 @@ button {
   background: var(--page-bg);
 }
 
-.login-panel,
 .state-panel {
   width: min(100%, 420px);
   border: 1px solid var(--color-border);
@@ -350,7 +349,6 @@ button {
   padding: 28px;
 }
 
-.login-title,
 .state-title {
   margin: 0 0 8px;
   font-size: var(--font-size-title);
@@ -358,7 +356,6 @@ button {
   font-weight: 600;
 }
 
-.login-subtitle,
 .state-desc {
   margin: 0 0 24px;
   color: var(--text-secondary);
