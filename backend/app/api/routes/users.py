@@ -181,16 +181,15 @@ async def update_user(
     changes = payload.model_dump(exclude_unset=True)
     if changes:
         user = await user_repo.update(db, user, **changes)
-
-    operation = "disable" if changes.get("is_active") is False else "update"
-    await _write_user_audit(
-        db,
-        actor=current_user,
-        target_user=user,
-        operation=operation,
-        changes=changes,
-        request=request,
-    )
+        operation = "disable" if changes.get("is_active") is False else "update"
+        await _write_user_audit(
+            db,
+            actor=current_user,
+            target_user=user,
+            operation=operation,
+            changes=changes,
+            request=request,
+        )
     await db.commit()
     await db.refresh(user)
     return ApiResponse(

@@ -73,6 +73,8 @@ class AuthService:
                 code="USER_DISABLED", message="用户已被禁用", http_status=403
             )
 
+        user.last_login_at = datetime.now(UTC)
+        db.add(user)
         await self._write_login_audit(
             db,
             username=username,
@@ -82,10 +84,6 @@ class AuthService:
             result="success",
             ip_address=ip_address,
         )
-        user.last_login_at = datetime.now(UTC)
-        db.add(user)
-        await db.flush()
-        await db.commit()
         token, expires_at = create_access_token(
             user_id=int(user.id),
             username=str(user.username),
