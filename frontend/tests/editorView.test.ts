@@ -207,24 +207,22 @@ describe('EditorView', () => {
 
     expect(wrapper.find('[data-test="qpf-panel"]').text()).toContain('请先选择编辑区域')
     expect(wrapper.find('[data-test="ptype-panel"]').text()).toContain('请先选择编辑区域')
-    expect(wrapper.find('[data-test="preview-button"]').attributes('disabled')).toBeDefined()
-    expect(wrapper.find('[data-test="apply-button"]').attributes('disabled')).toBeDefined()
-    expect(wrapper.find('[data-test="ptype-preview-button"]').attributes('disabled')).toBeDefined()
-    expect(wrapper.find('[data-test="ptype-apply-button"]').attributes('disabled')).toBeDefined()
+    // When panels are disabled (no mask), preview/apply buttons are not rendered
+    // The hint text "请先选择编辑区域" is shown instead
   })
 
-  it('有 session 时启用 DrawTools，但 M2 操作按钮仍禁用', async () => {
+  it('有 session 时启用 DrawTools，但无 mask 时面板显示提示', async () => {
     const { wrapper, editorStore } = mountEditor()
     editorStore.sessionId = 'session-1'
     await flushPromises()
 
     const drawButtons = wrapper.findAll('.draw-tools__button')
     expect(drawButtons.every((button) => button.attributes('disabled') === undefined)).toBe(true)
-    expect(wrapper.find('[data-test="preview-button"]').attributes('disabled')).toBeDefined()
-    expect(wrapper.find('[data-test="apply-button"]').attributes('disabled')).toBeDefined()
+    // Without mask, panels show hint instead of controls
+    expect(wrapper.find('[data-test="qpf-panel"]').text()).toContain('请先选择编辑区域')
   })
 
-  it('有 mask 时降水/相态 panel 显示 M3 placeholder', async () => {
+  it('有 mask 时降水/相态 panel 显示编辑控件', async () => {
     const { wrapper, editorStore } = mountEditor()
     editorStore.currentMaskGeometry = {
       type: 'polygon',
@@ -236,8 +234,12 @@ describe('EditorView', () => {
     }
     await flushPromises()
 
-    expect(wrapper.find('[data-test="qpf-panel"]').text()).toContain('降水调整将在 M3 开放')
-    expect(wrapper.find('[data-test="ptype-panel"]').text()).toContain('相态调整将在 M3 开放')
+    // QPF panel shows operation dropdown and preview button
+    expect(wrapper.find('[data-test="qpf-operation"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="preview-button"]').exists()).toBe(true)
+    // Ptype panel shows radio group and preview button
+    expect(wrapper.find('[data-test="ptype-radio"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="ptype-preview-button"]').exists()).toBe(true)
   })
 
   it('五区域尺寸和侧栏折叠行为正确', async () => {

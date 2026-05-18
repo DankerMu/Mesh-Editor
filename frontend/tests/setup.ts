@@ -156,4 +156,14 @@ config.global.stubs = {
     props: ['content', 'disabled'],
     template: '<span :title="disabled ? undefined : content"><slot /></span>',
   },
+  't-input-number': {
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+    template:
+      '<input type="number" :value="modelValue" data-test="input-number" @input="$emit(\'update:modelValue\', Number($event.target.value))" />',
+  },
+  't-radio': {
+    props: ['value'],
+    template: '<label><input type="radio" :value="value" /><slot /></label>',
+  },
 }

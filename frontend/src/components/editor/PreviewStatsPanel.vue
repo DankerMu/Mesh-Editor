@@ -62,7 +62,7 @@ function formatValue(value: number | null, key: string): string {
   }
 
   if (key === 'count') {
-    return `${Math.round(value)}`
+    return Math.round(value).toLocaleString('en-US')
   }
 
   if (key === 'area_km2') {
@@ -110,7 +110,7 @@ async function confirmApplyWithPtype(): Promise<void> {
     <div class="preview-stats-panel__header">
       <h3 class="preview-stats-panel__title">预览统计</h3>
       <div class="preview-stats-panel__summary" data-test="preview-summary">
-        <span>{{ preview.affected_grid_count }} 格点</span>
+        <span>{{ formatValue(preview.affected_grid_count, 'count') }} 格点</span>
         <span>{{ formatValue(preview.affected_area_km2, 'area_km2') }} km²</span>
       </div>
     </div>
