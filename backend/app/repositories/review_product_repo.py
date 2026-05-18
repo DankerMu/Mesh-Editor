@@ -148,7 +148,7 @@ class ReviewProductRepository:
                 attempt=ReviewProduct.attempt + 1,
             )
         )
-        if result.rowcount == 0:
+        if result.rowcount == 0:  # type: ignore[attr-defined]
             return None
 
         await db.flush()
@@ -203,7 +203,7 @@ class ReviewProductRepository:
             .values(plot_status="superseded")
         )
         await db.flush()
-        return int(result.rowcount or 0)
+        return int(result.rowcount or 0)  # type: ignore[attr-defined]
 
 
 review_product_repo = ReviewProductRepository()
