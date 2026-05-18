@@ -99,9 +99,9 @@ onMounted(async () => {
                   </button>
                 </td>
               </tr>
-              <tr v-if="expandedId === log.id">
+              <tr v-if="expandedId === log.id" data-test="audit-expanded-row">
                 <td colspan="5">
-                  <pre>{{ detailText(log.detail_json) }}</pre>
+                  <pre class="json-highlight">{{ detailText(log.detail_json) }}</pre>
                 </td>
               </tr>
             </template>
@@ -112,6 +112,8 @@ onMounted(async () => {
           :page-size="filters.page_size"
           :current="filters.page"
           data-test="audit-pagination"
+          @current-change="(v: number) => { filters.page = v; fetchLogs() }"
+          @page-size-change="(v: number) => { filters.page_size = v; filters.page = 1; fetchLogs() }"
         />
       </section>
     </main>

@@ -115,6 +115,33 @@ describe('Monitor views', () => {
     expect(retryTask).toHaveBeenCalledWith('review-1')
   })
 
+  it('11.T1b TaskMonitor stat cards have colored backgrounds', async () => {
+    const wrapper = mountWithPinia(TaskMonitorView)
+    await flushPromises()
+
+    const cards = wrapper.findAll('.ops-summary-card')
+    expect(cards.length).toBe(4)
+
+    // Pending card has blue background
+    expect(cards[0].attributes('style')).toContain('--color-primary-bg')
+    // Running card has blue background
+    expect(cards[1].attributes('style')).toContain('--color-primary-bg')
+    // Success card has green background
+    expect(cards[2].attributes('style')).toContain('--color-success-bg')
+    // Failed card has red background
+    expect(cards[3].attributes('style')).toContain('--color-danger-bg')
+  })
+
+  it('11.T1c TaskMonitor stat cards have data-test attributes', async () => {
+    const wrapper = mountWithPinia(TaskMonitorView)
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="stat-card-等待中"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="stat-card-运行中"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="stat-card-成功"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="stat-card-失败"]').exists()).toBe(true)
+  })
+
   it('11.T2 AuditLog renders filters and table', async () => {
     const wrapper = mountWithPinia(AuditLogView)
     await flushPromises()
@@ -125,11 +152,83 @@ describe('Monitor views', () => {
     expect(wrapper.find('[data-test="audit-pagination"]').exists()).toBe(true)
   })
 
+  it('11.T2b AuditLog expandable rows show JSON details', async () => {
+    const wrapper = mountWithPinia(AuditLogView)
+    await flushPromises()
+
+    // Click expand button
+    await wrapper.find('[data-test="audit-expand-1"]').trigger('click')
+    await flushPromises()
+
+    // Expanded row should show JSON content
+    const expandedRow = wrapper.find('[data-test="audit-expanded-row"]')
+    expect(expandedRow.exists()).toBe(true)
+    expect(expandedRow.text()).toContain('version-1')
+
+    // JSON highlight pre element should exist
+    const pre = expandedRow.find('.json-highlight')
+    expect(pre.exists()).toBe(true)
+  })
+
+  it('11.T2c AuditLog expandable rows toggle on second click', async () => {
+    const wrapper = mountWithPinia(AuditLogView)
+    await flushPromises()
+
+    // Click expand
+    await wrapper.find('[data-test="audit-expand-1"]').trigger('click')
+    expect(wrapper.find('[data-test="audit-expanded-row"]').exists()).toBe(true)
+
+    // Click again to collapse
+    await wrapper.find('[data-test="audit-expand-1"]').trigger('click')
+    expect(wrapper.find('[data-test="audit-expanded-row"]').exists()).toBe(false)
+  })
+
   it('11.T3 StorageMonitor renders usage gauge', async () => {
     const wrapper = mountWithPinia(StorageMonitorView)
     await flushPromises()
 
     expect(wrapper.find('[data-test="storage-gauge"]').text()).toContain('40')
     expect(wrapper.find('[data-test="storage-breakdown"]').text()).toContain('archive')
+  })
+
+  it('11.T3b StorageMonitor progress bar shows percentage text', async () => {
+    const wrapper = mountWithPinia(StorageMonitorView)
+    await flushPromises()
+
+    const usageText = wrapper.find('[data-test="storage-usage-text"]')
+    expect(usageText.exists()).toBe(true)
+    expect(usageText.text()).toContain('0.4 GB')
+    expect(usageText.text()).toContain('1 GB')
+    expect(usageText.text()).toContain('40%')
+  })
+
+  it('11.T3c StorageMonitor shows last scan timestamp', async () => {
+    const wrapper = mountWithPinia(StorageMonitorView)
+    await flushPromises()
+
+    const scanTime = wrapper.find('[data-test="storage-scan-time"]')
+    expect(scanTime.exists()).toBe(true)
+    expect(scanTime.text()).toContain('上次扫描')
+    expect(scanTime.text()).not.toContain('未扫描')
+  })
+
+  it('11.T3d StorageMonitor directory breakdown table shows type/size/count', async () => {
+    const wrapper = mountWithPinia(StorageMonitorView)
+    await flushPromises()
+
+    const table = wrapper.find('[data-test="storage-breakdown"]')
+    expect(table.text()).toContain('archive')
+    expect(table.text()).toContain('0.4 GB')
+    expect(table.text()).toContain('4')
+  })
+
+  it('11.T4 TaskMonitor and StorageMonitor pages use workspace-panel card style', async () => {
+    const taskWrapper = mountWithPinia(TaskMonitorView)
+    await flushPromises()
+    expect(taskWrapper.find('.workspace-panel').exists()).toBe(true)
+
+    const storageWrapper = mountWithPinia(StorageMonitorView)
+    await flushPromises()
+    expect(storageWrapper.find('.workspace-panel').exists()).toBe(true)
   })
 })

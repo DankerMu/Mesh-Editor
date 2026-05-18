@@ -7,14 +7,16 @@ import { useMonitorStore } from '@/stores/monitorStore'
 const monitorStore = useMonitorStore()
 
 const cards = computed(() => [
-  { label: '等待中', value: monitorStore.taskSummary?.counts.pending ?? 0 },
-  { label: '运行中', value: monitorStore.taskSummary?.counts.running ?? 0 },
-  { label: '成功', value: monitorStore.taskSummary?.counts.success ?? 0 },
+  { label: '等待中', value: monitorStore.taskSummary?.counts.pending ?? 0, bg: 'var(--color-primary-bg)', color: 'var(--color-primary)' },
+  { label: '运行中', value: monitorStore.taskSummary?.counts.running ?? 0, bg: 'var(--color-primary-bg)', color: 'var(--color-primary)' },
+  { label: '成功', value: monitorStore.taskSummary?.counts.success ?? 0, bg: 'var(--color-success-bg)', color: 'var(--color-success)' },
   {
     label: '失败',
     value:
       (monitorStore.taskSummary?.counts.failed ?? 0) +
       (monitorStore.taskSummary?.counts.permanently_failed ?? 0),
+    bg: 'var(--color-danger-bg)',
+    color: 'var(--color-danger)',
   },
 ])
 
@@ -52,9 +54,16 @@ onBeforeUnmount(() => {
         </div>
 
         <section class="ops-summary" data-test="task-summary-cards">
-          <t-card v-for="card in cards" :key="card.label" class="ops-summary-card" bordered>
+          <t-card
+            v-for="card in cards"
+            :key="card.label"
+            class="ops-summary-card"
+            :style="{ background: card.bg }"
+            bordered
+            :data-test="`stat-card-${card.label}`"
+          >
             <span>{{ card.label }}</span>
-            <strong>{{ card.value }}</strong>
+            <strong :style="{ color: card.color }">{{ card.value }}</strong>
           </t-card>
         </section>
 

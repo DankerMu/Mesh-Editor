@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { MessagePlugin } from 'tdesign-vue-next'
 import AppHeader from '@/components/AppHeader.vue'
 import { getConfig, getConfigHistory, updateConfig } from '@/api/config'
@@ -13,32 +13,53 @@ const configTypes: Array<{ label: string; value: ConfigType }> = [
 
 const activeType = ref<ConfigType>('product_config')
 const editorText = ref('{}')
+const savedText = ref('{}')
 const history = ref<ConfigSnapshot[]>([])
 const error = ref('')
+const saving = ref(false)
+
+const isDirty = computed(() => editorText.value !== savedText.value)
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })
 }
 
-async function loadConfig(type = activeType.value) {
-  activeType.value = type
+async function loadConfig(type?: ConfigType) {
+  if (type && type !== activeType.value && isDirty.value) {
+    const ok = window.confirm('当前配置有未保存的修改，切换后将丢失，是否继续？')
+    if (!ok) return
+  }
+  if (type) activeType.value = type
   error.value = ''
   const [configResponse, historyResponse] = await Promise.all([
-    getConfig(type),
-    getConfigHistory(type, { limit: 20 }),
+    getConfig(activeType.value),
+    getConfigHistory(activeType.value, { limit: 20 }),
   ])
-  editorText.value = JSON.stringify(configResponse.data, null, 2)
+  const text = JSON.stringify(configResponse.data, null, 2)
+  editorText.value = text
+  savedText.value = text
   history.value = historyResponse.data.items
 }
 
 async function saveConfig() {
   try {
+    JSON.parse(editorText.value)
+  } catch {
+    error.value = 'JSON 格式不正确'
+    return
+  }
+
+  saving.value = true
+  error.value = ''
+  try {
     const payload = JSON.parse(editorText.value) as Record<string, unknown>
     await updateConfig(activeType.value, payload)
-    await loadConfig(activeType.value)
+    await loadConfig()
     MessagePlugin.success('配置已保存')
   } catch (err) {
     error.value = err instanceof SyntaxError ? 'JSON 格式不正确' : '配置保存失败'
+  } finally {
+    saving.value = false
   }
 }
 
@@ -71,7 +92,7 @@ onMounted(async () => {
         <div class="config-editor">
           <t-textarea v-model="editorText" class="json-editor" data-test="config-json" />
           <p v-if="error" class="form-error" data-test="config-error">{{ error }}</p>
-          <t-button theme="primary" data-test="config-save" @click="saveConfig">保存配置</t-button>
+          <t-button theme="primary" :loading="saving" data-test="config-save" @click="saveConfig">保存配置</t-button>
         </div>
 
         <t-card title="历史版本" bordered>

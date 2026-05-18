@@ -12,6 +12,13 @@ const usagePercent = computed(() => {
   return Math.round((summary.used_bytes / summary.total_bytes) * 100)
 })
 
+const progressStatus = computed(() => {
+  const pct = usagePercent.value
+  if (pct >= 90) return 'error' as const
+  if (pct >= 80) return 'warning' as const
+  return 'active' as const
+})
+
 function formatDate(value?: string) {
   return value
     ? new Date(value).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })
@@ -36,12 +43,14 @@ onMounted(async () => {
         </div>
 
         <t-card title="空间使用率" bordered data-test="storage-gauge">
-          <t-progress :percentage="usagePercent" />
-          <p>
+          <t-progress :percentage="usagePercent" :status="progressStatus" />
+          <p data-test="storage-usage-text">
             已用 {{ monitorStore.storageSummary?.used_gb ?? 0 }} GB /
-            总量 {{ monitorStore.storageSummary?.total_gb ?? 0 }} GB
+            总量 {{ monitorStore.storageSummary?.total_gb ?? 0 }} GB（{{ usagePercent }}%）
           </p>
-          <p>最近扫描：{{ formatDate(monitorStore.storageSummary?.last_scan_at) }}</p>
+          <p class="storage-scan-time" data-test="storage-scan-time">
+            上次扫描：{{ monitorStore.storageSummary?.last_scan_at ? formatDate(monitorStore.storageSummary.last_scan_at) : '未扫描' }}
+          </p>
         </t-card>
 
         <t-card title="目录明细" bordered>

@@ -23,22 +23,19 @@ const roleOptions = [
   { label: '观察员', value: 'viewer' },
 ]
 
-const userColumns = [
-  { colKey: 'username', title: '用户名' },
-  { colKey: 'display_name', title: '显示名' },
-  { colKey: 'role', title: '角色' },
-  { colKey: 'is_active', title: '状态' },
-  { colKey: 'last_login_at', title: '最近登录' },
-]
-
 const dialogTitle = computed(() => (editingUser.value ? '编辑用户' : '创建用户'))
 
 function roleLabel(role: string) {
   return roleOptions.find((option) => option.value === role)?.label ?? role
 }
 
-function roleTheme(role: string) {
-  return role === 'admin' ? 'danger' : role === 'reviewer' ? 'primary' : 'default'
+function roleTheme(role: string): 'danger' | 'warning' | 'primary' | 'default' {
+  switch (role) {
+    case 'admin': return 'danger'
+    case 'reviewer': return 'warning'
+    case 'forecaster': return 'primary'
+    default: return 'default'
+  }
 }
 
 function formatDate(value: string | null) {
@@ -120,7 +117,6 @@ onMounted(async () => {
           </t-button>
         </div>
 
-        <t-table :data="adminStore.users" :columns="userColumns" row-key="id" />
         <table class="admin-table" data-test="user-table">
           <thead>
             <tr>
