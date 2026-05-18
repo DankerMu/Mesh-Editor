@@ -35,7 +35,7 @@ openspec/changes/    ← 变更管理
 
 ## 当前阶段
 
-**阶段：M5 全部完成，准备进入 M6 运维/统计/配置**
+**阶段：M6 OpenSpec 设计完成，Epic #70 + 5 子 issue 已创建，准备开发**
 
 ### 已完成里程碑
 
@@ -70,6 +70,7 @@ openspec/changes/    ← 变更管理
 
 | 日期 | 变更 |
 |---|---|
+| 2026-05-18 | M6 Stage Change Pipeline 完成：OpenSpec 4 artifact + 3 路 Codex 审核 + P0 修复 + Epic #70 + 5 子 issue (#71-#75) 创建 |
 | 2026-05-18 | M5 收尾：确认 plotter/templates（模块 2/3/4）代码和测试已实现，补勾 tasks.md 和 #61 checklist，M5 全部完成 |
 | 2026-05-18 | Issue #64 完成：新增 reviewApi、reviewStore、ReviewCenterView、/review 路由与导航入口，前端目标测试和全量 vitest 通过 |
 | 2026-05-17 | **M3 Epic #35 关闭**：5 个 PR merged，编辑引擎全链路闭环（选区→编辑→预览→应用→撤销/重做→操作留痕→前端面板），304 tests 全绿 |
