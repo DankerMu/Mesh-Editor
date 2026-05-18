@@ -18,7 +18,7 @@ from app.core.constants import NX, NY, REPO_ROOT
 from app.core.error_registry import get_error
 from app.core.errors import DomainError
 from app.core.logging import get_trace_id
-from app.db.models import AppUser, EditOperation, EditSession
+from app.db.models import AppUser, AuditLog, EditOperation, EditSession
 from app.db.session import get_db
 from app.repositories.edit_operation_repo import edit_operation_repo
 from app.schemas.common import ApiResponse
@@ -456,6 +456,24 @@ async def apply_edit(
         after_stats_json=json.dumps(after_stats, ensure_ascii=False),
         op_ptype_transition_json=json.dumps(transition, ensure_ascii=False),
         is_undone=0,
+    )
+    db.add(
+        AuditLog(
+            user_id=int(current_user.id),
+            username=str(current_user.username),
+            action="edit_apply",
+            resource_type="operation",
+            resource_id=str(operation.operation_id),
+            detail_json=json.dumps(
+                {
+                    "session_id": payload.session_id,
+                    "window_id": str(session.window_id),
+                    "sequence_no": sequence_no,
+                    "preview_id": payload.preview_id,
+                },
+                ensure_ascii=False,
+            ),
+        )
     )
     _save_array(payload.session_id, "qpf_after", qpf_after.astype(np.float32, copy=False))
     _save_array(payload.session_id, "ptype_after", ptype_after.astype(np.uint8, copy=False))
