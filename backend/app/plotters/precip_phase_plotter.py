@@ -99,15 +99,16 @@ def plot_precip_phase(
             norm=norm,
         )
 
+        ptype_cmap = ListedColormap(["#e41a1c", "#377eb8", "#4daf4a"])
+        ptype_norm = BoundaryNorm([0.5, 1.5, 2.5, 3.5], ptype_cmap.N)
         ptype_overlay = np.ma.masked_where(ptype == 0, ptype)
         ax.imshow(
             ptype_overlay,
             origin="upper",
             extent=extent,
             aspect="auto",
-            cmap="Set1",
-            vmin=1,
-            vmax=3,
+            cmap=ptype_cmap,
+            norm=ptype_norm,
             alpha=0.18,
         )
 
@@ -118,9 +119,8 @@ def plot_precip_phase(
             for label in cbar.ax.get_yticklabels():
                 label.set_fontproperties(font_prop)
 
-        set1 = ListedColormap(["#e41a1c", "#377eb8", "#4daf4a"])
         handles = [
-            Patch(facecolor=set1(index - 1), edgecolor="none", alpha=0.35, label=label)
+            Patch(facecolor=ptype_cmap(index - 1), edgecolor="none", alpha=0.35, label=label)
             for index, label in PTYPE_LABELS.items()
         ]
         legend = ax.legend(handles=handles, loc="lower right", title="相态")

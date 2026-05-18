@@ -49,9 +49,8 @@ def plot_synoptic_basic(
         raise ValueError(
             f"hgt_data dimension mismatch: expected {expected_shape}, actual {hgt_data.shape}"
         )
-    if (wind_u is None) != (wind_v is None):
-        raise ValueError("wind_u and wind_v must be provided together")
-    if wind_u is not None and wind_v is not None:
+    has_wind = wind_u is not None and wind_v is not None
+    if has_wind:
         if wind_u.shape != expected_shape or wind_v.shape != expected_shape:
             raise ValueError(
                 "wind field dimension mismatch: "
@@ -65,7 +64,7 @@ def plot_synoptic_basic(
         contours = ax.contour(lon2d, lat2d, hgt_data, colors="black", linewidths=0.8)
         ax.clabel(contours, inline=True, fontsize=8, fmt="%d")
 
-        if wind_u is not None and wind_v is not None:
+        if has_wind:
             step = max(1, min(len(lat), len(lon)) // 20)
             ax.barbs(
                 lon2d[::step, ::step],
@@ -81,7 +80,7 @@ def plot_synoptic_basic(
         ax.set_ylim(float(lat.min()), float(lat.max()))
         ax.set_xlabel("经度")
         ax.set_ylabel("纬度")
-        wind_title = "与风场" if wind_u is not None else ""
+        wind_title = "与风场" if has_wind else ""
         ax.set_title(f"{level}hPa 高度场{wind_title} {init_time} +{lead_hour:03d}h")
         fig.savefig(output_path, dpi=150)
         return output_path
