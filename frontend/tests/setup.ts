@@ -9,6 +9,10 @@ config.global.stubs = {
     props: ['disabled', 'type', 'theme'],
     template: '<button :type="type || \'button\'" :disabled="disabled"><slot name="icon" /><slot /></button>',
   },
+  't-card': {
+    props: ['title', 'bordered'],
+    template: '<section><h3 v-if="title">{{ title }}</h3><slot /></section>',
+  },
   't-dialog': {
     props: ['visible', 'header'],
     emits: ['update:visible'],
@@ -43,7 +47,16 @@ config.global.stubs = {
     template: '<span><slot /></span>',
   },
   't-loading': {
-    template: '<span data-test="loading"></span>',
+    props: ['loading'],
+    template: '<div><span v-if="loading" data-test="loading"></span><slot /></div>',
+  },
+  't-empty': {
+    props: ['description'],
+    template: '<div>{{ description }}<slot /></div>',
+  },
+  't-space': {
+    props: ['direction', 'size'],
+    template: '<div><slot /></div>',
   },
   't-progress': {
     props: ['percentage', 'status'],

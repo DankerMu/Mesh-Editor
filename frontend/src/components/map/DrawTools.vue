@@ -37,7 +37,7 @@
         data-test="width-grid-input"
         @input="onWidthInput"
         @blur="widthGrid = clampGridValue(widthGrid, 1, 50)"
-      />
+      >
     </label>
 
     <div v-if="activeTool === 'brush_path'" class="draw-tools__field" data-test="radius-grid-display">
@@ -50,7 +50,7 @@
       class="draw-tools__brush-cursor"
       :style="brushCursorStyle"
       aria-hidden="true"
-    ></div>
+    />
   </section>
 </template>
 
