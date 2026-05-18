@@ -2,18 +2,81 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import ApprovalView from '@/views/ApprovalView.vue'
+import VersionFieldMap from '@/components/approval/VersionFieldMap.vue'
+import { useLinkedMaps } from '@/composables/useLinkedMaps'
 import { useAuthStore } from '@/stores/authStore'
 import { useVersionStore } from '@/stores/versionStore'
 import { useWindowStore } from '@/stores/windowStore'
+import { GRID_COLS, GRID_ROWS } from '@/constants/precipColors'
+import { getVersionField } from '@/api/version'
 import type { VersionDetail, VersionListItem } from '@/api/version'
+
+const mapMock = vi.hoisted(() => ({
+  addLayer: vi.fn(),
+  removeLayer: vi.fn(),
+  getView: vi.fn(() => ({
+    on: vi.fn(() => ({ key: 'view-key' })),
+    getCenter: vi.fn(() => [90.5, 37.5]),
+    getResolution: vi.fn(() => 0.05),
+    getRotation: vi.fn(() => 0),
+    setCenter: vi.fn(),
+    setResolution: vi.fn(),
+    setRotation: vi.fn(),
+  })),
+}))
+
+const layerMocks = vi.hoisted(() => {
+  function makeLayerMock(this: {
+    layer: { id: string }
+    updateData: ReturnType<typeof vi.fn>
+    clearData: ReturnType<typeof vi.fn>
+    dispose: ReturnType<typeof vi.fn>
+    getLayer: ReturnType<typeof vi.fn>
+  }) {
+    this.layer = { id: `layer-${Math.random()}` }
+    this.updateData = vi.fn()
+    this.clearData = vi.fn()
+    this.dispose = vi.fn()
+    this.getLayer = vi.fn(() => this.layer)
+  }
+
+  return { makeLayerMock }
+})
 
 vi.mock('@/api/version', () => ({
   getVersions: vi.fn(),
   getVersionDetail: vi.fn(),
+  getVersionField: vi.fn(),
   saveVersion: vi.fn(),
   submitVersion: vi.fn(),
   reviewVersion: vi.fn(),
   releaseVersion: vi.fn(),
+}))
+
+vi.mock('@/components/map/BaseMap.vue', () => ({
+  default: {
+    name: 'BaseMap',
+    emits: ['map-ready'],
+    mounted(this: { $emit: (eventName: string, payload: unknown) => void }) {
+      this.$emit('map-ready', mapMock)
+    },
+    template: '<div data-test="base-map"></div>',
+  },
+}))
+
+vi.mock('@/components/map/PrecipPhaseGridLayer', () => ({
+  PrecipPhaseGridLayer: vi.fn(layerMocks.makeLayerMock),
+}))
+
+vi.mock('@/components/map/MaskOverlayLayer', () => ({
+  MaskOverlayLayer: vi.fn(layerMocks.makeLayerMock),
+}))
+
+vi.mock('@/components/map/RgbaGridLayer', () => ({
+  FloatGridLayer: vi.fn(layerMocks.makeLayerMock),
+  IntGridLayer: vi.fn(layerMocks.makeLayerMock),
+  getChangePtypeColor: vi.fn(),
+  getDeltaQpfColor: vi.fn(),
 }))
 
 const SUBMITTED_VERSION: VersionListItem = {
@@ -68,6 +131,38 @@ function makeDetail(version: VersionListItem): VersionDetail {
     touched_mask_image_path: null,
     changed_mask_image_path: null,
     review_image_path: null,
+  }
+}
+
+function makeDetailWithFields(version: VersionListItem): VersionDetail {
+  return {
+    ...makeDetail(version),
+    field_urls: {
+      qpf_before: '/api/version/window-1_v001/field/qpf_before',
+      ptype_before: '/api/version/window-1_v001/field/ptype_before',
+      qpf_after: '/api/version/window-1_v001/field/qpf_after',
+      ptype_after: '/api/version/window-1_v001/field/ptype_after',
+      delta_qpf: '/api/version/window-1_v001/field/delta_qpf',
+      change_ptype: '/api/version/window-1_v001/field/change_ptype',
+      touched_mask: '/api/version/window-1_v001/field/touched_mask',
+      changed_mask: '/api/version/window-1_v001/field/changed_mask',
+    },
+  }
+}
+
+function makeDetailWithoutImages(version: VersionListItem): VersionDetail {
+  return {
+    ...makeDetail(version),
+    image_paths: {
+      before_product: null,
+      after_product: null,
+      delta_qpf: null,
+      change_ptype: null,
+      touched_mask: null,
+      changed_mask: null,
+    },
+    before_image_path: null,
+    after_image_path: null,
   }
 }
 
@@ -142,6 +237,13 @@ function mountApproval(role = 'reviewer', detail: VersionDetail | null = makeDet
 describe('ApprovalView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(getVersionField).mockImplementation(async (_versionId, fieldName) => {
+      if (fieldName === 'qpf_before' || fieldName === 'qpf_after' || fieldName === 'delta_qpf') {
+        return new ArrayBuffer(GRID_ROWS * GRID_COLS * Float32Array.BYTES_PER_ELEMENT)
+      }
+
+      return new ArrayBuffer(GRID_ROWS * GRID_COLS)
+    })
   })
 
   it('渲染版本列表', async () => {
@@ -198,5 +300,96 @@ describe('ApprovalView', () => {
     await wrapper.find('[data-test="release-button"]').trigger('click')
 
     expect(wrapper.text()).toContain('确认发布该版本？发布后旧版本将自动替代。')
+  })
+
+  it('VersionFieldMap 加载字段并进入 loaded 状态', async () => {
+    const wrapper = mount(VersionFieldMap, {
+      props: {
+        versionId: 'window-1_v001',
+        fieldName: 'delta_qpf',
+      },
+    })
+    await flushPromises()
+
+    expect(getVersionField).toHaveBeenCalledWith('window-1_v001', 'delta_qpf')
+    expect(wrapper.find('[data-test="version-field-loading"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="version-field-error"]').exists()).toBe(false)
+    expect(wrapper.attributes('data-loaded')).toBe('true')
+  })
+
+  it('useLinkedMaps 同步视图并可清理监听', () => {
+    const callbacks: Record<string, () => void> = {}
+    const removeSourceListener = vi.fn()
+    const removeTargetListener = vi.fn()
+    const sourceView = {
+      on: vi.fn((eventName: string, callback: () => void) => {
+        callbacks[eventName] = callback
+        return { target: { removeEventListener: removeSourceListener }, type: eventName, listener: callback }
+      }),
+      getCenter: vi.fn(() => [100, 30]),
+      getResolution: vi.fn(() => 0.1),
+      getRotation: vi.fn(() => 0.2),
+      setCenter: vi.fn(),
+      setResolution: vi.fn(),
+      setRotation: vi.fn(),
+    }
+    const targetView = {
+      on: vi.fn((eventName: string) => ({
+        target: { removeEventListener: removeTargetListener },
+        type: eventName,
+        listener: vi.fn(),
+      })),
+      getCenter: vi.fn(() => [90, 35]),
+      getResolution: vi.fn(() => 0.2),
+      getRotation: vi.fn(() => 0),
+      setCenter: vi.fn(),
+      setResolution: vi.fn(),
+      setRotation: vi.fn(),
+    }
+    const sourceMap = { getView: () => sourceView }
+    const targetMap = { getView: () => targetView }
+    const linkedMaps = useLinkedMaps()
+
+    linkedMaps.registerMap(sourceMap as never)
+    linkedMaps.registerMap(targetMap as never)
+    callbacks['change:center']()
+
+    expect(targetView.setCenter).toHaveBeenCalledWith([100, 30])
+    expect(targetView.setResolution).toHaveBeenCalledWith(0.1)
+    expect(targetView.setRotation).toHaveBeenCalledWith(0.2)
+
+    linkedMaps.cleanup()
+    expect(sourceView.on).toHaveBeenCalledTimes(3)
+    expect(targetView.on).toHaveBeenCalledTimes(3)
+    expect(removeSourceListener).toHaveBeenCalledTimes(3)
+    expect(removeTargetListener).toHaveBeenCalledTimes(3)
+  })
+
+  it('字段 URL 完整时渲染 before/after VersionFieldMap', async () => {
+    const { wrapper } = mountApproval('reviewer', makeDetailWithFields(SUBMITTED_VERSION))
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="field-map-comparison"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="version-field-map-before"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="version-field-map-after"]').exists()).toBe(true)
+  })
+
+  it('点击缩略图打开全屏预览', async () => {
+    const { wrapper } = mountApproval('reviewer', makeDetail(SUBMITTED_VERSION))
+    await flushPromises()
+
+    await wrapper.find('[data-test="image-thumb-before_product"]').trigger('click')
+
+    expect(wrapper.find('[data-test="image-preview"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="image-preview-img"]').attributes('src')).toBe('/images/before.png')
+  })
+
+  it('无字段和无图片时显示降级占位', async () => {
+    const { wrapper } = mountApproval('reviewer', makeDetailWithoutImages(SUBMITTED_VERSION))
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="field-data-empty"]').text()).toContain('字段数据不可用')
+    expect(wrapper.text()).toContain('图片未生成')
+    expect(wrapper.findAll('.approval-detail__image-empty')).toHaveLength(6)
   })
 })
