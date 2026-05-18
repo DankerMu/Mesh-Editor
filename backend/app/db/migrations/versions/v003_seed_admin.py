@@ -7,7 +7,7 @@ Create Date: 2026-05-16
 """
 
 from alembic import op
-from passlib.context import CryptContext
+from passlib.context import CryptContext  # type: ignore[import-untyped]
 import sqlalchemy as sa
 
 

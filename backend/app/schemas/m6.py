@@ -91,3 +91,65 @@ class AuditLogListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class ConfigSnapshotResponse(BaseModel):
+    snapshot_id: str
+    config_type: str
+    changed_by: str | None = None
+    created_at: datetime
+
+
+class ConfigSnapshotUpdateResponse(ConfigSnapshotResponse):
+    pass
+
+
+class ConfigHistoryResponse(BaseModel):
+    items: list[ConfigSnapshotResponse]
+    total: int
+
+
+class ReviewTemplatePanelResponse(BaseModel):
+    id: str
+    type: str
+    fields: list[str]
+
+
+class ReviewTemplateSummaryResponse(BaseModel):
+    template_id: str
+    template_name: str
+    required_fields: list[str]
+    optional_fields: list[str]
+    allow_partial_success: bool
+    review_time_policy: str
+    panel_count: int
+
+
+class ReviewTemplateDetailResponse(BaseModel):
+    template_id: str
+    template_name: str
+    required_fields: list[str]
+    optional_fields: list[str]
+    allow_partial_success: bool
+    panels: list[ReviewTemplatePanelResponse]
+    review_time_policy: str
+
+
+class ReviewTemplatePanelUpdateRequest(BaseModel):
+    id: str = Field(..., min_length=1)
+    type: str = Field(..., min_length=1)
+    fields: list[str] = Field(...)
+
+
+class ReviewTemplateUpdateRequest(BaseModel):
+    template_name: str = Field(..., min_length=1)
+    required_fields: list[str] = Field(...)
+    optional_fields: list[str] = Field(default_factory=list)
+    allow_partial_success: bool
+    panels: list[ReviewTemplatePanelUpdateRequest] = Field(...)
+    review_time_policy: str = Field(..., min_length=1)
+
+
+class ReviewTemplateUpdateResponse(BaseModel):
+    template_id: str
+    snapshot_id: str
