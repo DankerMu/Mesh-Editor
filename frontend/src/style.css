@@ -583,14 +583,7 @@ button {
 
 @media (max-width: 760px) {
   .app-header__inner {
-    flex-wrap: wrap;
-    gap: 8px 16px;
-    padding: 12px 0;
-  }
-
-  .app-header__menu {
-    order: 3;
-    flex-basis: 100%;
+    overflow: hidden;
   }
 
   .case-id-input {
