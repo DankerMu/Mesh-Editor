@@ -15,10 +15,12 @@ from app.api.routes.config import router as config_router
 from app.api.routes.data_scan import router as data_scan_router
 from app.api.routes.edit import router as edit_router
 from app.api.routes.health import router as health_router
+from app.api.routes.monitor import router as monitor_router
 from app.api.routes.reviews import list_router as reviews_list_router
 from app.api.routes.reviews import router as review_router
 from app.api.routes.session import router as session_router
 from app.api.routes.session import window_router as session_window_router
+from app.api.routes.stats import router as stats_router
 from app.api.routes.templates import router as templates_router
 from app.api.routes.users import router as users_router
 from app.api.routes.versions import list_router as version_list_router
@@ -135,6 +137,8 @@ api_router.include_router(users_router)
 api_router.include_router(audit_router)
 api_router.include_router(config_router)
 api_router.include_router(templates_router)
+api_router.include_router(monitor_router)
+api_router.include_router(stats_router)
 
 app.include_router(public_api_router)
 app.include_router(api_router)

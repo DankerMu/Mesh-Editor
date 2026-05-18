@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -153,3 +153,84 @@ class ReviewTemplateUpdateRequest(BaseModel):
 class ReviewTemplateUpdateResponse(BaseModel):
     template_id: str
     snapshot_id: str
+
+
+class StorageBreakdownItem(BaseModel):
+    type: str
+    size_bytes: int
+    size_gb: float
+    file_count: int
+
+
+class StorageSummaryResponse(BaseModel):
+    total_bytes: int
+    free_bytes: int
+    used_bytes: int
+    total_gb: float
+    used_gb: float
+    free_gb: float
+    breakdown: list[StorageBreakdownItem]
+    last_scan_at: datetime
+
+
+class TaskCountsResponse(BaseModel):
+    pending: int = 0
+    running: int = 0
+    success: int = 0
+    partial_success: int = 0
+    failed: int = 0
+    permanently_failed: int = 0
+    superseded: int = 0
+
+
+class FailedTaskItem(BaseModel):
+    review_id: str
+    window_id: str
+    plot_status: str
+    error_summary: str | None = None
+    failed_at: datetime | None = None
+
+
+class TaskSummaryResponse(BaseModel):
+    counts: TaskCountsResponse
+    recent_failed: list[FailedTaskItem]
+
+
+class TaskRetryResponse(BaseModel):
+    review_id: str
+    plot_status: str
+
+
+class OperationStatsResponse(BaseModel):
+    period: dict[str, str]
+    total_sessions: int
+    total_operations: int
+    total_versions_saved: int
+    total_versions_released: int
+    by_accum_hours: dict[str, dict[str, int]]
+    by_tool: dict[str, int]
+    by_operation: dict[str, int]
+
+
+class TopTransitionItem(BaseModel):
+    transition: str
+    count: int
+    label: str
+
+
+class PtypeTransitionStatsResponse(BaseModel):
+    period: dict[str, str]
+    total_operations_with_transitions: int
+    matrix: dict[str, int]
+    top_transitions: list[TopTransitionItem]
+
+
+StatsExportFormat = Literal["csv"]
+StatsExportInclude = Literal["operations", "ptype_transitions", "version_summary"]
+
+
+class StatsExportRequest(BaseModel):
+    start_date: date
+    end_date: date
+    format: StatsExportFormat = "csv"
+    include: list[StatsExportInclude] = Field(..., min_length=1)
