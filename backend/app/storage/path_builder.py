@@ -53,6 +53,15 @@ class PathBuilder:
     def review_root(self, window_id: str, review_id: str) -> Path:
         return self.window_root(window_id) / "reviews" / _safe_segment(review_id)
 
+    def review_payload_path(self, window_id: str, review_id: str) -> Path:
+        return self.review_root(window_id, review_id) / "review_payload.json"
+
+    def review_images_dir(self, window_id: str, review_id: str) -> Path:
+        return self.review_root(window_id, review_id) / "images"
+
+    def review_log_path(self, window_id: str, review_id: str) -> Path:
+        return self.review_root(window_id, review_id) / "plot_log.txt"
+
     def release_root(self, window_id: str, version_id: str) -> Path:
         return self.window_root(window_id) / "releases" / _safe_segment(version_id)
 
