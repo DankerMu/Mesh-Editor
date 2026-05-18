@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import type { FormProps } from 'tdesign-vue-next'
 import { BrowseIcon, BrowseOffIcon } from 'tdesign-icons-vue-next'
 import { useRouter } from 'vue-router'
@@ -16,6 +16,15 @@ const formData = reactive({
   username: '',
   password: '',
 })
+
+watch(
+  () => [formData.username, formData.password],
+  () => {
+    if (errorMessage.value) {
+      errorMessage.value = ''
+    }
+  },
+)
 
 const rules: FormProps['rules'] = {
   username: [{ required: true, message: '请输入用户名', type: 'error' }],
@@ -51,7 +60,7 @@ const onSubmit: FormProps['onSubmit'] = async ({ validateResult }) => {
     errorMessage.value =
       responseCode === 'USER_DISABLED'
         ? '账号已被禁用，请联系管理员'
-        : '登录失败，请检查用户名和密码'
+        : '用户名或密码错误'
   } finally {
     loading.value = false
   }
@@ -76,7 +85,7 @@ const onSubmit: FormProps['onSubmit'] = async ({ validateResult }) => {
 
         <t-form :data="formData" :rules="rules" label-align="top" @submit="onSubmit">
           <t-form-item label="用户名" name="username">
-            <t-input v-model="formData.username" placeholder="请输入用户名" clearable />
+            <t-input v-model="formData.username" placeholder="请输入用户名" clearable autocomplete="username" />
           </t-form-item>
           <t-form-item label="密码" name="password">
             <t-input
@@ -84,6 +93,7 @@ const onSubmit: FormProps['onSubmit'] = async ({ validateResult }) => {
               :type="passwordVisible ? 'text' : 'password'"
               placeholder="请输入密码"
               clearable
+              autocomplete="current-password"
             >
               <template #suffixIcon>
                 <span class="password-toggle" @click="passwordVisible = !passwordVisible">
@@ -181,7 +191,7 @@ const onSubmit: FormProps['onSubmit'] = async ({ validateResult }) => {
   color: var(--text-primary);
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1023px) {
   .login-brand {
     display: none;
   }

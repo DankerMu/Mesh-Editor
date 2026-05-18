@@ -149,7 +149,7 @@ describe('LoginView', () => {
       await wrapper.find('form').trigger('submit')
       await flushPromises()
 
-      expect(wrapper.text()).toContain('登录失败，请检查用户名和密码')
+      expect(wrapper.text()).toContain('用户名或密码错误')
     })
 
     it('disabled account shows specific message', async () => {
@@ -173,7 +173,39 @@ describe('LoginView', () => {
       await wrapper.find('form').trigger('submit')
       await flushPromises()
 
-      expect(wrapper.text()).toContain('登录失败，请检查用户名和密码')
+      expect(wrapper.text()).toContain('用户名或密码错误')
+    })
+
+    it('clears error message when user edits username', async () => {
+      const wrapper = mountLogin()
+      const authStore = useAuthStore()
+      authStore.login = vi.fn().mockRejectedValue(new Error('fail'))
+
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+      expect(wrapper.text()).toContain('用户名或密码错误')
+
+      const usernameInput = wrapper.findAll('input').find((i) => i.attributes('placeholder') === '请输入用户名')
+      await usernameInput!.setValue('newuser')
+      await flushPromises()
+
+      expect(wrapper.text()).not.toContain('用户名或密码错误')
+    })
+
+    it('clears error message when user edits password', async () => {
+      const wrapper = mountLogin()
+      const authStore = useAuthStore()
+      authStore.login = vi.fn().mockRejectedValue(new Error('fail'))
+
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+      expect(wrapper.text()).toContain('用户名或密码错误')
+
+      const passwordInput = wrapper.findAll('input').find((i) => i.attributes('placeholder') === '请输入密码')
+      await passwordInput!.setValue('newpass')
+      await flushPromises()
+
+      expect(wrapper.text()).not.toContain('用户名或密码错误')
     })
   })
 
