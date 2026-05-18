@@ -21,6 +21,10 @@ def upgrade() -> None:
         "config_snapshot",
         sa.Column("snapshot_id", sa.String(), primary_key=True),
         sa.Column("config_type", sa.String(), nullable=False),
+        sa.CheckConstraint(
+            "config_type IN ('product_config', 'plot_config', 'template_config')",
+            name="ck_config_snapshot_type",
+        ),
         sa.Column("config_json", sa.Text(), nullable=False),
         sa.Column("changed_by", sa.String(), nullable=True),
         sa.Column(

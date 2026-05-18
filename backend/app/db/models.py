@@ -51,6 +51,12 @@ class AuditLog(Base):
 
 class ConfigSnapshot(Base):
     __tablename__ = "config_snapshot"
+    __table_args__ = (
+        CheckConstraint(
+            "config_type IN ('product_config', 'plot_config', 'template_config')",
+            name="ck_config_snapshot_type",
+        ),
+    )
 
     snapshot_id = Column(String, primary_key=True)
     config_type = Column(String, nullable=False)
