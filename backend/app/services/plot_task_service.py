@@ -44,6 +44,10 @@ REQUIRED_EDIT_FIELDS = {
     "change_ptype",
 }
 
+PANEL_REQUIRED_FIELDS: dict[str, set[str]] = {
+    "circulation": {"z500"},
+}
+
 
 def _error_message(code: str) -> str:
     message, _status = get_error(code)
@@ -76,12 +80,14 @@ class PlotTaskService:
         product = await review_product_repo.get_by_id(db, review_id)
         if product is None:
             return None
+        if str(product.plot_status) != "running":
+            return product
 
         final_status = status
         extra = {key: value for key, value in results.items() if value is not None}
         now = datetime.now(UTC)
         if status == "failed":
-            if int(product.attempt) >= self.max_retries:
+            if int(product.attempt) >= int(product.max_retries):
                 final_status = "permanently_failed"
                 extra["next_retry_at"] = None
             else:
@@ -101,7 +107,7 @@ class PlotTaskService:
         )
         now = datetime.now(UTC)
         for task in stale_tasks:
-            if int(task.attempt) >= self.max_retries:
+            if int(task.attempt) >= int(task.max_retries):
                 await review_product_repo.update_status(
                     db,
                     str(task.review_id),
@@ -117,7 +123,7 @@ class PlotTaskService:
                     "failed",
                     locked_by=None,
                     locked_at=None,
-                    next_retry_at=now + timedelta(seconds=self.retry_delay_seconds),
+                    next_retry_at=datetime.now(UTC),
                     plot_finished_at=now,
                 )
 
@@ -160,18 +166,16 @@ class PlotTaskService:
         try:
             self._log(logs, "task start")
             payload = self._load_payload(product)
-            log_path = Path(
-                payload.get("output", {}).get("plot_log_path")
-                or self.path_builder.review_log_path(
-                    str(product.window_id), str(product.review_id)
-                )
+            window_id = str(product.window_id)
+            product_review_id = str(product.review_id)
+            review_root = self.path_builder.review_root(
+                window_id, product_review_id
             )
-            images_dir = Path(
-                payload.get("output", {}).get("images_dir")
-                or self.path_builder.review_images_dir(
-                    str(product.window_id), str(product.review_id)
-                )
+            images_dir = self.path_builder.review_images_dir(
+                window_id, product_review_id
             )
+            image_path = images_dir / "composite.png"
+            log_path = self.path_builder.review_log_path(window_id, product_review_id)
             images_dir.mkdir(parents=True, exist_ok=True)
             await review_product_repo.update_status(
                 db,
@@ -181,16 +185,13 @@ class PlotTaskService:
             )
             self._log(logs, "load payload")
 
-            review_root = Path(
-                payload.get("output", {}).get("review_root")
-                or self.path_builder.review_root(
-                    str(product.window_id), str(product.review_id)
-                )
-            )
             fields = self._field_map(payload, review_root)
             missing_fields.extend(payload.get("missing_fields", []))
             required_fields = set(
                 payload.get("template", {}).get("required_fields", [])
+            )
+            optional_fields = set(
+                payload.get("template", {}).get("optional_fields", [])
             )
             missing_required = [
                 field_name for field_name in required_fields if field_name not in fields
@@ -212,31 +213,50 @@ class PlotTaskService:
                 panel_type = str(panel["type"])
                 panel_fields = [str(item) for item in panel.get("fields", [])]
                 output_path = images_dir / f"{index:02d}_{panel_id}.png"
-                missing_for_panel = [
+                panel_required_fields = [
                     field_name
                     for field_name in panel_fields
-                    if field_name not in fields
+                    if field_name in required_fields
+                    or field_name in PANEL_REQUIRED_FIELDS.get(panel_type, set())
+                    or (
+                        field_name not in optional_fields
+                        and field_name not in REQUIRED_EDIT_FIELDS
+                    )
                 ]
                 required_missing = [
                     field_name
-                    for field_name in missing_for_panel
-                    if field_name in REQUIRED_EDIT_FIELDS
-                    or field_name in required_fields
+                    for field_name in panel_required_fields
+                    if field_name not in fields
+                ]
+                missing_optional = [
+                    field_name
+                    for field_name in panel_fields
+                    if field_name in optional_fields and field_name not in fields
                 ]
                 if required_missing:
-                    raise ValueError(
-                        f"panel {panel_id} 缺少必需字段: {', '.join(required_missing)}"
-                    )
-                if missing_for_panel:
                     plot_placeholder(
-                        self._placeholder_message(missing_for_panel, missing_fields),
+                        self._placeholder_message(required_missing, missing_fields),
                         str(output_path),
                     )
                     panel_paths.append(output_path)
                     skipped_panels += 1
                     self._log(
                         logs,
-                        f"panel {panel_id} skipped: missing {','.join(missing_for_panel)}",
+                        f"panel {panel_id} skipped: missing {','.join(required_missing)}",
+                    )
+                    continue
+                if missing_optional and not any(
+                    field_name in fields for field_name in panel_fields
+                ):
+                    plot_placeholder(
+                        self._placeholder_message(missing_optional, missing_fields),
+                        str(output_path),
+                    )
+                    panel_paths.append(output_path)
+                    skipped_panels += 1
+                    self._log(
+                        logs,
+                        f"panel {panel_id} skipped: missing {','.join(missing_optional)}",
                     )
                     continue
 
@@ -253,10 +273,6 @@ class PlotTaskService:
                 success_panels += 1
                 self._log(logs, f"panel {panel_id} success")
 
-            image_path = Path(
-                payload.get("output", {}).get("composite_image_path")
-                or images_dir / "review_composite.png"
-            )
             self._generate_composite(panel_paths, image_path)
             self._log(logs, "composite success")
             status = "partial_success" if skipped_panels > 0 else "success"

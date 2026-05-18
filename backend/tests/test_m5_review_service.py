@@ -98,6 +98,7 @@ async def _seed_version(
     status: str = "approved",
     window_id: str = WINDOW_ID,
     missing_field: str | None = None,
+    relative_paths: bool = False,
 ) -> EditVersion:
     window = await db.get(ProductWindow, window_id)
     assert window is not None
@@ -114,8 +115,13 @@ async def _seed_version(
     if missing_field:
         field_paths[missing_field].unlink()
 
-    window.qpf_before_path = str(field_paths["qpf_before"])  # type: ignore[assignment]
-    window.ptype_before_path = str(field_paths["ptype_before"])  # type: ignore[assignment]
+    def stored(path: Path) -> str:
+        if not relative_paths:
+            return str(path)
+        return str(path.relative_to(builder.base_dir))
+
+    window.qpf_before_path = stored(field_paths["qpf_before"])  # type: ignore[assignment]
+    window.ptype_before_path = stored(field_paths["ptype_before"])  # type: ignore[assignment]
     version = EditVersion(
         version_id=VERSION_ID,
         window_id=window_id,
@@ -123,10 +129,10 @@ async def _seed_version(
         base_version_id=None,
         session_id=None,
         status=status,
-        qpf_after_path=str(field_paths["qpf_after"]),
-        ptype_after_path=str(field_paths["ptype_after"]),
-        delta_qpf_path=str(field_paths["delta_qpf"]),
-        change_ptype_path=str(field_paths["change_ptype"]),
+        qpf_after_path=stored(field_paths["qpf_after"]),
+        ptype_after_path=stored(field_paths["ptype_after"]),
+        delta_qpf_path=stored(field_paths["delta_qpf"]),
+        change_ptype_path=stored(field_paths["change_ptype"]),
         touched_mask_path=str(_write_npz(version_root / "touched_mask.npz", 1.0)),
         changed_mask_path=str(_write_npz(version_root / "changed_mask.npz", 1.0)),
         created_by="forecaster",
@@ -224,6 +230,32 @@ async def test_required_edit_field_missing_raises_without_product(
     assert await review_product_repo.list_by_window(db_session, WINDOW_ID) == []
 
 
+async def test_generate_review_resolves_relative_edit_paths_from_base_dir(
+    db_session: AsyncSession, tmp_path: Path
+) -> None:
+    builder = _builder(tmp_path)
+    await _seed_version(db_session, builder, relative_paths=True)
+
+    response = await generate_review(
+        db_session, WINDOW_ID, VERSION_ID, TEMPLATE_ID, "1", builder
+    )
+
+    payload = _payload(builder, response.review_id)
+    assert set(payload["edit_fields"]) == {
+        "qpf_before",
+        "ptype_before",
+        "qpf_after",
+        "ptype_after",
+        "delta_qpf",
+        "change_ptype",
+    }
+    qpf_before = Path(payload["edit_fields"]["qpf_before"])
+    resolved = qpf_before if qpf_before.is_absolute() else (
+        builder.review_root(WINDOW_ID, response.review_id) / qpf_before
+    )
+    assert resolved.exists()
+
+
 async def test_prev24_boundary_start_zero_sets_null(
     db_session: AsyncSession, tmp_path: Path
 ) -> None:
@@ -240,6 +272,29 @@ async def test_prev24_boundary_start_zero_sets_null(
     )
 
     assert _payload(builder, response.review_id)["review_windows"]["prev24"] is None
+
+
+async def test_prev24_start_zero_qpf_uses_zero_fallback(
+    db_session: AsyncSession, tmp_path: Path
+) -> None:
+    builder = _builder(tmp_path)
+    await _seed_version(db_session, builder)
+    _write_grid(
+        builder.data_source_root / CASE_ID / "tp" / f"{CASE_ID[2:]}.024",
+        5.0,
+    )
+    settings.product_config["allow_zero_start_lead_fallback"] = True
+    settings.product.allow_zero_start_lead_fallback = True
+
+    response = await generate_review(
+        db_session, WINDOW_ID, VERSION_ID, TEMPLATE_ID, "1", builder
+    )
+
+    prev24 = _payload(builder, response.review_id)["review_windows"]["prev24"]
+    assert prev24["start_tp_path"] is None
+    assert prev24["start_tp_source"] == "zero_fallback"
+    with np.load(prev24["qpf_path"]) as payload:
+        assert np.allclose(payload["data"], 5.0)
 
 
 async def test_next24_boundary_sets_null(

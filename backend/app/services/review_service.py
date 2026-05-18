@@ -221,7 +221,7 @@ class ReviewService:
         edit_fields: dict[str, str] = {}
         missing_fields: list[dict[str, Any]] = []
         for field_name, raw_path in candidates.items():
-            path = Path(str(raw_path)) if raw_path else None
+            path = self._resolve_storage_path(raw_path)
             if path is not None and path.exists():
                 edit_fields[field_name] = str(path)
             elif field_name in template.required_fields:
@@ -284,9 +284,25 @@ class ReviewService:
         start_path = self._tp_file_path(case_id, start_lead)
         end_path = self._tp_file_path(case_id, end_lead)
         qpf_path: str | None = None
-        if start_path.exists() and end_path.exists():
-            start = np.loadtxt(start_path, delimiter=",", dtype=np.float64)
+        start_source: str | None = None
+        start_exists = start_path.exists()
+        allow_zero_fallback = bool(
+            settings.product_config.get(
+                "allow_zero_start_lead_fallback",
+                settings.product.allow_zero_start_lead_fallback,
+            )
+        )
+        can_use_zero_start = (
+            start_lead == 0 and not start_exists and allow_zero_fallback
+        )
+        if (start_exists or can_use_zero_start) and end_path.exists():
             end = np.loadtxt(end_path, delimiter=",", dtype=np.float64)
+            if start_exists:
+                start = np.loadtxt(start_path, delimiter=",", dtype=np.float64)
+                start_source = str(start_path)
+            else:
+                start = np.zeros(end.shape, dtype=np.float64)
+                start_source = "zero_fallback"
             if start.shape == end.shape:
                 output_path = (
                     self.path_builder.case_root(case_id)
@@ -321,7 +337,10 @@ class ReviewService:
         return {
             "start_lead": start_lead,
             "end_lead": end_lead,
-            "start_tp_path": str(start_path),
+            "start_tp_path": (
+                None if start_source == "zero_fallback" else str(start_path)
+            ),
+            "start_tp_source": start_source,
             "end_tp_path": str(end_path),
             "qpf_path": qpf_path,
         }
@@ -531,6 +550,14 @@ class ReviewService:
             return str(path.relative_to(review_root))
         except ValueError:
             return os.path.relpath(path, review_root)
+
+    def _resolve_storage_path(self, raw_path: Any) -> Path | None:
+        if raw_path is None:
+            return None
+        path = Path(str(raw_path))
+        if path.is_absolute():
+            return path
+        return self.path_builder.base_dir / path
 
     def _json_safe(self, value: Any) -> Any:
         if isinstance(value, list):

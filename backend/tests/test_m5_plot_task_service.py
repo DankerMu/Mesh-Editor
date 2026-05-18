@@ -114,6 +114,7 @@ async def _create_product(
     review_id: str = "review-1",
     status: str = "pending",
     attempt: int = 0,
+    max_retries: int = 3,
     locked_by: str | None = None,
     locked_at: datetime | None = None,
     next_retry_at: datetime | None = None,
@@ -127,6 +128,7 @@ async def _create_product(
         template_id=TEMPLATE_ID,
         plot_status=status,
         attempt=attempt,
+        max_retries=max_retries,
         locked_by=locked_by,
         locked_at=locked_at,
         next_retry_at=next_retry_at,
@@ -140,6 +142,7 @@ def _payload(
     review_id: str,
     *,
     include_optional: bool = True,
+    include_wind: bool = True,
     missing_required: bool = False,
 ) -> dict:
     root = builder.review_root(WINDOW_ID, review_id)
@@ -157,7 +160,8 @@ def _payload(
         Path(edit_fields["delta_qpf"]).unlink()
     ifs_fields = []
     if include_optional:
-        for name in ["z500", "u850", "v850"]:
+        names = ["z500", "u850", "v850"] if include_wind else ["z500"]
+        for name in names:
             ifs_fields.append(
                 {
                     "variable_name": name,
@@ -319,6 +323,38 @@ async def test_complete_task_failed_max_retries(
     assert product.plot_status == "permanently_failed"
 
 
+async def test_complete_task_terminal_status_not_overwritten(
+    db_session: AsyncSession, tmp_path: Path
+) -> None:
+    await _create_product(db_session, status="superseded", locked_by="worker")
+    service = PlotTaskService(_builder(tmp_path))
+
+    product = await service.complete_task(
+        db_session,
+        "review-1",
+        "success",
+        image_path="/tmp/review.png",
+    )
+
+    assert product is not None
+    assert product.plot_status == "superseded"
+    assert product.locked_by == "worker"
+    assert product.image_path is None
+
+
+async def test_complete_task_uses_product_max_retries(
+    db_session: AsyncSession, tmp_path: Path
+) -> None:
+    await _create_product(db_session, status="running", attempt=2, max_retries=2)
+    service = PlotTaskService(_builder(tmp_path))
+    service.max_retries = 99
+
+    product = await service.complete_task(db_session, "review-1", "failed")
+
+    assert product is not None
+    assert product.plot_status == "permanently_failed"
+
+
 async def test_recover_stale_tasks(db_session: AsyncSession, tmp_path: Path) -> None:
     await _create_product(
         db_session,
@@ -335,6 +371,32 @@ async def test_recover_stale_tasks(db_session: AsyncSession, tmp_path: Path) -> 
     assert product is not None
     assert product.plot_status == "failed"
     assert product.locked_by is None
+    assert product.next_retry_at is not None
+    retry_at = product.next_retry_at
+    if retry_at.tzinfo is None:
+        retry_at = retry_at.replace(tzinfo=UTC)
+    assert retry_at <= datetime.now(UTC)
+
+
+async def test_recover_stale_tasks_uses_task_max_retries(
+    db_session: AsyncSession, tmp_path: Path
+) -> None:
+    await _create_product(
+        db_session,
+        status="running",
+        attempt=2,
+        max_retries=2,
+        locked_by="worker",
+        locked_at=datetime.now(UTC) - timedelta(seconds=600),
+    )
+    service = PlotTaskService(_builder(tmp_path))
+    service.max_retries = 99
+
+    await service.recover_stale_tasks(db_session)
+    product = await review_product_repo.get_by_id(db_session, "review-1")
+
+    assert product is not None
+    assert product.plot_status == "permanently_failed"
 
 
 async def test_recover_retryable_failed_tasks(
@@ -370,6 +432,50 @@ async def test_execute_task_happy_path(
     assert product.plot_status == "success"
     assert product.image_path is not None
     assert Path(product.image_path).exists()
+
+
+async def test_execute_task_derives_output_paths_from_path_builder(
+    db_session: AsyncSession, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    builder = _builder(tmp_path)
+    payload = _payload(builder, "review-1")
+    bad_dir = tmp_path / "payload-controlled"
+    payload["output"]["review_root"] = str(bad_dir)
+    payload["output"]["images_dir"] = str(bad_dir / "images")
+    payload["output"]["composite_image_path"] = str(bad_dir / "composite.png")
+    payload["output"]["plot_log_path"] = str(bad_dir / "plot_log.txt")
+    builder.review_payload_path(WINDOW_ID, "review-1").write_text(
+        json.dumps(payload, ensure_ascii=False), encoding="utf-8"
+    )
+    await _create_product(db_session, status="running", attempt=1)
+    _patch_plotters(monkeypatch)
+    service = PlotTaskService(builder)
+
+    product = await service.execute_task(db_session, "review-1")
+
+    expected_image = builder.review_images_dir(WINDOW_ID, "review-1") / "composite.png"
+    assert product is not None
+    assert product.plot_status == "success"
+    assert product.image_path == str(expected_image)
+    assert expected_image.exists()
+    assert not bad_dir.exists()
+
+
+async def test_execute_task_missing_optional_wind_still_plots_circulation(
+    db_session: AsyncSession, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    builder = _builder(tmp_path)
+    _payload(builder, "review-1", include_wind=False)
+    await _create_product(db_session, status="running", attempt=1)
+    _patch_plotters(monkeypatch)
+    service = PlotTaskService(builder)
+
+    product = await service.execute_task(db_session, "review-1")
+
+    assert product is not None
+    assert product.plot_status == "success"
+    assert product.success_panels == 3
+    assert product.skipped_panels == 0
 
 
 async def test_execute_task_missing_optional_partial_success(
