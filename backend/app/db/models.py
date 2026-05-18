@@ -239,7 +239,7 @@ class ReviewField(Base):
     valid_time = Column(DateTime, nullable=True)
     unit = Column(String(16), nullable=True)
     file_path = Column(String(512), nullable=False)
-    created_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
 
 
 class ReviewProduct(Base):

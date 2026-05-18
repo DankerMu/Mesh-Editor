@@ -227,7 +227,13 @@ def test_m5_migration_v008_creates_review_tables(tmp_path: Path) -> None:
         "created_at",
     }
     assert field_columns["field_id"]["primary_key"] == 1
-    for column_name in ["window_id", "source_model", "variable_name", "file_path"]:
+    for column_name in [
+        "window_id",
+        "source_model",
+        "variable_name",
+        "file_path",
+        "created_at",
+    ]:
         assert field_columns[column_name]["nullable"] is False
 
     assert set(product_columns) == {
@@ -479,6 +485,33 @@ async def test_review_product_repo_claim_task_respects_max_concurrent(
     )
 
 
+async def test_review_product_repo_claim_task_skips_future_retry(
+    db_session: AsyncSession,
+) -> None:
+    await _create_versions(db_session)
+    await review_product_repo.create(
+        db_session,
+        **_review_product_kwargs(
+            index=1,
+            next_retry_at=datetime.now(UTC) + timedelta(hours=1),
+        ),
+    )
+    await review_product_repo.create(
+        db_session,
+        **_review_product_kwargs(
+            index=2,
+            review_id="review-ready",
+            version_id=f"{WINDOW_ID}_v002",
+            next_retry_at=None,
+        ),
+    )
+
+    claimed = await review_product_repo.claim_task(db_session, "worker-1")
+
+    assert claimed is not None
+    assert claimed.review_id == "review-ready"
+
+
 async def test_review_product_repo_count_running(
     db_session: AsyncSession,
 ) -> None:
@@ -616,3 +649,5 @@ def test_review_schema_validation() -> None:
 def test_review_error_code_registration() -> None:
     assert "REVIEW_NOT_READY" in ERROR_CODES
     assert get_error("REVIEW_NOT_READY") == ("复盘产品尚未就绪", 409)
+    assert "TEMPLATE_NOT_FOUND" in ERROR_CODES
+    assert get_error("TEMPLATE_NOT_FOUND") == ("复盘模板不存在", 404)

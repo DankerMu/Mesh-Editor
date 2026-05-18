@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import EditVersion, ProductWindow, ReviewProduct
@@ -63,7 +63,7 @@ class ReviewProductRepository:
             )
             .join(EditVersion, ReviewProduct.version_id == EditVersion.version_id)
             .where(ReviewProduct.window_id == window_id)
-            .order_by(ReviewProduct.created_at.desc())
+            .order_by(EditVersion.version_no.desc(), ReviewProduct.created_at.desc())
         )
         products: list[ReviewProduct] = []
         for product, version_no, version_status, created_by, version_created_at in (
@@ -119,27 +119,49 @@ class ReviewProductRepository:
         if await self.count_running(db) >= max_concurrent:
             return None
 
-        result = await db.execute(
-            select(ReviewProduct)
+        now = datetime.now(UTC)
+        eligible_review_id = (
+            select(ReviewProduct.review_id)
             .where(
                 ReviewProduct.plot_status == "pending",
                 ReviewProduct.locked_by.is_(None),
+                or_(
+                    ReviewProduct.next_retry_at.is_(None),
+                    ReviewProduct.next_retry_at <= now,
+                ),
             )
             .order_by(ReviewProduct.created_at)
             .limit(1)
+            .scalar_subquery()
         )
-        product = result.scalars().first()
-        if product is None:
+        result = await db.execute(
+            update(ReviewProduct)
+            .where(
+                ReviewProduct.review_id == eligible_review_id,
+                ReviewProduct.plot_status == "pending",
+                ReviewProduct.locked_by.is_(None),
+            )
+            .values(
+                plot_status="running",
+                locked_by=worker_id,
+                locked_at=now,
+                attempt=ReviewProduct.attempt + 1,
+            )
+        )
+        if result.rowcount == 0:
             return None
 
-        product.plot_status = "running"  # type: ignore[assignment]
-        product.locked_by = worker_id  # type: ignore[assignment]
-        product.locked_at = datetime.now(UTC)  # type: ignore[assignment]
-        product.attempt = int(product.attempt or 0) + 1  # type: ignore[assignment]
-        db.add(product)
         await db.flush()
-        await db.refresh(product)
-        return product
+        claimed = await db.execute(
+            select(ReviewProduct)
+            .where(
+                ReviewProduct.locked_by == worker_id,
+                ReviewProduct.plot_status == "running",
+            )
+            .order_by(ReviewProduct.locked_at.desc())
+            .limit(1)
+        )
+        return claimed.scalars().first()
 
     async def count_running(self, db: AsyncSession) -> int:
         result = await db.execute(

@@ -72,7 +72,7 @@ ERROR_INFO: dict[str, ErrorInfo] = {
     ),
     "REVIEW_NOT_FOUND": ErrorInfo("复盘产品未找到", 404),
     "REVIEW_NOT_READY": ErrorInfo("复盘产品尚未就绪", 409),
-    "TEMPLATE_NOT_FOUND": ErrorInfo("模板未找到", 404),
+    "TEMPLATE_NOT_FOUND": ErrorInfo("复盘模板不存在", 404),
     "TEMPLATE_VALIDATION_FAILED": ErrorInfo("模板配置非法", 422),
     "PLOT_TASK_NOT_FOUND": ErrorInfo("绘图任务未找到", 404),
     "PLOT_TASK_TIMEOUT": ErrorInfo("绘图超时", 500),

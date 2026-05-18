@@ -30,7 +30,9 @@ def upgrade() -> None:
         sa.Column("valid_time", sa.DateTime(), nullable=True),
         sa.Column("unit", sa.String(length=16), nullable=True),
         sa.Column("file_path", sa.String(length=512), nullable=False),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()
+        ),
         sa.ForeignKeyConstraint(["window_id"], ["product_window.window_id"]),
     )
     op.create_index(
