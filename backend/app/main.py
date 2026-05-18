@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse, Response
 from starlette.middleware.gzip import GZipMiddleware
 
 from app.api.dependencies import get_current_user
+from app.api.routes.audit import router as audit_router
 from app.api.routes.auth import protected_router as auth_router
 from app.api.routes.auth import public_router as auth_public_router
 from app.api.routes.data_scan import router as data_scan_router
@@ -17,6 +18,7 @@ from app.api.routes.reviews import list_router as reviews_list_router
 from app.api.routes.reviews import router as review_router
 from app.api.routes.session import router as session_router
 from app.api.routes.session import window_router as session_window_router
+from app.api.routes.users import router as users_router
 from app.api.routes.versions import list_router as version_list_router
 from app.api.routes.versions import router as version_router
 from app.api.routes.windows import router as windows_router
@@ -121,6 +123,8 @@ api_router.include_router(version_list_router)
 api_router.include_router(review_router)
 api_router.include_router(reviews_list_router)
 api_router.include_router(windows_router)
+api_router.include_router(users_router)
+api_router.include_router(audit_router)
 
 app.include_router(public_api_router)
 app.include_router(api_router)

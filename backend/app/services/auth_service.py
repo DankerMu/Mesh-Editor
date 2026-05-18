@@ -1,4 +1,5 @@
 import json
+from datetime import UTC, datetime
 from typing import Any
 
 from passlib.context import CryptContext  # type: ignore[import-untyped]
@@ -72,6 +73,8 @@ class AuthService:
                 code="USER_DISABLED", message="用户已被禁用", http_status=403
             )
 
+        user.last_login_at = datetime.now(UTC)  # type: ignore[assignment]
+        db.add(user)
         await self._write_login_audit(
             db,
             username=username,

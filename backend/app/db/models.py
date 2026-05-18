@@ -29,6 +29,7 @@ class AppUser(Base):
     is_active = Column(Boolean, nullable=False, server_default=func.true())
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    last_login_at = Column(DateTime, nullable=True)
 
 
 class AuditLog(Base):
@@ -46,6 +47,22 @@ class AuditLog(Base):
     detail_json = Column(Text, nullable=True)
     ip_address = Column(String(45), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
+
+
+class ConfigSnapshot(Base):
+    __tablename__ = "config_snapshot"
+    __table_args__ = (
+        CheckConstraint(
+            "config_type IN ('product_config', 'plot_config', 'template_config')",
+            name="ck_config_snapshot_type",
+        ),
+    )
+
+    snapshot_id = Column(String, primary_key=True)
+    config_type = Column(String, nullable=False)
+    config_json = Column(Text, nullable=False)
+    changed_by = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
 
 
 class ForecastCase(Base):
