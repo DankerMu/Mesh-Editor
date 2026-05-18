@@ -385,8 +385,8 @@ button {
 
 .app-header__brand {
   flex: 0 0 auto;
-  font-size: var(--font-size-title);
-  line-height: var(--line-height-title);
+  font-size: var(--font-size-title-lg);
+  line-height: var(--line-height-title-lg);
   font-weight: 600;
 }
 
