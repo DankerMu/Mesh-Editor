@@ -135,9 +135,11 @@ export async function getVersionDetail(versionId: string): Promise<VersionDetail
 export async function getVersionField(
   versionId: string,
   fieldName: VersionFieldName,
+  signal?: AbortSignal,
 ): Promise<ArrayBuffer> {
   const { data } = await http.get<ArrayBuffer>(`/version/${versionId}/field/${fieldName}`, {
     responseType: 'arraybuffer',
+    signal,
   })
   return data
 }

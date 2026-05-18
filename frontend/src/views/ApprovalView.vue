@@ -1,19 +1,26 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import type Map from 'ol/Map'
+import { MessagePlugin } from 'tdesign-vue-next'
+import VersionFieldMap from '@/components/approval/VersionFieldMap.vue'
+import { useLinkedMaps } from '@/composables/useLinkedMaps'
 import { useAuthStore } from '@/stores/authStore'
 import { useVersionStore } from '@/stores/versionStore'
 import { useWindowStore } from '@/stores/windowStore'
-import type { VersionDetail, VersionListItem } from '@/api/version'
+import type { VersionDetail, VersionFieldName, VersionListItem } from '@/api/version'
 
 const versionStore = useVersionStore()
 const windowStore = useWindowStore()
 const authStore = useAuthStore()
 
-const activeStatus = ref('')
+const activeStatus = ref('submitted')
+const activeDerivedField = ref<VersionFieldName | ''>('')
 const rejectDialogVisible = ref(false)
 const releaseDialogVisible = ref(false)
 const rejectComment = ref('')
 const rejectError = ref('')
+const previewImage = ref<{ src: string; label: string } | null>(null)
+const linkedMaps = useLinkedMaps()
 
 const statusTabs = [
   { value: '', label: '全部' },
@@ -41,12 +48,26 @@ const imageItems: Array<{ key: string; label: string }> = [
   { key: 'changed_mask', label: '改变范围' },
 ]
 
+const derivedFieldItems: Array<{ fieldName: VersionFieldName; label: string }> = [
+  { fieldName: 'delta_qpf', label: '降水差值' },
+  { fieldName: 'change_ptype', label: '相态变化' },
+  { fieldName: 'touched_mask', label: '触达范围' },
+  { fieldName: 'changed_mask', label: '改变范围' },
+]
+
 const canOperate = computed(() => ['admin', 'reviewer'].includes(authStore.role ?? ''))
 const selectedVersion = computed(() => versionStore.currentVersion)
 const selectedVersionId = computed(() => selectedVersion.value?.version_id ?? null)
 const selectedStatus = computed(() => selectedVersion.value?.status ?? '')
 const showReviewActions = computed(() => canOperate.value && selectedStatus.value === 'submitted')
 const showReleaseAction = computed(() => canOperate.value && selectedStatus.value === 'approved')
+const hasFieldUrls = computed(() => Boolean(Object.keys(selectedVersion.value?.field_urls ?? {}).length))
+const hasComparisonFields = computed(() =>
+  hasFields(['qpf_before', 'ptype_before', 'qpf_after', 'ptype_after']),
+)
+const visibleDerivedFields = computed(() =>
+  derivedFieldItems.filter((item) => Boolean(selectedVersion.value?.field_urls?.[item.fieldName])),
+)
 
 const windowOptions = computed(() =>
   windowStore.windows.map((window) => ({
@@ -69,6 +90,33 @@ function formatDate(value: string) {
 
 function imageSrc(detail: VersionDetail, key: string) {
   return detail.image_paths?.[key] ?? null
+}
+
+function hasFields(fieldNames: VersionFieldName[]) {
+  const urls = selectedVersion.value?.field_urls
+  return Boolean(urls && fieldNames.every((fieldName) => urls[fieldName]))
+}
+
+function registerLinkedMap(map: Map) {
+  linkedMaps.registerMap(map)
+}
+
+function openImagePreview(src: string | null, label: string) {
+  if (!src) {
+    return
+  }
+
+  previewImage.value = { src, label }
+}
+
+function closeImagePreview() {
+  previewImage.value = null
+}
+
+function onPreviewKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    closeImagePreview()
+  }
 }
 
 async function applyFilters(status = activeStatus.value) {
@@ -102,7 +150,12 @@ async function approveSelected() {
     return
   }
 
-  await versionStore.reviewVersion(selectedVersionId.value, 'approve')
+  try {
+    await versionStore.reviewVersion(selectedVersionId.value, 'approve')
+    MessagePlugin.success('审核通过')
+  } catch {
+    // versionStore exposes the error message for the page banner.
+  }
 }
 
 function openRejectDialog() {
@@ -118,12 +171,17 @@ async function confirmReject() {
 
   const comment = rejectComment.value.trim()
   if (!comment) {
-    rejectError.value = '请填写退回意见'
+    rejectError.value = '退回必须填写审核意见'
     return
   }
 
-  await versionStore.reviewVersion(selectedVersionId.value, 'reject', comment)
-  rejectDialogVisible.value = false
+  try {
+    await versionStore.reviewVersion(selectedVersionId.value, 'reject', comment)
+    MessagePlugin.success('已退回')
+    rejectDialogVisible.value = false
+  } catch {
+    // versionStore exposes the error message for the page banner.
+  }
 }
 
 function openReleaseDialog() {
@@ -135,12 +193,36 @@ async function confirmRelease() {
     return
   }
 
-  await versionStore.releaseVersion(selectedVersionId.value)
-  releaseDialogVisible.value = false
+  try {
+    await versionStore.releaseVersion(selectedVersionId.value)
+    MessagePlugin.success('发布成功')
+    releaseDialogVisible.value = false
+  } catch {
+    // versionStore exposes the error message for the page banner.
+  }
 }
 
 onMounted(async () => {
-  await versionStore.fetchVersions()
+  window.addEventListener('keydown', onPreviewKeydown)
+  await versionStore.fetchVersions({ status: 'submitted' })
+})
+
+watch(selectedVersionId, () => {
+  linkedMaps.cleanup()
+  closeImagePreview()
+})
+
+watch(
+  selectedVersion,
+  () => {
+    activeDerivedField.value = visibleDerivedFields.value[0]?.fieldName ?? ''
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => {
+  linkedMaps.cleanup()
+  window.removeEventListener('keydown', onPreviewKeydown)
 })
 </script>
 
@@ -218,15 +300,73 @@ onMounted(async () => {
         </t-descriptions>
 
         <section class="approval-detail__section">
+          <h2>地图对比</h2>
+          <div v-if="!hasFieldUrls" class="approval-detail__field-empty" data-test="field-data-empty">
+            字段数据不可用
+          </div>
+          <template v-else>
+            <div v-if="hasComparisonFields" class="approval-detail__comparison" data-test="field-map-comparison">
+              <article class="approval-detail__map-card">
+                <h3>订正前</h3>
+                <VersionFieldMap
+                  :key="`${selectedVersion.version_id}-before`"
+                  :version-id="selectedVersion.version_id"
+                  :field-names="{ qpf: 'qpf_before', ptype: 'ptype_before' }"
+                  data-test="version-field-map-before"
+                  @map-ready="registerLinkedMap"
+                />
+              </article>
+              <article class="approval-detail__map-card">
+                <h3>订正后</h3>
+                <VersionFieldMap
+                  :key="`${selectedVersion.version_id}-after`"
+                  :version-id="selectedVersion.version_id"
+                  :field-names="{ qpf: 'qpf_after', ptype: 'ptype_after' }"
+                  data-test="version-field-map-after"
+                  @map-ready="registerLinkedMap"
+                />
+              </article>
+            </div>
+            <div v-else class="approval-detail__field-empty" data-test="field-comparison-empty">
+              字段数据不可用
+            </div>
+
+            <t-tabs
+              v-if="visibleDerivedFields.length > 0"
+              v-model="activeDerivedField"
+              class="approval-detail__field-tabs"
+            >
+              <t-tab-panel
+                v-for="item in visibleDerivedFields"
+                :key="item.fieldName"
+                :value="item.fieldName"
+                :label="item.label"
+              >
+                <VersionFieldMap
+                  :key="`${selectedVersion.version_id}-${item.fieldName}`"
+                  :version-id="selectedVersion.version_id"
+                  :field-name="item.fieldName"
+                  :data-test="`version-field-map-${item.fieldName}`"
+                />
+              </t-tab-panel>
+            </t-tabs>
+          </template>
+        </section>
+
+        <section class="approval-detail__section">
           <h2>审核图像</h2>
           <div class="approval-detail__images">
             <article v-for="item in imageItems" :key="item.key" class="approval-detail__image-card">
               <h3>{{ item.label }}</h3>
-              <t-image
+              <button
                 v-if="imageSrc(selectedVersion, item.key)"
-                :src="imageSrc(selectedVersion, item.key)"
-                fit="contain"
-              />
+                class="approval-detail__image-button"
+                type="button"
+                :data-test="`image-thumb-${item.key}`"
+                @click="openImagePreview(imageSrc(selectedVersion, item.key), item.label)"
+              >
+                <t-image :src="imageSrc(selectedVersion, item.key)" fit="contain" />
+              </button>
               <div v-else class="approval-detail__image-empty">图片未生成</div>
             </article>
           </div>
@@ -296,6 +436,23 @@ onMounted(async () => {
         <t-button theme="primary" data-test="release-confirm" @click="confirmRelease">确认发布</t-button>
       </template>
     </t-dialog>
+
+    <div
+      v-if="previewImage"
+      class="approval-preview"
+      data-test="image-preview"
+      role="dialog"
+      aria-modal="true"
+      @click.self="closeImagePreview"
+    >
+      <button class="approval-preview__close" type="button" data-test="image-preview-close" @click="closeImagePreview">
+        关闭
+      </button>
+      <figure class="approval-preview__figure">
+        <img :src="previewImage.src" :alt="previewImage.label" data-test="image-preview-img">
+        <figcaption>{{ previewImage.label }}</figcaption>
+      </figure>
+    </div>
   </t-layout>
 </template>
 
@@ -407,9 +564,43 @@ onMounted(async () => {
   line-height: 24px;
 }
 
+.approval-detail__comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.approval-detail__map-card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.approval-detail__map-card h3 {
+  margin: 0;
+  color: #4e5969;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.approval-detail__field-tabs {
+  margin-top: 12px;
+}
+
+.approval-detail__field-empty {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+  border: 1px dashed #c9cdd4;
+  border-radius: 8px;
+  background: #f7f8fa;
+  color: #86909c;
+  font-size: 14px;
+}
+
 .approval-detail__images {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -423,6 +614,24 @@ onMounted(async () => {
   margin: 0 0 8px;
   font-size: 14px;
   line-height: 22px;
+}
+
+.approval-detail__image-button {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 0;
+  border-radius: 4px;
+  background: #f7f8fa;
+  padding: 0;
+  cursor: pointer;
+}
+
+.approval-detail__image-button :deep(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .approval-detail__image-empty {
@@ -451,5 +660,43 @@ onMounted(async () => {
 .approval-view__dialog-error {
   margin: 8px 0 0;
   font-size: 13px;
+}
+
+.approval-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.82);
+  padding: 32px;
+}
+
+.approval-preview__close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.48);
+  padding: 6px 12px;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.approval-preview__figure {
+  display: grid;
+  gap: 10px;
+  max-width: min(1120px, 92vw);
+  max-height: 88vh;
+  margin: 0;
+  color: #ffffff;
+  text-align: center;
+}
+
+.approval-preview__figure img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
 }
 </style>
