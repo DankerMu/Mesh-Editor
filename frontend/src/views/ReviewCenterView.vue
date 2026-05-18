@@ -21,7 +21,7 @@ const statusOptions = [
 
 const statusMeta: Record<string, { label: string; theme: string }> = {
   pending: { label: '等待中', theme: 'warning' },
-  running: { label: '生成中', theme: 'processing' },
+  running: { label: '生成中', theme: 'primary' },
   success: { label: '成功', theme: 'success' },
   partial_success: { label: '部分成功', theme: 'warning' },
   failed: { label: '失败', theme: 'danger' },
@@ -142,6 +142,8 @@ async function regenerateSelected() {
     })
     MessagePlugin.success('已提交重新生成任务')
     selectedReviewId.value = response.review_id
+    await reviewStore.fetchReviewDetail(response.review_id)
+    reviewStore.startPolling(response.review_id)
   } catch {
     // reviewStore exposes the error message for the page banner.
   }

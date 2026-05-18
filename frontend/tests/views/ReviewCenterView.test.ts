@@ -95,7 +95,7 @@ function mountReviewCenter(current: ReviewProductDetail | null = makeDetail(SUCC
       (item) => item.review_id === reviewId,
     )
     reviewStore.currentReview = review ? makeDetail(review) : null
-    return reviewStore.currentReview
+    return reviewStore.currentReview as ReviewProductDetail
   })
   vi.spyOn(reviewStore, 'generateReview').mockResolvedValue({
     review_id: 'review-new',
