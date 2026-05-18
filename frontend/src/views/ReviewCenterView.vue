@@ -267,6 +267,9 @@ onBeforeUnmount(() => {
     </t-aside>
 
     <t-content class="review-center__center">
+      <div v-if="reviewStore.error" class="review-center__error" data-test="review-error">
+        {{ reviewStore.error }}
+      </div>
       <template v-if="currentReview">
         <t-card title="复盘合成图" bordered>
           <button
@@ -290,10 +293,6 @@ onBeforeUnmount(() => {
     </t-content>
 
     <t-aside class="review-center__right">
-      <div v-if="reviewStore.error" class="review-center__error" data-test="review-error">
-        {{ reviewStore.error }}
-      </div>
-
       <template v-if="currentReview">
         <section class="review-detail" data-test="review-detail">
           <header class="review-detail__header">
@@ -391,20 +390,20 @@ onBeforeUnmount(() => {
       </template>
     </t-aside>
 
-    <div
-      v-if="previewImage"
-      class="review-preview"
-      data-test="review-preview"
-      role="dialog"
-      aria-modal="true"
-      @click.self="closePreview"
-    >
-      <button class="review-preview__close" type="button" data-test="review-preview-close" @click="closePreview">
-        关闭
-      </button>
-      <img :src="previewImage" alt="复盘合成图" data-test="review-preview-img">
-    </div>
   </t-layout>
+  <div
+    v-if="previewImage"
+    class="review-preview"
+    data-test="review-preview"
+    role="dialog"
+    aria-modal="true"
+    @click.self="closePreview"
+  >
+    <button class="review-preview__close" type="button" data-test="review-preview-close" @click="closePreview">
+      关闭
+    </button>
+    <img :src="previewImage" alt="复盘合成图" data-test="review-preview-img">
+  </div>
 </template>
 
 <style scoped>
