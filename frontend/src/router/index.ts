@@ -49,6 +49,48 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/ReviewCenterView.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/analysis/operations',
+    name: 'analysis-operations',
+    component: () => import('@/views/StatsView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/admin/users',
+    name: 'admin-users',
+    component: () => import('@/views/admin/UserManagementView.vue'),
+    meta: { roles: ['admin'] },
+  },
+  {
+    path: '/admin/config',
+    name: 'admin-config',
+    component: () => import('@/views/admin/ConfigManagementView.vue'),
+    meta: { roles: ['admin'] },
+  },
+  {
+    path: '/admin/templates',
+    name: 'admin-templates',
+    component: () => import('@/views/admin/TemplateManagementView.vue'),
+    meta: { roles: ['admin'] },
+  },
+  {
+    path: '/admin/tasks',
+    name: 'admin-tasks',
+    component: () => import('@/views/admin/TaskMonitorView.vue'),
+    meta: { roles: ['admin'] },
+  },
+  {
+    path: '/admin/storage',
+    name: 'admin-storage',
+    component: () => import('@/views/admin/StorageMonitorView.vue'),
+    meta: { roles: ['admin'] },
+  },
+  {
+    path: '/admin/audit',
+    name: 'admin-audit',
+    component: () => import('@/views/admin/AuditLogView.vue'),
+    meta: { requiresAuth: true },
+  },
 ]
 
 export function createAppRouter() {
