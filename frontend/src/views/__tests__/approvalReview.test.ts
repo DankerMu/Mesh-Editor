@@ -243,6 +243,7 @@ describe('ApprovalView', () => {
   describe('left panel content', () => {
     it('renders version list in left panel', async () => {
       const { versionStore } = mountApprovalWithRole('reviewer')
+      await flushPromises()
       versionStore.versions = [makeVersionListItem()]
       await flushPromises()
       const left = q('.approval-view__left')
@@ -421,6 +422,15 @@ describe('ApprovalView', () => {
       expect(historyEmpty).toBeTruthy()
       expect(historyEmpty?.textContent).toContain('暂无审核记录')
     })
+
+    it('uses t-empty for empty version list', async () => {
+      const { versionStore } = mountApprovalWithRole('reviewer')
+      versionStore.versions = []
+      await flushPromises()
+      const emptyList = q('[data-test="version-list-empty"]')
+      expect(emptyList).toBeTruthy()
+      expect(emptyList?.textContent).toContain('当前筛选条件下暂无版本')
+    })
   })
 })
 
@@ -480,7 +490,7 @@ describe('ReviewCenterView', () => {
     })
   })
 
-  /* ---------- Center panel: 2x2 image grid ---------- */
+  /* ---------- Center panel: composite image + click-to-zoom ---------- */
 
   describe('center panel content', () => {
     it('shows t-empty when no review selected', () => {
@@ -490,28 +500,54 @@ describe('ReviewCenterView', () => {
       expect(empty?.textContent).toContain('请选择左侧复盘任务')
     })
 
-    it('renders 2x2 image grid with 4 cells when review selected', async () => {
-      const { reviewStore } = mountReviewWithStore()
-      reviewStore.currentReview = makeReviewDetail()
-      await flushPromises()
-      const grid = q('[data-test="review-image-grid"]')
-      expect(grid).toBeTruthy()
-      expect(grid?.querySelectorAll('.review-center__image-cell').length).toBe(4)
-    })
-
-    it('image grid shows placeholder for missing images', async () => {
-      const { reviewStore } = mountReviewWithStore()
-      reviewStore.currentReview = makeReviewDetail()
-      await flushPromises()
-      const grid = q('[data-test="review-image-grid"]')
-      expect(grid?.textContent).toContain('图片未生成')
-    })
-
-    it('renders composite image in center', async () => {
+    it('renders composite image as clickable button when image_path exists', async () => {
       const { reviewStore } = mountReviewWithStore()
       reviewStore.currentReview = makeReviewDetail({ image_path: '/img/comp.png' })
       await flushPromises()
-      expect(q('[data-test="review-image"]')).toBeTruthy()
+      const btn = q('[data-test="review-image"]') as HTMLButtonElement
+      expect(btn).toBeTruthy()
+      expect(btn.tagName).toBe('BUTTON')
+    })
+
+    it('shows empty state when composite image not available', async () => {
+      const { reviewStore } = mountReviewWithStore()
+      reviewStore.currentReview = makeReviewDetail({ image_path: null })
+      await flushPromises()
+      expect(q('[data-test="image-empty"]')).toBeTruthy()
+    })
+
+    it('click-to-zoom opens preview overlay', async () => {
+      const { reviewStore } = mountReviewWithStore()
+      reviewStore.currentReview = makeReviewDetail({ image_path: '/img/comp.png' })
+      await flushPromises()
+
+      expect(q('[data-test="review-preview"]')).toBeNull()
+
+      const btn = q('[data-test="review-image"]') as HTMLButtonElement
+      btn.click()
+      await flushPromises()
+
+      const preview = q('[data-test="review-preview"]')
+      expect(preview).toBeTruthy()
+      const img = q('[data-test="review-preview-img"]') as HTMLImageElement
+      expect(img).toBeTruthy()
+      expect(img.src).toContain('/img/comp.png')
+    })
+
+    it('click-to-zoom close button dismisses preview', async () => {
+      const { reviewStore } = mountReviewWithStore()
+      reviewStore.currentReview = makeReviewDetail({ image_path: '/img/comp.png' })
+      await flushPromises()
+
+      const btn = q('[data-test="review-image"]') as HTMLButtonElement
+      btn.click()
+      await flushPromises()
+      expect(q('[data-test="review-preview"]')).toBeTruthy()
+
+      const closeBtn = q('[data-test="review-preview-close"]') as HTMLButtonElement
+      closeBtn.click()
+      await flushPromises()
+      expect(q('[data-test="review-preview"]')).toBeNull()
     })
   })
 

@@ -36,12 +36,7 @@ const reasonLabels: Record<string, string> = {
   dimension_mismatch: '维度不匹配',
 }
 
-const reviewImageKeys: Array<{ key: string; label: string }> = [
-  { key: 'before_product', label: '订正前产品' },
-  { key: 'after_product', label: '订正后产品' },
-  { key: 'delta_qpf', label: '降水差值' },
-  { key: 'change_ptype', label: '相态变化' },
-]
+const previewImage = ref<string | null>(null)
 
 const currentReview = computed(() => reviewStore.currentReview)
 const canRegenerate = computed(() =>
@@ -50,16 +45,6 @@ const canRegenerate = computed(() =>
 const canExport = computed(() =>
   ['success', 'partial_success'].includes(String(currentReview.value?.plot_status ?? '')),
 )
-
-const reviewImages = computed(() => {
-  const detail = currentReview.value as (ReviewProductDetail & { image_paths?: Record<string, string | null> }) | null
-  const paths = detail?.image_paths
-  return reviewImageKeys.map((item) => ({
-    key: item.key,
-    label: item.label,
-    src: paths?.[item.key] ?? null,
-  }))
-})
 
 const caseOptions = computed(() => makeOptions(reviewStore.reviews.map((review) => caseIdFromWindow(review.window_id))))
 const windowOptions = computed(() => makeOptions(reviewStore.reviews.map((review) => review.window_id)))
@@ -135,6 +120,18 @@ function parseMissingFields(value: ReviewProductDetail['missing_fields_json']): 
   }
 }
 
+function openPreview(src: string | null) {
+  if (src) previewImage.value = src
+}
+
+function closePreview() {
+  previewImage.value = null
+}
+
+function onPreviewKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') closePreview()
+}
+
 function updateFilter(key: 'case_id' | 'window_id' | 'plot_status', value: string | undefined) {
   reviewStore.setFilter(key, value)
   void reviewStore.fetchReviews()
@@ -191,6 +188,7 @@ function syncPolling() {
 }
 
 onMounted(async () => {
+  window.addEventListener('keydown', onPreviewKeydown)
   await reviewStore.fetchReviews()
 })
 
@@ -203,6 +201,7 @@ watch(
 
 onBeforeUnmount(() => {
   reviewStore.stopPolling()
+  window.removeEventListener('keydown', onPreviewKeydown)
 })
 </script>
 
@@ -270,23 +269,21 @@ onBeforeUnmount(() => {
     <t-content class="review-center__center">
       <template v-if="currentReview">
         <t-card title="复盘合成图" bordered>
-          <t-image
+          <button
             v-if="currentReview.image_path"
-            class="review-detail__image"
-            :src="currentReview.image_path"
-            fit="contain"
+            class="review-center__image-button"
+            type="button"
             data-test="review-image"
-          />
+            @click="openPreview(currentReview.image_path)"
+          >
+            <t-image
+              class="review-detail__image"
+              :src="currentReview.image_path"
+              fit="contain"
+            />
+          </button>
           <t-empty v-else description="复盘图尚未生成" data-test="image-empty" />
         </t-card>
-
-        <div class="review-center__image-grid" data-test="review-image-grid">
-          <div v-for="img in reviewImages" :key="img.key" class="review-center__image-cell">
-            <h3>{{ img.label }}</h3>
-            <t-image v-if="img.src" :src="img.src" fit="contain" />
-            <t-empty v-else description="图片未生成" />
-          </div>
-        </div>
       </template>
 
       <t-empty v-else description="请选择左侧复盘任务" data-test="empty-detail" />
@@ -393,6 +390,20 @@ onBeforeUnmount(() => {
         </section>
       </template>
     </t-aside>
+
+    <div
+      v-if="previewImage"
+      class="review-preview"
+      data-test="review-preview"
+      role="dialog"
+      aria-modal="true"
+      @click.self="closePreview"
+    >
+      <button class="review-preview__close" type="button" data-test="review-preview-close" @click="closePreview">
+        关闭
+      </button>
+      <img :src="previewImage" alt="复盘合成图" data-test="review-preview-img">
+    </div>
   </t-layout>
 </template>
 
@@ -432,28 +443,13 @@ onBeforeUnmount(() => {
   overflow: auto;
 }
 
-.review-center__image-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.review-center__image-cell {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  padding: 10px;
-}
-
-.review-center__image-cell h3 {
-  margin: 0 0 8px;
-  font-size: 14px;
-  line-height: 22px;
-}
-
-.review-center__image-cell :deep(img) {
+.review-center__image-button {
+  display: block;
   width: 100%;
-  max-height: 280px;
-  object-fit: contain;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
 }
 
 .review-center__filters {
@@ -621,5 +617,33 @@ onBeforeUnmount(() => {
   color: var(--color-primary);
   font-size: 14px;
   word-break: break-all;
+}
+
+.review-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.82);
+  padding: 32px;
+}
+
+.review-preview__close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.48);
+  padding: 6px 12px;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.review-preview img {
+  max-width: min(1120px, 92vw);
+  max-height: 88vh;
+  object-fit: contain;
 }
 </style>

@@ -250,7 +250,7 @@ onBeforeUnmount(() => {
         />
       </div>
 
-      <t-list class="approval-view__list" data-test="version-list">
+      <t-list v-if="versionStore.versions.length > 0" class="approval-view__list" data-test="version-list">
         <t-list-item
           v-for="version in versionStore.versions"
           :key="version.version_id"
@@ -268,6 +268,7 @@ onBeforeUnmount(() => {
           </button>
         </t-list-item>
       </t-list>
+      <t-empty v-else description="当前筛选条件下暂无版本" data-test="version-list-empty" />
     </t-aside>
 
     <t-content class="approval-view__center">
