@@ -246,6 +246,46 @@ def test_preview_valid_polygon_qpf_increase_returns_stats(
     assert data["op_ptype_transition"]["1_to_1"] > 0
 
 
+def test_preview_valid_lasso_qpf_increase_returns_stats(
+    edit_api_client: EditApiClient,
+) -> None:
+    session_id = _start_session(edit_api_client.client)
+    payload = {
+        "session_id": session_id,
+        "tool": "lasso",
+        "variable": "qpf",
+        "operation": "increase",
+        "mask": {
+            "coordinates": [
+                [80.0, 35.0],
+                [80.05, 35.0],
+                [80.1, 35.01],
+                [80.15, 35.03],
+                [80.2, 35.07],
+                [80.22, 35.12],
+                [80.21, 35.18],
+                [80.17, 35.22],
+                [80.1, 35.24],
+                [80.03, 35.23],
+                [79.98, 35.2],
+                [79.95, 35.15],
+                [79.94, 35.08],
+                [79.96, 35.03],
+                [80.0, 35.0],
+            ]
+        },
+        "parameters": {"delta_mm": 2.0},
+    }
+
+    data = _preview(edit_api_client.client, session_id, payload)
+
+    assert data["preview_id"]
+    assert data["affected_grid_count"] > 0
+    assert data["affected_area_km2"] > 0
+    assert data["after_stats"]["mean"] > data["before_stats"]["mean"]
+    assert data["op_ptype_transition"]["1_to_1"] > 0
+
+
 def test_apply_updates_session_state_and_is_bit_exact_with_preview(
     edit_api_client: EditApiClient,
 ) -> None:

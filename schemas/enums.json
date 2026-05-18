@@ -9,10 +9,10 @@
   "plot_status": ["pending", "running", "success", "partial_success", "failed", "permanently_failed"],
   "scan_type": ["manual", "scheduled", "startup"],
   "ptype": [0, 1, 2, 3],
-  "edit_tool": ["polygon", "line_buffer", "brush_path"],
+  "edit_tool": ["polygon", "line_buffer", "brush_path", "lasso"],
   "edit_variable": ["qpf", "ptype"],
   "edit_operation": ["set_value", "increase", "decrease", "multiply", "clear", "set_ptype", "screen_clear"],
-  "mask_type": ["polygon", "line_buffer", "brush_path"],
+  "mask_type": ["polygon", "line_buffer", "brush_path", "lasso"],
   "review_action": ["approve", "reject"],
   "missing_reason": ["file_not_found", "read_error", "dimension_mismatch"]
 }

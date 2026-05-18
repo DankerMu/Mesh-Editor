@@ -197,6 +197,10 @@ def _build_mask(payload: EditPreviewRequest, valid_mask: npt.NDArray[np.bool_]) 
                 _finite_geometry_float(payload.mask.get("width_grid", 0), "width_grid"),
                 valid_mask,
             )
+        if payload.tool == "lasso":
+            return mask_builder.lasso_to_mask(
+                _coordinates(payload.mask.get("coordinates")), valid_mask
+            )
         return mask_builder.brush_path_to_mask(
             _coordinates(payload.mask.get("points", payload.mask.get("coordinates"))),
             _finite_geometry_float(payload.mask.get("radius_grid", 0), "radius_grid"),

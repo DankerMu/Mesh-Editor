@@ -5,7 +5,8 @@ from typing import Any
 
 import numpy as np
 from shapely import covers, points  # type: ignore[import-untyped]
-from shapely.geometry import LineString, Polygon  # type: ignore[import-untyped]
+from shapely.geometry import LineString, MultiPolygon, Polygon  # type: ignore[import-untyped]
+from shapely.ops import unary_union  # type: ignore[import-untyped]
 from shapely.prepared import prep  # type: ignore[import-untyped]
 
 from app.core.constants import DLAT, DLON, LAT_MAX, LAT_MIN, LON_MAX, LON_MIN, NX, NY
@@ -32,6 +33,57 @@ def polygon_to_mask(
         raise MaskError("MASK_INVALID_GEOMETRY", "polygon 几何无效")
 
     return _finalize_mask(_geometry_to_mask(polygon), valid_mask)
+
+
+def lasso_to_mask(
+    coordinates: list[list[float]], valid_mask: np.ndarray
+) -> np.ndarray:
+    if len(coordinates) < 3:
+        raise MaskError("MASK_INVALID_GEOMETRY", "lasso 至少需要 3 个轨迹点")
+
+    try:
+        simplified_line = LineString(coordinates).simplify(
+            0.01, preserve_topology=False
+        )
+    except Exception as exc:
+        raise MaskError("MASK_INVALID_GEOMETRY", "lasso 几何无效") from exc
+
+    simplified = list(simplified_line.coords)
+    clamped = _clamp_points(simplified)
+    if clamped and clamped[0] != clamped[-1]:
+        clamped.append(clamped[0])
+
+    if len(set(clamped[:-1] if clamped[:1] == clamped[-1:] else clamped)) < 3:
+        raise MaskError("MASK_INVALID_GEOMETRY", "lasso 简化后少于 3 个顶点")
+
+    polygon = Polygon(clamped)
+    if polygon.is_empty:
+        raise MaskError("MASK_INVALID_GEOMETRY", "lasso 几何无效")
+
+    geometry: Polygon | MultiPolygon = polygon
+    if not geometry.is_valid:
+        fixed = geometry.buffer(0)
+        if (
+            fixed.is_empty
+            or not fixed.is_valid
+            or not isinstance(fixed, Polygon | MultiPolygon)
+        ):
+            raise MaskError("MASK_INVALID_GEOMETRY", "lasso 自交叉修复失败")
+        geometry = fixed
+
+    if isinstance(geometry, MultiPolygon):
+        merged = unary_union(geometry)
+        if isinstance(merged, Polygon):
+            geometry = merged
+        elif isinstance(merged, MultiPolygon):
+            geometry = max(merged.geoms, key=lambda item: item.area)
+        else:
+            raise MaskError("MASK_INVALID_GEOMETRY", "lasso 自交叉修复失败")
+
+    if geometry.is_empty or not geometry.is_valid or geometry.area <= 0:
+        raise MaskError("MASK_INVALID_GEOMETRY", "lasso 几何无效")
+
+    return _finalize_mask(_geometry_to_mask(geometry), valid_mask)
 
 
 def line_buffer_to_mask(

@@ -37,7 +37,7 @@ data/source/         ← 样例数据符号链接（→ data/量级/ + data/phas
 
 ## 当前阶段
 
-**M0-M6 全部完成 → UI 视觉对齐阶段；lasso-smooth-tool OpenSpec 审核中**
+**M0-M6 全部完成 → UI 视觉对齐阶段；lasso-smooth-tool 后端套索 mask 已接入**
 
 ### 里程碑总览
 
@@ -51,7 +51,7 @@ data/source/         ← 样例数据符号链接（→ data/量级/ + data/phas
 | M5 复盘中心与绘图任务队列 | 2026-05-18 | Plotter/Templates/ReviewService/PlotTaskService/API/前端 |
 | M6 运维、统计、配置与试运行 | 2026-05-18 | User/Audit/Config/Template/Monitor/Stats API + 管理页 + E2E 试运行 |
 
-**测试：backend 392 tests + frontend 146 tests 全部通过**
+**测试：backend 392 tests + frontend 146 tests 全部通过；lasso backend targeted 32 tests 通过**
 
 ### E2E 测试执行结果（2026-05-18）
 
@@ -92,7 +92,7 @@ data/source/         ← 样例数据符号链接（→ data/量级/ + data/phas
 
 ### 阻塞项
 
-- lasso-smooth-tool OpenSpec 存在 P0 契约缺口，需修正后再进入实现
+- lasso-smooth-tool 仍需完成前端套索交互与 mask smooth 后端/前端任务
 
 ### 样例数据
 
@@ -103,6 +103,7 @@ data/source/         ← 样例数据符号链接（→ data/量级/ + data/phas
 
 ### 最近变更记录
 
+- 2026-05-18：完成 Issue #90 套索 mask 后端：lasso_to_mask、自交叉 buffer(0) 修复、API/schema/enums 接入与 targeted tests
 - 2026-05-18：审核 lasso-smooth-tool tasks.md 可执行性，输出 P0/P1 与 spec→task 覆盖映射
 - 2026-05-18：完成 lasso-smooth-tool OpenSpec 设计一致性审核，发现 API 契约与异常类型等 P0/P1 风险
 - 2026-05-18：创建 E2E 测试清单（12 大类 ~120 用例）+ 执行前 3 类（43 通过/0 失败）

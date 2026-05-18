@@ -6,7 +6,7 @@ from typing import Any, Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-ToolName = Literal["polygon", "line_buffer", "brush_path"]
+ToolName = Literal["polygon", "line_buffer", "brush_path", "lasso"]
 VariableName = Literal["qpf", "ptype"]
 OperationType = Literal[
     "set_value",
