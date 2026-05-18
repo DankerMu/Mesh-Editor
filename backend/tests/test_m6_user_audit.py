@@ -275,7 +275,7 @@ def test_1_t3_m6_error_codes_registered() -> None:
     assert ERROR_INFO["USER_NOT_FOUND"].message == "用户未找到"
     assert ERROR_INFO["USER_ALREADY_EXISTS"].http_status == 409
     assert ERROR_INFO["USER_ALREADY_EXISTS"].message == "用户名已存在"
-    assert ERROR_INFO["STATS_DATE_RANGE_EXCEEDED"].http_status == 400
+    assert ERROR_INFO["STATS_DATE_RANGE_EXCEEDED"].http_status == 422
     assert ERROR_INFO["TASK_NOT_RETRYABLE"].http_status == 409
 
 
