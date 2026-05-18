@@ -84,7 +84,7 @@ ERROR_INFO: dict[str, ErrorInfo] = {
     "STORAGE_NOT_ENOUGH": ErrorInfo("存储空间不足", 507),
     "USER_NOT_FOUND": ErrorInfo("用户未找到", 404),
     "USER_ALREADY_EXISTS": ErrorInfo("用户名已存在", 409),
-    "STATS_DATE_RANGE_EXCEEDED": ErrorInfo("统计查询日期范围超限", 400),
+    "STATS_DATE_RANGE_EXCEEDED": ErrorInfo("统计查询日期范围超限", 422),
     "TASK_NOT_RETRYABLE": ErrorInfo("该任务不可重试", 409),
     "INTERNAL_ERROR": ErrorInfo("服务器内部错误", 500),
     "VALIDATION_ERROR": ErrorInfo("请求参数验证失败", 422),

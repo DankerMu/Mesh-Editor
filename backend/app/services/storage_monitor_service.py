@@ -30,15 +30,13 @@ class StorageMonitorService:
             return self._cache
 
         base_dir = Path(self.path_builder.base_dir)
-        archive_root = base_dir / "archive"
-        tmp_root = base_dir / "tmp"
         breakdown = [
-            self._breakdown_item("cases", archive_root / "cases"),
-            self._breakdown_item("releases", archive_root / "releases"),
-            self._breakdown_item("reviews", archive_root / "reviews"),
-            self._breakdown_item("tmp", tmp_root),
+            self._breakdown_item("cases", base_dir / "cases"),
+            self._breakdown_item("releases", base_dir / "releases"),
+            self._breakdown_item("reviews", base_dir / "reviews"),
+            self._breakdown_item("tmp", base_dir / "tmp"),
         ]
-        disk_path = archive_root if archive_root.exists() else base_dir
+        disk_path = base_dir if base_dir.exists() else Path(".")
         usage = shutil.disk_usage(disk_path)
         response = StorageSummaryResponse(
             total_bytes=int(usage.total),

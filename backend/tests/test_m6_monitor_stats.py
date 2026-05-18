@@ -138,9 +138,9 @@ def test_6_t1_storage_monitor_summary_and_cache(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     base_dir = tmp_path / "data"
-    cases = base_dir / "archive" / "cases"
-    releases = base_dir / "archive" / "releases"
-    reviews = base_dir / "archive" / "reviews"
+    cases = base_dir / "cases"
+    releases = base_dir / "releases"
+    reviews = base_dir / "reviews"
     tmp_dir = base_dir / "tmp"
     for path in [cases, releases, reviews, tmp_dir]:
         path.mkdir(parents=True)
@@ -705,7 +705,7 @@ def test_7_t8_get_stats_operations_date_range_exceeded(
         params={"start_date": "2025-01-01", "end_date": "2026-03-02"},
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert response.json()["code"] == "STATS_DATE_RANGE_EXCEEDED"
 
 
