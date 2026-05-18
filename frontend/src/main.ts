@@ -1,7 +1,6 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import TDesign from 'tdesign-vue-next'
-import zhCN from 'tdesign-vue-next/es/locale/zh_CN'
 import 'tdesign-vue-next/es/style/index.css'
 import './style.css'
 
@@ -14,7 +13,7 @@ const pinia = createPinia()
 
 app.use(pinia)
 app.use(router)
-app.use(TDesign, { globalConfig: zhCN })
+app.use(TDesign)
 
 useAuthStore().restoreSession()
 

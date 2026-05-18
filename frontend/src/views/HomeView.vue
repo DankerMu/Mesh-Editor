@@ -1,15 +1,27 @@
 <script setup lang="ts">
+import { watch } from 'vue'
+import { useRouter } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import CaseIdInput from '@/components/CaseIdInput.vue'
 import ScanProgress from '@/components/ScanProgress.vue'
 import WindowSelector from '@/components/WindowSelector.vue'
 import { useWindowStore } from '@/stores/windowStore'
 
+const router = useRouter()
 const windowStore = useWindowStore()
 
 function triggerScan(caseId: string) {
   void windowStore.triggerScan(caseId)
 }
+
+watch(
+  () => windowStore.selectedWindowId,
+  (windowId) => {
+    if (windowId) {
+      void router.push(`/editor/${windowId}`)
+    }
+  },
+)
 </script>
 
 <template>
