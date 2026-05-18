@@ -85,8 +85,13 @@ export const useStatsStore = defineStore('stats', {
       this.error = null
 
       try {
-        const { accum_hours: _, ...query } = toQuery(this.filters)
-        const response = await getPtypeTransitions(query)
+        const params = toQuery(this.filters)
+        const response = await getPtypeTransitions({
+          start_date: params.start_date,
+          end_date: params.end_date,
+          user_id: params.user_id,
+          window_id: params.window_id,
+        })
         this.ptypeTransitions = response.data
         return response.data
       } catch (error) {
