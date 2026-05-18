@@ -3,6 +3,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import ApprovalView from '@/views/ApprovalView.vue'
 import VersionFieldMap from '@/components/approval/VersionFieldMap.vue'
+import { PrecipPhaseGridLayer } from '@/components/map/PrecipPhaseGridLayer'
+import { FloatGridLayer } from '@/components/map/RgbaGridLayer'
 import { useLinkedMaps } from '@/composables/useLinkedMaps'
 import { useAuthStore } from '@/stores/authStore'
 import { useVersionStore } from '@/stores/versionStore'
@@ -51,6 +53,12 @@ vi.mock('@/api/version', () => ({
   submitVersion: vi.fn(),
   reviewVersion: vi.fn(),
   releaseVersion: vi.fn(),
+}))
+
+vi.mock('tdesign-vue-next', () => ({
+  MessagePlugin: {
+    success: vi.fn(),
+  },
 }))
 
 vi.mock('@/components/map/BaseMap.vue', () => ({
@@ -289,7 +297,7 @@ describe('ApprovalView', () => {
     await wrapper.find('[data-test="reject-button"]').trigger('click')
     await wrapper.find('[data-test="reject-confirm"]').trigger('click')
 
-    expect(wrapper.find('[data-test="reject-error"]').text()).toContain('请填写退回意见')
+    expect(wrapper.find('[data-test="reject-error"]').text()).toContain('退回必须填写审核意见')
     expect(versionStore.reviewVersion).not.toHaveBeenCalled()
   })
 
@@ -311,9 +319,32 @@ describe('ApprovalView', () => {
     })
     await flushPromises()
 
-    expect(getVersionField).toHaveBeenCalledWith('window-1_v001', 'delta_qpf')
+    expect(getVersionField).toHaveBeenCalledWith('window-1_v001', 'delta_qpf', expect.any(AbortSignal))
+    expect(FloatGridLayer).toHaveBeenCalledTimes(1)
+    expect(mapMock.addLayer).toHaveBeenCalledTimes(1)
     expect(wrapper.find('[data-test="version-field-loading"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="version-field-error"]').exists()).toBe(false)
+    expect(wrapper.attributes('data-loaded')).toBe('true')
+  })
+
+  it('VersionFieldMap 加载订正前降水相态图层', async () => {
+    const wrapper = mount(VersionFieldMap, {
+      props: {
+        versionId: 'window-1_v001',
+        fieldNames: {
+          qpf: 'qpf_before',
+          ptype: 'ptype_before',
+        },
+      },
+    })
+    await flushPromises()
+
+    expect(getVersionField).toHaveBeenCalledWith('window-1_v001', 'qpf_before', expect.any(AbortSignal))
+    expect(getVersionField).toHaveBeenCalledWith('window-1_v001', 'ptype_before', expect.any(AbortSignal))
+    expect(PrecipPhaseGridLayer).toHaveBeenCalledTimes(1)
+    const precipLayer = vi.mocked(PrecipPhaseGridLayer).mock.instances[0]
+    expect(precipLayer.updateData).toHaveBeenCalledTimes(1)
+    expect(mapMock.addLayer).toHaveBeenCalledTimes(1)
     expect(wrapper.attributes('data-loaded')).toBe('true')
   })
 

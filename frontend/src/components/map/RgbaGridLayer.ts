@@ -2,12 +2,21 @@ import WebGLTileLayer from 'ol/layer/WebGLTile'
 import DataTileSource from 'ol/source/DataTile'
 import TileGrid from 'ol/tilegrid/TileGrid'
 import { get as getProjection } from 'ol/proj'
-import { GRID_COLS, GRID_ROWS, PTYPE_COLORS } from '@/constants/precipColors'
+import { GRID_COLS, GRID_ROWS } from '@/constants/precipColors'
 
 const GRID_EXTENT = [70, 25, 111, 50] as const
 const GRID_STEP = 0.05
 const SOURCE_TILE_SIZE: [number, number] = [GRID_COLS, GRID_ROWS]
 const EMPTY_COLOR: [number, number, number, number] = [0, 0, 0, 0]
+const CHANGE_PTYPE_COLORS: Record<number, [number, number, number, number]> = {
+  [-3]: [0, 100, 200, 190],
+  [-2]: [80, 160, 255, 190],
+  [-1]: [140, 200, 255, 190],
+  0: EMPTY_COLOR,
+  1: [255, 200, 140, 190],
+  2: [255, 140, 60, 190],
+  3: [200, 60, 0, 190],
+}
 
 type FloatColorMapper = (value: number) => [number, number, number, number]
 type IntColorMapper = (value: number) => [number, number, number, number]
@@ -196,12 +205,8 @@ export function getDeltaQpfColor(value: number): [number, number, number, number
 }
 
 export function getChangePtypeColor(value: number): [number, number, number, number] {
-  if (value === 0) {
-    return EMPTY_COLOR
-  }
-
-  const normalized = Math.max(0, Math.min(3, Math.abs(value)))
-  return PTYPE_COLORS[normalized] ?? [128, 0, 128, 190]
+  const normalized = Math.max(-3, Math.min(3, Math.trunc(value)))
+  return CHANGE_PTYPE_COLORS[normalized] ?? EMPTY_COLOR
 }
 
 function fillTileData(tileData: Uint8Array, getColor: (sourceIndex: number) => [number, number, number, number]) {

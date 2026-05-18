@@ -35,6 +35,7 @@ const error = ref('')
 const loaded = ref(false)
 const mapInstance = shallowRef<Map | null>(null)
 const dataVersion = ref(0)
+const abortController = shallowRef<AbortController | null>(null)
 
 let activeLayer: PrecipPhaseGridLayer | MaskOverlayLayer | FloatGridLayer | IntGridLayer | null = null
 let requestSeq = 0
@@ -73,12 +74,15 @@ async function loadFieldData(): Promise<void> {
   }
 
   const seq = (requestSeq += 1)
+  abortController.value?.abort()
+  const controller = new AbortController()
+  abortController.value = controller
   loading.value = true
   error.value = ''
   loaded.value = false
 
   try {
-    const layer = await createLayer()
+    const layer = await createLayer(controller.signal)
 
     if (seq !== requestSeq) {
       disposeLayer(layer)
@@ -93,20 +97,27 @@ async function loadFieldData(): Promise<void> {
       return
     }
 
+    if (isAbortError(loadError)) {
+      return
+    }
+
     removeActiveLayer()
     error.value = loadError instanceof Error ? loadError.message : '字段数据加载失败'
   } finally {
     if (seq === requestSeq) {
       loading.value = false
+      abortController.value = null
     }
   }
 }
 
-async function createLayer(): Promise<PrecipPhaseGridLayer | MaskOverlayLayer | FloatGridLayer | IntGridLayer> {
+async function createLayer(
+  signal: AbortSignal,
+): Promise<PrecipPhaseGridLayer | MaskOverlayLayer | FloatGridLayer | IntGridLayer> {
   if (props.fieldNames) {
     const [qpfBuffer, ptypeBuffer] = await Promise.all([
-      getVersionField(props.versionId, props.fieldNames.qpf),
-      getVersionField(props.versionId, props.fieldNames.ptype),
+      getVersionField(props.versionId, props.fieldNames.qpf, signal),
+      getVersionField(props.versionId, props.fieldNames.ptype, signal),
     ])
     assertByteLength(qpfBuffer, expectedGridLength * Float32Array.BYTES_PER_ELEMENT, props.fieldNames.qpf)
     assertByteLength(ptypeBuffer, expectedGridLength * Uint8Array.BYTES_PER_ELEMENT, props.fieldNames.ptype)
@@ -120,7 +131,7 @@ async function createLayer(): Promise<PrecipPhaseGridLayer | MaskOverlayLayer | 
     throw new Error('缺少字段名称')
   }
 
-  const buffer = await getVersionField(props.versionId, props.fieldName)
+  const buffer = await getVersionField(props.versionId, props.fieldName, signal)
 
   if (props.fieldName === 'delta_qpf') {
     assertByteLength(buffer, expectedGridLength * Float32Array.BYTES_PER_ELEMENT, props.fieldName)
@@ -178,6 +189,12 @@ function disposeLayer(layer: PrecipPhaseGridLayer | MaskOverlayLayer | FloatGrid
   layer.dispose()
 }
 
+function isAbortError(error: unknown): boolean {
+  return (
+    error instanceof DOMException && error.name === 'AbortError'
+  ) || (error instanceof Error && (error.name === 'AbortError' || error.name === 'CanceledError'))
+}
+
 watch(
   () => [props.versionId, props.fieldName, props.fieldNames?.qpf, props.fieldNames?.ptype],
   () => {
@@ -187,6 +204,8 @@ watch(
 
 onBeforeUnmount(() => {
   requestSeq += 1
+  abortController.value?.abort()
+  abortController.value = null
   removeActiveLayer()
 })
 </script>

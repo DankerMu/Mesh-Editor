@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type Map from 'ol/Map'
+import { MessagePlugin } from 'tdesign-vue-next'
 import VersionFieldMap from '@/components/approval/VersionFieldMap.vue'
 import { useLinkedMaps } from '@/composables/useLinkedMaps'
 import { useAuthStore } from '@/stores/authStore'
@@ -12,7 +13,8 @@ const versionStore = useVersionStore()
 const windowStore = useWindowStore()
 const authStore = useAuthStore()
 
-const activeStatus = ref('')
+const activeStatus = ref('submitted')
+const activeDerivedField = ref<VersionFieldName | ''>('')
 const rejectDialogVisible = ref(false)
 const releaseDialogVisible = ref(false)
 const rejectComment = ref('')
@@ -148,7 +150,12 @@ async function approveSelected() {
     return
   }
 
-  await versionStore.reviewVersion(selectedVersionId.value, 'approve')
+  try {
+    await versionStore.reviewVersion(selectedVersionId.value, 'approve')
+    MessagePlugin.success('审核通过')
+  } catch {
+    // versionStore exposes the error message for the page banner.
+  }
 }
 
 function openRejectDialog() {
@@ -164,12 +171,17 @@ async function confirmReject() {
 
   const comment = rejectComment.value.trim()
   if (!comment) {
-    rejectError.value = '请填写退回意见'
+    rejectError.value = '退回必须填写审核意见'
     return
   }
 
-  await versionStore.reviewVersion(selectedVersionId.value, 'reject', comment)
-  rejectDialogVisible.value = false
+  try {
+    await versionStore.reviewVersion(selectedVersionId.value, 'reject', comment)
+    MessagePlugin.success('已退回')
+    rejectDialogVisible.value = false
+  } catch {
+    // versionStore exposes the error message for the page banner.
+  }
 }
 
 function openReleaseDialog() {
@@ -181,19 +193,32 @@ async function confirmRelease() {
     return
   }
 
-  await versionStore.releaseVersion(selectedVersionId.value)
-  releaseDialogVisible.value = false
+  try {
+    await versionStore.releaseVersion(selectedVersionId.value)
+    MessagePlugin.success('发布成功')
+    releaseDialogVisible.value = false
+  } catch {
+    // versionStore exposes the error message for the page banner.
+  }
 }
 
 onMounted(async () => {
   window.addEventListener('keydown', onPreviewKeydown)
-  await versionStore.fetchVersions()
+  await versionStore.fetchVersions({ status: 'submitted' })
 })
 
 watch(selectedVersionId, () => {
   linkedMaps.cleanup()
   closeImagePreview()
 })
+
+watch(
+  selectedVersion,
+  () => {
+    activeDerivedField.value = visibleDerivedFields.value[0]?.fieldName ?? ''
+  },
+  { immediate: true },
+)
 
 onBeforeUnmount(() => {
   linkedMaps.cleanup()
@@ -306,7 +331,11 @@ onBeforeUnmount(() => {
               字段数据不可用
             </div>
 
-            <t-tabs v-if="visibleDerivedFields.length > 0" class="approval-detail__field-tabs">
+            <t-tabs
+              v-if="visibleDerivedFields.length > 0"
+              v-model="activeDerivedField"
+              class="approval-detail__field-tabs"
+            >
               <t-tab-panel
                 v-for="item in visibleDerivedFields"
                 :key="item.fieldName"
