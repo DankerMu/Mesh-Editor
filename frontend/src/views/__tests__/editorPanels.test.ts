@@ -157,7 +157,7 @@ describe('QPF panel', () => {
     expect(wrapper.find('[data-test="qpf-value"]').exists()).toBe(false)
   })
 
-  it('preview button calls requestPreview with correct params', async () => {
+  it('preview button calls requestPreview with correct params for set_value', async () => {
     const { wrapper, store } = mountEditor({ withMask: true })
     const spy = vi.spyOn(store, 'requestPreview').mockResolvedValue({
       preview_id: 'p-1',
@@ -184,6 +184,108 @@ describe('QPF panel', () => {
       'qpf',
       'set_value',
       expect.objectContaining({ type: 'polygon' }),
+      { value: 0 },
+    )
+  })
+
+  it('sends delta_mm param for increase operation', async () => {
+    const { wrapper, store } = mountEditor({ withMask: true })
+    const spy = vi.spyOn(store, 'requestPreview').mockResolvedValue({
+      preview_id: 'p-1',
+      affected_grid_count: 10,
+      affected_area_km2: 25,
+      before_stats: {},
+      after_stats: {},
+      op_ptype_transition: null,
+      new_precip_needs_ptype: false,
+      new_precip_count: 0,
+      warnings: [],
+    })
+    await wrapper.vm.$nextTick()
+
+    const select = wrapper.find('[data-test="qpf-operation"]')
+    await select.setValue('increase')
+    await wrapper.vm.$nextTick()
+
+    const btn = wrapper.find('[data-test="preview-button"]')
+    await btn.trigger('click')
+
+    expect(spy).toHaveBeenCalledWith(
+      'polygon',
+      'qpf',
+      'increase',
+      expect.objectContaining({ type: 'polygon' }),
+      { delta_mm: 0 },
+    )
+  })
+
+  it('sends factor param for multiply operation', async () => {
+    const { wrapper, store } = mountEditor({ withMask: true })
+    const spy = vi.spyOn(store, 'requestPreview').mockResolvedValue({
+      preview_id: 'p-1',
+      affected_grid_count: 10,
+      affected_area_km2: 25,
+      before_stats: {},
+      after_stats: {},
+      op_ptype_transition: null,
+      new_precip_needs_ptype: false,
+      new_precip_count: 0,
+      warnings: [],
+    })
+    await wrapper.vm.$nextTick()
+
+    const select = wrapper.find('[data-test="qpf-operation"]')
+    await select.setValue('multiply')
+    await wrapper.vm.$nextTick()
+
+    const btn = wrapper.find('[data-test="preview-button"]')
+    await btn.trigger('click')
+
+    expect(spy).toHaveBeenCalledWith(
+      'polygon',
+      'qpf',
+      'multiply',
+      expect.objectContaining({ type: 'polygon' }),
+      { factor: 0 },
+    )
+  })
+
+  it('uses mask geometry type as tool parameter', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const store = useEditorStore()
+    store.sessionId = 's-1'
+    store.currentMaskGeometry = {
+      type: 'line_buffer' as const,
+      coordinates: [[100, 30], [101, 31]] as [number, number][],
+      width_grid: 3,
+    }
+    const spy = vi.spyOn(store, 'requestPreview').mockResolvedValue({
+      preview_id: 'p-1',
+      affected_grid_count: 10,
+      affected_area_km2: 25,
+      before_stats: {},
+      after_stats: {},
+      op_ptype_transition: null,
+      new_precip_needs_ptype: false,
+      new_precip_count: 0,
+      warnings: [],
+    })
+    const wrapper = mount(EditorView, { global: { plugins: [pinia] } })
+    await wrapper.vm.$nextTick()
+
+    const select = wrapper.find('[data-test="qpf-operation"]')
+    await select.setValue('set_value')
+    await wrapper.vm.$nextTick()
+
+    const btn = wrapper.find('[data-test="preview-button"]')
+    await btn.trigger('click')
+
+    expect(spy).toHaveBeenCalledWith(
+      'line_buffer',
+      'qpf',
+      'set_value',
+      expect.objectContaining({ type: 'line_buffer' }),
       { value: 0 },
     )
   })
@@ -261,7 +363,7 @@ describe('Ptype panel', () => {
     expect(btn.attributes('disabled')).toBeUndefined()
   })
 
-  it('ptype preview calls requestPreview with correct params', async () => {
+  it('ptype preview calls requestPreview with set_ptype and target_ptype', async () => {
     const { wrapper, store } = mountEditor({ withMask: true })
     const spy = vi.spyOn(store, 'requestPreview').mockResolvedValue({
       preview_id: 'p-2',
@@ -287,9 +389,9 @@ describe('Ptype panel', () => {
     expect(spy).toHaveBeenCalledWith(
       'polygon',
       'ptype',
-      'set_value',
+      'set_ptype',
       expect.objectContaining({ type: 'polygon' }),
-      { value: 2 },
+      { target_ptype: 2 },
     )
   })
 })

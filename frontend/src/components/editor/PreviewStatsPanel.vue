@@ -157,7 +157,11 @@ async function confirmApplyWithPtype(): Promise<void> {
         <tbody>
           <tr v-for="row in matrixRows" :key="row.value">
             <th>{{ row.label }}</th>
-            <td v-for="cell in row.cells" :key="cell.to">
+            <td
+              v-for="cell in row.cells"
+              :key="cell.to"
+              :class="{ 'preview-stats-panel__matrix-highlight': cell.count > 0 }"
+            >
               {{ cell.count }}
             </td>
           </tr>
@@ -176,14 +180,14 @@ async function confirmApplyWithPtype(): Promise<void> {
         应用
       </t-button>
       <t-button :disabled="applying" data-test="preview-cancel-button" @click="editorStore.clearPreview()">
-        取消
+        取消预览
       </t-button>
     </div>
 
     <t-dialog
       v-if="needsTargetPtype"
       v-model:visible="ptypeDialogVisible"
-      header="新增降水落区相态选择"
+      header="新降水需要指定降水类型"
       :close-on-overlay-click="false"
       data-test="target-ptype-dialog"
     >
@@ -344,6 +348,11 @@ async function confirmApplyWithPtype(): Promise<void> {
 .preview-stats-panel__matrix th:first-child {
   width: 76px;
   text-align: left;
+}
+
+.preview-stats-panel__matrix-highlight {
+  background: var(--color-primary-bg);
+  font-weight: 600;
 }
 
 .preview-stats-panel__actions {

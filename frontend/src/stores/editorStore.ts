@@ -239,6 +239,7 @@ export const useEditorStore = defineStore('editor', () => {
     mask: Record<string, unknown>,
     parameters: Record<string, unknown>,
   ) {
+    if (previewLoading.value) return
     const activeSessionId = requireSessionId()
     previewLoading.value = true
     previewError.value = null
@@ -270,6 +271,7 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   async function applyEdit(targetPtype?: number) {
+    if (applyLoading.value) return
     const activeSessionId = requireSessionId()
     if (previewResult.value === null) {
       throw new Error('Missing preview result')

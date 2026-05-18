@@ -193,6 +193,18 @@ describe('EditorView – top bar buttons', () => {
     expect(btn.attributes('disabled')).toBeDefined()
   })
 
+  it('submit button disabled when dirty even with currentVersionId', async () => {
+    const wrapper = mountEditor()
+    const store = useEditorStore()
+    await flushPromises()
+    store.currentVersionId = 'v-1'
+    store.dirty = true
+    await flushPromises()
+
+    const btn = wrapper.find('[data-test="submit-button"]')
+    expect(btn.attributes('disabled')).toBeDefined()
+  })
+
   it('submit button triggers confirmation dialog', async () => {
     const wrapper = mountEditor()
     const store = useEditorStore()

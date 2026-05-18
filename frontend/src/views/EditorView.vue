@@ -76,11 +76,18 @@ const parsedWindow = computed(() => parseWindowId(currentWindowId.value ?? edito
 
 const hasWindowId = computed(() => currentWindowId.value !== null)
 const drawToolsDisabled = computed(() => editorStore.sessionId === null)
-const editPanelsDisabled = computed(() => editorStore.currentMaskGeometry === null)
+const editPanelsDisabled = computed(() =>
+  editorStore.sessionId === null || editorStore.currentMaskGeometry === null,
+)
+const maskTool = computed(() => {
+  const geom = editorStore.currentMaskGeometry
+  return geom?.type ?? 'polygon'
+})
+const panelBusy = computed(() => editorStore.previewLoading || editorStore.applyLoading)
 const selectedMode = computed(() => viewModes.find((mode) => mode.value === editorStore.selectedViewMode))
 
 // QPF panel state
-const qpfOperation = ref<EditOperation | ''>('')
+const qpfOperation = ref<EditOperation | ''>('set_value')
 const qpfValue = ref<number>(0)
 const qpfOperationOptions = [
   { value: 'set_value', label: '设值' },
@@ -92,27 +99,36 @@ const qpfOperationOptions = [
 ]
 const qpfValueHidden = computed(() => qpfOperation.value === 'clear' || qpfOperation.value === 'screen_clear')
 const qpfPreviewDisabled = computed(
-  () => editPanelsDisabled.value || !qpfOperation.value || editorStore.previewLoading,
+  () => editPanelsDisabled.value || !qpfOperation.value || panelBusy.value,
 )
 
 // Ptype panel state
 const ptypeTarget = ref<number | null>(null)
 const ptypePreviewDisabled = computed(
-  () => editPanelsDisabled.value || ptypeTarget.value === null || editorStore.previewLoading,
+  () => editPanelsDisabled.value || ptypeTarget.value === null || panelBusy.value,
 )
 
 // Submit dialog
 const submitDialogVisible = ref(false)
 
+function getQpfParams(): Record<string, unknown> {
+  const op = qpfOperation.value
+  if (op === 'clear' || op === 'screen_clear') return {}
+  if (op === 'set_value') return { value: qpfValue.value }
+  if (op === 'increase' || op === 'decrease') return { delta_mm: qpfValue.value }
+  if (op === 'multiply') return { factor: qpfValue.value }
+  return { value: qpfValue.value }
+}
+
 async function handleQpfPreview(): Promise<void> {
   if (!qpfOperation.value || !editorStore.currentMaskGeometry) return
   try {
     await editorStore.requestPreview(
-      'polygon',
+      maskTool.value,
       'qpf',
       qpfOperation.value as EditOperation,
       editorStore.currentMaskGeometry as unknown as Record<string, unknown>,
-      { value: qpfValue.value },
+      getQpfParams(),
     )
   } catch {
     if (editorStore.previewError) {
@@ -125,11 +141,11 @@ async function handlePtypePreview(): Promise<void> {
   if (ptypeTarget.value === null || !editorStore.currentMaskGeometry) return
   try {
     await editorStore.requestPreview(
-      'polygon',
+      maskTool.value,
       'ptype',
-      'set_value',
+      'set_ptype',
       editorStore.currentMaskGeometry as unknown as Record<string, unknown>,
-      { value: ptypeTarget.value },
+      { target_ptype: ptypeTarget.value },
     )
   } catch {
     if (editorStore.previewError) {
@@ -432,10 +448,13 @@ onBeforeUnmount(disposeLayers)
         >
           保存
         </t-button>
-        <t-tooltip content="请先保存版本" :disabled="!!editorStore.currentVersionId">
+        <t-tooltip
+          :content="editorStore.dirty ? '有未保存的更改，请先保存' : '请先保存版本'"
+          :disabled="!!editorStore.currentVersionId && !editorStore.dirty"
+        >
           <t-button
             data-test="submit-button"
-            :disabled="!editorStore.currentVersionId"
+            :disabled="!editorStore.currentVersionId || editorStore.dirty"
             @click="handleSubmit()"
           >
             提交
@@ -529,6 +548,7 @@ onBeforeUnmount(disposeLayers)
                     <t-select
                       v-model="qpfOperation"
                       :options="qpfOperationOptions"
+                      :disabled="panelBusy || editPanelsDisabled"
                       placeholder="选择操作"
                       data-test="qpf-operation"
                     />
@@ -537,6 +557,7 @@ onBeforeUnmount(disposeLayers)
                     <label class="editor-tab__label">数值</label>
                     <t-input-number
                       v-model="qpfValue"
+                      :disabled="panelBusy || editPanelsDisabled"
                       data-test="qpf-value"
                     />
                   </div>
@@ -562,7 +583,7 @@ onBeforeUnmount(disposeLayers)
                 <template v-else>
                   <div class="editor-tab__control">
                     <label class="editor-tab__label">目标相态</label>
-                    <t-radio-group v-model="ptypeTarget" data-test="ptype-radio">
+                    <t-radio-group v-model="ptypeTarget" :disabled="panelBusy || editPanelsDisabled" data-test="ptype-radio">
                       <t-radio-button :value="1">雨</t-radio-button>
                       <t-radio-button :value="2">雪</t-radio-button>
                       <t-radio-button :value="3">雨夹雪</t-radio-button>

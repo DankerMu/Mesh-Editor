@@ -224,6 +224,7 @@ describe('EditorView', () => {
 
   it('有 mask 时降水/相态 panel 显示编辑控件', async () => {
     const { wrapper, editorStore } = mountEditor()
+    editorStore.sessionId = 'session-1'
     editorStore.currentMaskGeometry = {
       type: 'polygon',
       coordinates: [

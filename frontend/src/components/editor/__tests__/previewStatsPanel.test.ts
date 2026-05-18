@@ -195,4 +195,31 @@ describe('PreviewStatsPanel', () => {
 
     expect(store.applyEdit).toHaveBeenCalled()
   })
+
+  it('cancel button shows "取消预览" text', () => {
+    const { wrapper } = mountPanel(PREVIEW)
+    const cancelBtn = wrapper.find('[data-test="preview-cancel-button"]')
+    expect(cancelBtn.text()).toBe('取消预览')
+  })
+
+  it('dialog title is "新降水需要指定降水类型"', async () => {
+    const { wrapper } = mountPanel(PREVIEW_WITH_NEW_PRECIP)
+    await wrapper.find('[data-test="preview-apply-button"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    const dialog = wrapper.find('[data-test="target-ptype-dialog"]')
+    expect(dialog.exists()).toBe(true)
+    expect(dialog.text()).toContain('新降水需要指定降水类型')
+  })
+
+  it('non-zero matrix cells have highlight class', () => {
+    const { wrapper } = mountPanel(PREVIEW)
+    const matrix = wrapper.find('[data-test="ptype-matrix"]')
+    const cells = matrix.findAll('td')
+    const highlightedCells = cells.filter((c) =>
+      c.classes().some((cls) => cls.includes('matrix-highlight')),
+    )
+    // PREVIEW has transitions: 0->1: 10, 1->1: 200, 1->2: 5, 2->2: 48 = 4 non-zero
+    expect(highlightedCells.length).toBe(4)
+  })
 })
