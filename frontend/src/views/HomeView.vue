@@ -17,17 +17,23 @@ const lastCaseId = ref('')
 const scanning = computed(() => windowStore.scanPolling)
 const permissionDenied = computed(() => {
   const role = authStore.user?.role
-  return role === 'viewer' || role === 'reviewer'
+  // Backend allows admin + reviewer; deny viewer + forecaster
+  return role !== 'admin' && role !== 'reviewer'
 })
 
-function triggerScan(caseId: string) {
+async function triggerScan(caseId: string) {
   lastCaseId.value = caseId
-  void windowStore.triggerScan(caseId)
+  try {
+    await windowStore.triggerScan(caseId)
+  } catch {
+    // windowStore already handles error state internally
+    // This catch prevents unhandled rejection
+  }
 }
 
-function retryScan() {
-  if (lastCaseId.value) {
-    void windowStore.triggerScan(lastCaseId.value)
+function handleRetry() {
+  if (lastCaseId.value && !permissionDenied.value) {
+    triggerScan(lastCaseId.value)
   }
 }
 
@@ -53,7 +59,7 @@ watch(
           </div>
         </div>
         <CaseIdInput :scanning="scanning" :permission-denied="permissionDenied" @submit="triggerScan" />
-        <ScanProgress @retry="retryScan" />
+        <ScanProgress @retry="handleRetry" />
         <WindowSelector />
       </section>
     </main>

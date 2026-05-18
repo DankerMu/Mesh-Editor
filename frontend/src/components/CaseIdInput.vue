@@ -41,7 +41,7 @@ const showError = computed(() => touched.value && caseId.value.length > 0 && !va
 
 function submitCaseId() {
   touched.value = true
-  if (valid.value) {
+  if (valid.value && !props.scanning && !props.permissionDenied) {
     emit('submit', caseId.value)
   }
 }
@@ -58,7 +58,7 @@ function submitCaseId() {
         clearable
         maxlength="10"
         placeholder="2026010108"
-        :disabled="props.scanning"
+        :disabled="props.scanning || props.permissionDenied"
         @blur="touched = true"
       />
       <p v-if="showError" class="case-id-input__error">格式: YYYYMMDDHH（时次 08 或 20）</p>

@@ -90,15 +90,15 @@ describe('HomeView', () => {
       expect(scanBtn?.attributes('disabled')).toBeDefined()
     })
 
-    it('scan button is disabled for reviewer role', () => {
-      const { wrapper } = mountHomeWithRole('reviewer')
+    it('scan button is disabled for forecaster role', () => {
+      const { wrapper } = mountHomeWithRole('forecaster')
       const buttons = wrapper.findAll('button')
       const scanBtn = buttons.find((b) => b.text().includes('扫描数据'))
       expect(scanBtn?.attributes('disabled')).toBeDefined()
     })
 
-    it('scan button is enabled for forecaster role with valid input', async () => {
-      const { wrapper } = mountHomeWithRole('forecaster')
+    it('scan button is enabled for reviewer role with valid input', async () => {
+      const { wrapper } = mountHomeWithRole('reviewer')
       const input = wrapper.find('.case-id-input__control input')
       await input.setValue('2026010108')
       await input.trigger('blur')
@@ -121,6 +121,12 @@ describe('HomeView', () => {
 
     it('permission tooltip shows for viewer role', () => {
       const { wrapper } = mountHomeWithRole('viewer')
+      const tooltip = wrapper.find('.case-id-input [title="无扫描权限"]')
+      expect(tooltip.exists()).toBe(true)
+    })
+
+    it('permission tooltip shows for forecaster role', () => {
+      const { wrapper } = mountHomeWithRole('forecaster')
       const tooltip = wrapper.find('.case-id-input [title="无扫描权限"]')
       expect(tooltip.exists()).toBe(true)
     })

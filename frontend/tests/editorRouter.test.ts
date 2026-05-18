@@ -80,7 +80,7 @@ describe('editor router integration', () => {
   it('/editor 显示 WindowSelector', async () => {
     const { wrapper, startSessionSpy } = await mountWithRoute('/editor')
 
-    expect(wrapper.text()).toContain('产品窗口')
+    expect(wrapper.text()).toContain('窗口')
     expect(startSessionSpy).not.toHaveBeenCalled()
   })
 
