@@ -222,3 +222,57 @@ class ReleaseProduct(Base):
     released_by = Column(String(64), nullable=False)
     released_at = Column(DateTime, nullable=False)
     superseded_at = Column(DateTime, nullable=True)
+
+
+class ReviewField(Base):
+    __tablename__ = "review_field"
+    __table_args__ = (Index("idx_review_field_window", "window_id"),)
+
+    field_id = Column(String(36), primary_key=True)
+    window_id = Column(String(32), ForeignKey("product_window.window_id"), nullable=False)
+    version_id = Column(String(64), nullable=True)
+    source_model = Column(String(32), nullable=False)
+    variable_name = Column(String(32), nullable=False)
+    level_type = Column(String(16), nullable=True)
+    level_value = Column(Integer, nullable=True)
+    lead_hour = Column(Integer, nullable=True)
+    valid_time = Column(DateTime, nullable=True)
+    unit = Column(String(16), nullable=True)
+    file_path = Column(String(512), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class ReviewProduct(Base):
+    __tablename__ = "review_product"
+    __table_args__ = (
+        Index("idx_review_product_window_status", "window_id", "plot_status"),
+        Index(
+            "idx_review_product_supersede",
+            "window_id",
+            "version_id",
+            "template_id",
+        ),
+    )
+
+    review_id = Column(String(36), primary_key=True)
+    window_id = Column(String(32), ForeignKey("product_window.window_id"), nullable=False)
+    version_id = Column(String(64), ForeignKey("edit_version.version_id"), nullable=False)
+    template_id = Column(String(64), nullable=False)
+    image_path = Column(String(512), nullable=True)
+    plot_config_path = Column(String(512), nullable=True)
+    plot_input_manifest_path = Column(String(512), nullable=True)
+    plot_code_version = Column(String(64), nullable=True)
+    plot_status = Column(String(20), nullable=False, server_default="pending")
+    attempt = Column(Integer, nullable=False, server_default="0")
+    max_retries = Column(Integer, nullable=False, server_default="3")
+    locked_by = Column(String(64), nullable=True)
+    locked_at = Column(DateTime, nullable=True)
+    next_retry_at = Column(DateTime, nullable=True)
+    plot_started_at = Column(DateTime, nullable=True)
+    plot_finished_at = Column(DateTime, nullable=True)
+    total_panels = Column(Integer, nullable=True)
+    success_panels = Column(Integer, nullable=True)
+    skipped_panels = Column(Integer, nullable=True)
+    missing_fields_json = Column(Text, nullable=True)
+    error_log_path = Column(String(512), nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
