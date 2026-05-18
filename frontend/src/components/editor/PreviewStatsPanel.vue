@@ -217,7 +217,7 @@ async function confirmApplyWithPtype(): Promise<void> {
 .preview-stats-panel {
   display: grid;
   gap: 12px;
-  color: #1d2129;
+  color: var(--text-primary);
 }
 
 .preview-stats-panel__header {
@@ -249,23 +249,23 @@ async function confirmApplyWithPtype(): Promise<void> {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 6px;
-  color: #4e5969;
-  font-size: 12px;
-  line-height: 18px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
 }
 
 .preview-stats-panel__summary span {
   border-radius: 4px;
-  background: #e8f1ff;
+  background: var(--color-primary-bg);
   padding: 2px 6px;
-  color: #1664ff;
+  color: var(--color-primary);
 }
 
 .preview-stats-panel__warnings,
 .preview-stats-panel__ptype-warning {
   border: 1px solid #ffd8bf;
-  border-radius: 6px;
-  background: #fff3e8;
+  border-radius: var(--radius-control);
+  background: var(--color-warning-bg);
   padding: 8px 10px;
   color: #ad4e00;
   font-size: 13px;
@@ -284,9 +284,9 @@ async function confirmApplyWithPtype(): Promise<void> {
 .preview-stats-panel__dialog {
   display: grid;
   gap: 12px;
-  color: #1d2129;
-  font-size: 14px;
-  line-height: 22px;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
 }
 
 .preview-stats-panel__dialog p {
@@ -304,16 +304,16 @@ async function confirmApplyWithPtype(): Promise<void> {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  border: 1px solid #e5e6eb;
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
   overflow: hidden;
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
 }
 
 .preview-stats-panel__table th,
 .preview-stats-panel__table td {
-  border-bottom: 1px solid #e5e6eb;
+  border-bottom: 1px solid var(--color-border);
   padding: 7px 8px;
   text-align: right;
   vertical-align: middle;
@@ -326,7 +326,7 @@ async function confirmApplyWithPtype(): Promise<void> {
 
 .preview-stats-panel__table thead th {
   background: #fafafa;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-weight: 600;
 }
 

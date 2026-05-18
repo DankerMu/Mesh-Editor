@@ -50,15 +50,15 @@ const displayText = computed(() => {
   align-items: center;
   gap: 12px;
   width: 100%;
-  height: 36px;
+  height: var(--bottom-status-height);
   padding: 0 12px;
   overflow: hidden;
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 13px;
-  line-height: 36px;
+  line-height: var(--bottom-status-height);
   white-space: nowrap;
-  background: #f8fafc;
-  border-top: 1px solid #d9e1ec;
+  background: var(--page-bg);
+  border-top: 1px solid var(--color-border);
 }
 
 .grid-tooltip > span:first-child {
@@ -70,10 +70,10 @@ const displayText = computed(() => {
 .edited-indicator {
   flex: 0 0 auto;
   padding: 0 8px;
-  color: #0052d9;
-  font-size: 12px;
-  line-height: 22px;
-  background: #e8f1ff;
+  color: var(--color-primary);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-body);
+  background: var(--color-primary-bg);
   border: 1px solid #bed9ff;
   border-radius: 4px;
 }
