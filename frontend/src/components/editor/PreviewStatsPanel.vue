@@ -263,11 +263,11 @@ async function confirmApplyWithPtype(): Promise<void> {
 
 .preview-stats-panel__warnings,
 .preview-stats-panel__ptype-warning {
-  border: 1px solid #ffd8bf;
+  border: 1px solid var(--color-warning-bg);
   border-radius: var(--radius-control);
   background: var(--color-warning-bg);
   padding: 8px 10px;
-  color: #ad4e00;
+  color: var(--color-warning);
   font-size: 13px;
   line-height: 20px;
 }
@@ -325,7 +325,7 @@ async function confirmApplyWithPtype(): Promise<void> {
 }
 
 .preview-stats-panel__table thead th {
-  background: #fafafa;
+  background: var(--color-neutral-bg);
   color: var(--text-secondary);
   font-weight: 600;
 }

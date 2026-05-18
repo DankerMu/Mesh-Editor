@@ -69,6 +69,12 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+:root .t-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -347,8 +353,8 @@ button {
 .login-title,
 .state-title {
   margin: 0 0 8px;
-  font-size: var(--font-size-title-lg);
-  line-height: var(--line-height-title-lg);
+  font-size: var(--font-size-title);
+  line-height: var(--line-height-title);
   font-weight: 600;
 }
 

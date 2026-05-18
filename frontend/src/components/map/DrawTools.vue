@@ -597,7 +597,7 @@ defineExpose({
 
 .draw-tools__button {
   min-height: 34px;
-  border: 1px solid #c9cdd4;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background: var(--card-bg);
   color: var(--text-primary);
@@ -646,7 +646,7 @@ defineExpose({
 .draw-tools__number {
   width: 84px;
   height: 30px;
-  border: 1px solid #c9cdd4;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   padding: 0 8px;
   color: var(--text-primary);
@@ -659,6 +659,6 @@ defineExpose({
   pointer-events: none;
   border: 1px solid var(--color-primary);
   border-radius: 50%;
-  background: rgb(22 93 255 / 12%);
+  background: var(--map-polygon-fill);
 }
 </style>

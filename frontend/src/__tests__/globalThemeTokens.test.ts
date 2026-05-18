@@ -39,9 +39,13 @@ const TDESIGN_VARS = [
   '--td-brand-color-light', '--td-warning-color', '--td-error-color', '--td-success-color',
 ]
 
+// Extract :root block
+const rootMatch = cssContent.match(/:root\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}/s)
+const rootBlock = rootMatch ? rootMatch[0] : ''
+
 function expectVarDefined(varName: string) {
   const regex = new RegExp(`${varName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:`)
-  expect(cssContent).toMatch(regex)
+  expect(rootBlock).toMatch(regex)
 }
 
 describe('Global Theme Tokens', () => {

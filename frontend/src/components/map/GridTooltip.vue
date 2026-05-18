@@ -74,7 +74,7 @@ const displayText = computed(() => {
   font-size: var(--font-size-caption);
   line-height: var(--line-height-body);
   background: var(--color-primary-bg);
-  border: 1px solid #bed9ff;
+  border: 1px solid var(--color-primary-bg);
   border-radius: 4px;
 }
 </style>

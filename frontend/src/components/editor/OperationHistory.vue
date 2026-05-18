@@ -166,7 +166,7 @@ async function redo(): Promise<void> {
 
 .operation-history__empty {
   margin: 0;
-  border: 1px dashed #d9e1ec;
+  border: 1px dashed var(--color-border);
   border-radius: var(--radius-control);
   background: var(--color-neutral-bg);
   padding: 18px 12px;
