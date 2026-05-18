@@ -6,7 +6,6 @@ from typing import Any
 import numpy as np
 from shapely import covers, points  # type: ignore[import-untyped]
 from shapely.geometry import LineString, MultiPolygon, Polygon  # type: ignore[import-untyped]
-from shapely.ops import unary_union  # type: ignore[import-untyped]
 from shapely.prepared import prep  # type: ignore[import-untyped]
 
 from app.core.constants import DLAT, DLON, LAT_MAX, LAT_MIN, LON_MAX, LON_MIN, NX, NY
@@ -40,6 +39,11 @@ def lasso_to_mask(
 ) -> np.ndarray:
     if len(coordinates) < 3:
         raise MaskError("MASK_INVALID_GEOMETRY", "lasso 至少需要 3 个轨迹点")
+    MAX_LASSO_POINTS = 10000
+    if len(coordinates) > MAX_LASSO_POINTS:
+        raise MaskError(
+            "MASK_INVALID_GEOMETRY", f"lasso 轨迹点数超出上限 {MAX_LASSO_POINTS}"
+        )
 
     try:
         simplified_line = LineString(coordinates).simplify(
@@ -63,24 +67,11 @@ def lasso_to_mask(
     geometry: Polygon | MultiPolygon = polygon
     if not geometry.is_valid:
         fixed = geometry.buffer(0)
-        if (
-            fixed.is_empty
-            or not fixed.is_valid
-            or not isinstance(fixed, Polygon | MultiPolygon)
-        ):
+        if fixed.is_empty or not isinstance(fixed, (Polygon, MultiPolygon)):
             raise MaskError("MASK_INVALID_GEOMETRY", "lasso 自交叉修复失败")
         geometry = fixed
 
-    if isinstance(geometry, MultiPolygon):
-        merged = unary_union(geometry)
-        if isinstance(merged, Polygon):
-            geometry = merged
-        elif isinstance(merged, MultiPolygon):
-            geometry = max(merged.geoms, key=lambda item: item.area)
-        else:
-            raise MaskError("MASK_INVALID_GEOMETRY", "lasso 自交叉修复失败")
-
-    if geometry.is_empty or not geometry.is_valid or geometry.area <= 0:
+    if geometry.is_empty or geometry.area <= 0:
         raise MaskError("MASK_INVALID_GEOMETRY", "lasso 几何无效")
 
     return _finalize_mask(_geometry_to_mask(geometry), valid_mask)

@@ -119,11 +119,30 @@ def test_lasso_to_mask_few_points_after_simplification() -> None:
 
 def test_lasso_to_mask_self_intersecting_fixed_by_buffer() -> None:
     mask = lasso_to_mask(
-        [[80.0, 30.0], [80.4, 30.4], [80.0, 30.4], [80.4, 30.0], [80.0, 30.0]],
+        [
+            [80.0, 30.0],
+            [80.4, 30.0],
+            [80.2, 30.2],
+            [80.4, 30.4],
+            [80.0, 30.4],
+            [80.2, 30.2],
+            [80.0, 30.0],
+        ],
         _valid_mask(),
     )
 
-    assert int(np.count_nonzero(mask)) > 0
+    lower_lobe = mask[100:104, 200:209]
+    upper_lobe = mask[105:109, 200:209]
+    assert int(np.count_nonzero(lower_lobe)) > 0
+    assert int(np.count_nonzero(upper_lobe)) > 0
+
+
+def test_lasso_to_mask_rejects_oversized_coordinates() -> None:
+    coords = [[80.0 + i * 0.001, 30.0 + (i % 2) * 0.1] for i in range(10001)]
+    with pytest.raises(MaskError) as exc_info:
+        lasso_to_mask(coords, _valid_mask())
+
+    assert exc_info.value.code == "MASK_INVALID_GEOMETRY"
 
 
 def test_lasso_to_mask_large_point_count_simplified() -> None:
