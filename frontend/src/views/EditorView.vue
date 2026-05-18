@@ -363,7 +363,7 @@ onBeforeUnmount(disposeLayers)
               :value="mode.value"
               :checked="editorStore.selectedViewMode === mode.value"
               @change="setViewMode(mode.value)"
-            />
+            >
             <span>{{ mode.label }}</span>
             <small v-if="mode.hint && editorStore.selectedViewMode === mode.value">{{ mode.hint }}</small>
           </label>
