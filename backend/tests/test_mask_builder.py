@@ -1,10 +1,12 @@
 import numpy as np
 import pytest
+from shapely.geometry import LineString
 
 from app.core.constants import NX, NY
 from app.services.edit_engine.mask_builder import (
     MaskError,
     brush_path_to_mask,
+    lasso_to_mask,
     line_buffer_to_mask,
     polygon_to_mask,
 )
@@ -82,6 +84,98 @@ def test_brush_path_to_mask_requires_positive_radius() -> None:
         brush_path_to_mask([[80, 30]], 0, _valid_mask())
 
     assert exc_info.value.code == "MASK_INVALID_GEOMETRY"
+
+
+def test_lasso_to_mask_valid_closed_region() -> None:
+    coordinates = [
+        [80.0, 30.0],
+        [80.05, 30.0],
+        [80.1, 30.01],
+        [80.15, 30.03],
+        [80.2, 30.07],
+        [80.22, 30.12],
+        [80.21, 30.18],
+        [80.17, 30.22],
+        [80.1, 30.24],
+        [80.03, 30.23],
+        [79.98, 30.2],
+        [79.95, 30.15],
+        [79.94, 30.08],
+        [79.96, 30.03],
+        [80.0, 30.0],
+    ]
+
+    mask = lasso_to_mask(coordinates, _valid_mask())
+
+    assert int(np.count_nonzero(mask)) > 0
+
+
+def test_lasso_to_mask_few_points_after_simplification() -> None:
+    with pytest.raises(MaskError) as exc_info:
+        lasso_to_mask([[80.0, 30.0], [80.001, 30.001], [80.002, 30.002]], _valid_mask())
+
+    assert exc_info.value.code == "MASK_INVALID_GEOMETRY"
+
+
+def test_lasso_to_mask_self_intersecting_fixed_by_buffer() -> None:
+    mask = lasso_to_mask(
+        [
+            [80.0, 30.0],
+            [80.4, 30.0],
+            [80.2, 30.2],
+            [80.4, 30.4],
+            [80.0, 30.4],
+            [80.2, 30.2],
+            [80.0, 30.0],
+        ],
+        _valid_mask(),
+    )
+
+    lower_lobe = mask[100:104, 200:209]
+    upper_lobe = mask[105:109, 200:209]
+    assert int(np.count_nonzero(lower_lobe)) > 0
+    assert int(np.count_nonzero(upper_lobe)) > 0
+
+
+def test_lasso_to_mask_rejects_oversized_coordinates() -> None:
+    coords = [[80.0 + i * 0.001, 30.0 + (i % 2) * 0.1] for i in range(10001)]
+    with pytest.raises(MaskError) as exc_info:
+        lasso_to_mask(coords, _valid_mask())
+
+    assert exc_info.value.code == "MASK_INVALID_GEOMETRY"
+
+
+def test_lasso_to_mask_large_point_count_simplified() -> None:
+    bottom = [[80.0 + index * 0.002, 30.0] for index in range(101)]
+    right = [[80.2, 30.0 + index * 0.002] for index in range(1, 101)]
+    top = [[80.2 - index * 0.002, 30.2] for index in range(1, 101)]
+    left = [[80.0, 30.2 - index * 0.002] for index in range(1, 101)]
+    coordinates = bottom + right + top + left + [[80.0, 30.0]]
+
+    simplified = LineString(coordinates).simplify(0.01, preserve_topology=False)
+    mask = lasso_to_mask(coordinates, _valid_mask())
+
+    assert len(simplified.coords) < len(coordinates)
+    assert int(np.count_nonzero(mask)) > 0
+
+
+def test_lasso_to_mask_boundary_clamp() -> None:
+    mask = lasso_to_mask(
+        [[69.9, 24.9], [70.2, 24.9], [70.2, 25.2], [70.0, 25.2], [69.9, 25.1]],
+        _valid_mask(),
+    )
+
+    assert bool(mask[0, 0]) is True
+
+
+def test_lasso_to_mask_empty_after_valid_mask() -> None:
+    with pytest.raises(MaskError) as exc_info:
+        lasso_to_mask(
+            [[80.0, 30.0], [80.2, 30.0], [80.2, 30.2], [80.0, 30.2]],
+            _valid_mask(False),
+        )
+
+    assert exc_info.value.code == "MASK_EMPTY"
 
 
 def test_mask_valid_mask_intersection_works_for_all_types() -> None:

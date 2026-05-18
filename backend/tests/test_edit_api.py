@@ -31,6 +31,7 @@ class EditApiClient(NamedTuple):
     client: TestClient
     session_factory: async_sessionmaker[AsyncSession]
     path_builder: PathBuilder
+    headers: dict[str, str]
 
 
 def _write_field_data(builder: PathBuilder) -> None:
@@ -150,7 +151,10 @@ def edit_api_client(
 
     with TestClient(app, raise_server_exceptions=False) as client:
         yield EditApiClient(
-            client=client, session_factory=session_factory, path_builder=builder
+            client=client,
+            session_factory=session_factory,
+            path_builder=builder,
+            headers=_headers(),
         )
 
     app.dependency_overrides.pop(get_db, None)
@@ -244,6 +248,80 @@ def test_preview_valid_polygon_qpf_increase_returns_stats(
     assert data["before_stats"]["count"] == data["affected_grid_count"]
     assert data["after_stats"]["mean"] > data["before_stats"]["mean"]
     assert data["op_ptype_transition"]["1_to_1"] > 0
+
+
+def test_preview_valid_lasso_qpf_increase_returns_stats(
+    edit_api_client: EditApiClient,
+) -> None:
+    session_id = _start_session(edit_api_client.client)
+    payload = {
+        "session_id": session_id,
+        "tool": "lasso",
+        "variable": "qpf",
+        "operation": "increase",
+        "mask": {
+            "coordinates": [
+                [80.0, 35.0],
+                [80.05, 35.0],
+                [80.1, 35.01],
+                [80.15, 35.03],
+                [80.2, 35.07],
+                [80.22, 35.12],
+                [80.21, 35.18],
+                [80.17, 35.22],
+                [80.1, 35.24],
+                [80.03, 35.23],
+                [79.98, 35.2],
+                [79.95, 35.15],
+                [79.94, 35.08],
+                [79.96, 35.03],
+                [80.0, 35.0],
+            ]
+        },
+        "parameters": {"delta_mm": 2.0},
+    }
+
+    data = _preview(edit_api_client.client, session_id, payload)
+
+    assert data["preview_id"]
+    assert data["affected_grid_count"] > 0
+    assert data["affected_area_km2"] > 0
+    assert data["after_stats"]["mean"] > data["before_stats"]["mean"]
+    assert data["op_ptype_transition"]["1_to_1"] > 0
+
+
+def test_lasso_preview_then_apply(edit_api_client: EditApiClient) -> None:
+    session_id = _start_session(edit_api_client.client)
+    payload = {
+        "session_id": session_id,
+        "tool": "lasso",
+        "variable": "qpf",
+        "operation": "increase",
+        "mask": {
+            "coordinates": [
+                [80.0, 35.0],
+                [80.1, 35.0],
+                [80.15, 35.05],
+                [80.1, 35.1],
+                [80.0, 35.1],
+                [80.0, 35.0],
+            ]
+        },
+        "parameters": {"delta_mm": 1.0},
+    }
+    data = _preview(edit_api_client.client, session_id, payload)
+    preview_id = data["preview_id"]
+
+    apply_resp = edit_api_client.client.post(
+        "/api/edit/apply",
+        json={"session_id": session_id, "preview_id": preview_id},
+        headers=edit_api_client.headers,
+    )
+    assert apply_resp.status_code == 200
+    apply_data = apply_resp.json()["data"]
+    assert apply_data["applied"] is True
+    assert apply_data["operation_id"]
+    assert apply_data["can_undo"] is True
 
 
 def test_apply_updates_session_state_and_is_bit_exact_with_preview(

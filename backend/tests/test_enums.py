@@ -16,3 +16,5 @@ def test_load_enums_returns_dynamic_classes() -> None:
 
     assert "Role" in enums
     assert enums["Role"].ADMIN.value == "admin"
+    assert enums["EditTool"].LASSO.value == "lasso"
+    assert enums["MaskType"].LASSO.value == "lasso"
