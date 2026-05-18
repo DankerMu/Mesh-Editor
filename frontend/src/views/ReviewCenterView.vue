@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { MessagePlugin } from 'tdesign-vue-next'
+import AppHeader from '@/components/AppHeader.vue'
 import { exportReview } from '@/api/review'
 import type { MissingField, ReviewProductDetail, ReviewProductListItem } from '@/api/review'
 import { TERMINAL_PLOT_STATUSES, useReviewStore } from '@/stores/reviewStore'
@@ -189,6 +190,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <AppHeader />
   <t-layout class="review-center">
     <t-aside class="review-center__list-panel">
       <t-card class="review-center__filters" bordered>
@@ -368,7 +370,7 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: 380px minmax(0, 1fr);
   min-width: 980px;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--top-nav-height));
   background: var(--page-bg);
 }
 

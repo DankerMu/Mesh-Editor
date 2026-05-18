@@ -1,6 +1,9 @@
 import { config } from '@vue/test-utils'
 
 config.global.stubs = {
+  AppHeader: {
+    template: '<header data-test="app-header-stub"></header>',
+  },
   't-alert': {
     props: ['message'],
     template: '<div><slot />{{ message }}</div>',
@@ -49,8 +52,16 @@ config.global.stubs = {
   't-menu': {
     template: '<nav><slot /></nav>',
   },
+  't-head-menu': {
+    props: ['value', 'theme'],
+    template: '<nav><slot /></nav>',
+  },
   't-menu-item': {
     template: '<span><slot /></span>',
+  },
+  't-submenu': {
+    props: ['value', 'title'],
+    template: '<div><span>{{ title }}</span><slot /></div>',
   },
   't-loading': {
     props: ['loading'],
