@@ -20,6 +20,7 @@ AuditAction = Literal[
     "version_review",
     "release",
     "version_release",
+    "edit_apply",
     "scan",
     "export",
     "config_change",
