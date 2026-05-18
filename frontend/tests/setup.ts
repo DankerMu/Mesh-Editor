@@ -6,7 +6,7 @@ config.global.stubs = {
     template: '<div><slot />{{ message }}</div>',
   },
   't-button': {
-    props: ['disabled', 'type', 'theme'],
+    props: ['disabled', 'type', 'theme', 'variant', 'size'],
     template: '<button :type="type || \'button\'" :disabled="disabled"><slot name="icon" /><slot /></button>',
   },
   't-card': {
@@ -35,10 +35,16 @@ config.global.stubs = {
     template: '<label>{{ label }}<slot /></label>',
   },
   't-input': {
-    props: ['modelValue', 'maxlength', 'placeholder'],
+    props: ['modelValue', 'maxlength', 'placeholder', 'type'],
     emits: ['update:modelValue', 'blur'],
     template:
       '<input :value="modelValue" :maxlength="maxlength" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)" @blur="$emit(\'blur\')" />',
+  },
+  't-date-range-picker': {
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+    template:
+      '<input data-test="date-range-picker" :value="Array.isArray(modelValue) ? modelValue.join(\',\') : modelValue" @input="$emit(\'update:modelValue\', $event.target.value.split(\',\'))" />',
   },
   't-menu': {
     template: '<nav><slot /></nav>',
@@ -90,6 +96,20 @@ config.global.stubs = {
     emits: ['update:modelValue'],
     template:
       '<select :value="modelValue || \'\'" @change="$emit(\'update:modelValue\', $event.target.value || undefined)"><option value="">{{ placeholder }}</option><option v-for="option in options" :key="option.value" :value="option.value">{{ option.label }}</option></select>',
+  },
+  't-switch': {
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+    template:
+      '<input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)" />',
+  },
+  't-table': {
+    props: ['data', 'columns', 'rowKey'],
+    template: '<div data-test="tdesign-table"><slot />{{ Array.isArray(data) ? data.length : 0 }}</div>',
+  },
+  't-pagination': {
+    props: ['total', 'pageSize', 'current'],
+    template: '<div data-test="pagination">{{ total }}</div>',
   },
   't-list': {
     template: '<ul><slot /></ul>',
