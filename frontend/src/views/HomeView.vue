@@ -1,17 +1,40 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import CaseIdInput from '@/components/CaseIdInput.vue'
 import ScanProgress from '@/components/ScanProgress.vue'
 import WindowSelector from '@/components/WindowSelector.vue'
 import { useWindowStore } from '@/stores/windowStore'
+import { useAuthStore } from '@/stores/authStore'
 
 const router = useRouter()
 const windowStore = useWindowStore()
+const authStore = useAuthStore()
 
-function triggerScan(caseId: string) {
-  void windowStore.triggerScan(caseId)
+const lastCaseId = ref('')
+
+const scanning = computed(() => windowStore.scanPolling)
+const permissionDenied = computed(() => {
+  const role = authStore.user?.role
+  // Backend allows admin + reviewer; deny viewer + forecaster
+  return role !== 'admin' && role !== 'reviewer'
+})
+
+async function triggerScan(caseId: string) {
+  lastCaseId.value = caseId
+  try {
+    await windowStore.triggerScan(caseId)
+  } catch {
+    // windowStore already handles error state internally
+    // This catch prevents unhandled rejection
+  }
+}
+
+function handleRetry() {
+  if (lastCaseId.value && !permissionDenied.value) {
+    triggerScan(lastCaseId.value)
+  }
 }
 
 watch(
@@ -35,8 +58,8 @@ watch(
             <p class="workspace-desc">输入起报时次后扫描资料，选择可编辑的累计降水窗口。</p>
           </div>
         </div>
-        <CaseIdInput @submit="triggerScan" />
-        <ScanProgress />
+        <CaseIdInput :scanning="scanning" :permission-denied="permissionDenied" @submit="triggerScan" />
+        <ScanProgress @retry="handleRetry" />
         <WindowSelector />
       </section>
     </main>

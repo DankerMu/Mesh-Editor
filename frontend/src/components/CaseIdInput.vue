@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+const props = defineProps<{
+  scanning?: boolean
+  permissionDenied?: boolean
+}>()
+
 const emit = defineEmits<{
   submit: [caseId: string]
 }>()
@@ -36,7 +41,7 @@ const showError = computed(() => touched.value && caseId.value.length > 0 && !va
 
 function submitCaseId() {
   touched.value = true
-  if (valid.value) {
+  if (valid.value && !props.scanning && !props.permissionDenied) {
     emit('submit', caseId.value)
   }
 }
@@ -53,11 +58,19 @@ function submitCaseId() {
         clearable
         maxlength="10"
         placeholder="2026010108"
+        :disabled="props.scanning || props.permissionDenied"
         @blur="touched = true"
       />
       <p v-if="showError" class="case-id-input__error">格式: YYYYMMDDHH（时次 08 或 20）</p>
     </div>
-    <t-button theme="primary" type="submit" :disabled="!valid">扫描数据</t-button>
+    <t-tooltip :content="props.permissionDenied ? '无扫描权限' : ''" :disabled="!props.permissionDenied">
+      <t-button
+        theme="primary"
+        type="submit"
+        :disabled="!valid || props.scanning || props.permissionDenied"
+        :loading="props.scanning"
+      >扫描数据</t-button>
+    </t-tooltip>
   </form>
 </template>
 

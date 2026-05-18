@@ -43,31 +43,63 @@ export const useWindowStore = defineStore('window', {
       this.scanErrorMessage = null
       this.scanPolling = true
 
-      const response = await postScan(caseId)
-      await this.pollStatus(response.scan_id)
+      try {
+        const response = await postScan(caseId)
+        await this.pollStatus(response.scan_id)
+      } catch (error) {
+        this.scanPolling = false
+        this.clearPollingTimer()
+        this.scanErrorMessage =
+          error instanceof Error ? error.message : '扫描请求失败'
+        this.scanStatus = {
+          scan_id: '',
+          case_id: caseId,
+          status: 'failed',
+          scan_started_at: '',
+          scan_finished_at: null,
+          tp_files_found: 0,
+          ptype_files_found: 0,
+          windows_created: 0,
+          windows_updated: 0,
+          errors_json: null,
+          total_windows: 0,
+          available_count: 0,
+          partial_count: 0,
+          invalid_count: 0,
+        }
+        throw error
+      }
     },
     async pollStatus(scanId: string): Promise<void> {
-      const status = await getScanStatus({ scan_id: scanId })
-      this.scanStatus = status
+      try {
+        const status = await getScanStatus({ scan_id: scanId })
+        this.scanStatus = status
 
-      if (status.status === 'running') {
-        this.scanPolling = true
+        if (status.status === 'running') {
+          this.scanPolling = true
+          this.clearPollingTimer()
+          this.pollingTimer = setTimeout(() => {
+            void this.pollStatus(scanId)
+          }, POLL_INTERVAL_MS)
+          return
+        }
+
+        this.scanPolling = false
         this.clearPollingTimer()
-        this.pollingTimer = setTimeout(() => {
-          void this.pollStatus(scanId)
-        }, POLL_INTERVAL_MS)
-        return
+
+        if (status.status === 'failed') {
+          this.scanErrorMessage = getErrorMessage(status)
+          return
+        }
+
+        await this.fetchWindows(status.case_id)
+      } catch (error) {
+        this.scanPolling = false
+        this.clearPollingTimer()
+        this.scanErrorMessage =
+          error instanceof Error ? error.message : '状态查询失败'
+        throw error
       }
-
-      this.scanPolling = false
-      this.clearPollingTimer()
-
-      if (status.status === 'failed') {
-        this.scanErrorMessage = getErrorMessage(status)
-        return
-      }
-
-      await this.fetchWindows(status.case_id)
     },
     async fetchWindows(caseId: string) {
       this.caseId = caseId

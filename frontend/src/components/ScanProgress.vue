@@ -2,6 +2,10 @@
 import { computed } from 'vue'
 import { useWindowStore } from '@/stores/windowStore'
 
+const emit = defineEmits<{
+  retry: []
+}>()
+
 const windowStore = useWindowStore()
 
 const isRunning = computed(
@@ -12,6 +16,10 @@ const isComplete = computed(
   () => !!windowStore.scanStatus && !isRunning.value && !isFailed.value,
 )
 const errorMessage = computed(() => windowStore.scanErrorMessage ?? '扫描失败')
+
+function retry() {
+  emit('retry')
+}
 </script>
 
 <template>
@@ -24,7 +32,10 @@ const errorMessage = computed(() => windowStore.scanErrorMessage ?? '扫描失�
     <p v-else-if="isComplete" class="scan-progress__complete">
       扫描完成：{{ windowStore.availableCount }} 个可用窗口
     </p>
-    <p v-else-if="isFailed" class="scan-progress__failed">{{ errorMessage }}</p>
+    <div v-else-if="isFailed" class="scan-progress__failed">
+      <p class="scan-progress__error-text">{{ errorMessage }}</p>
+      <t-button size="small" theme="default" @click="retry">重新扫描</t-button>
+    </div>
   </section>
 </template>
 

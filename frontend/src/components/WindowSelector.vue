@@ -5,13 +5,15 @@ import { useWindowStore } from '@/stores/windowStore'
 import type { WindowItem } from '@/api/data'
 
 const windowStore = useWindowStore()
-const activeTab = ref('24')
 
 const tabs = [
   { value: '24', label: '24h', accumHours: 24 },
   { value: '48', label: '48h', accumHours: 48 },
   { value: '168', label: '168h', accumHours: 168 },
 ] as const
+
+type TabValue = (typeof tabs)[number]['value']
+const activeTab = ref<TabValue>('24')
 
 const statusMeta = {
   available: { label: '可用', theme: 'success' },
@@ -20,6 +22,11 @@ const statusMeta = {
   pending: { label: '待处理', theme: 'default' },
   archived: { label: '已归档', theme: 'default' },
 } as const
+
+const activeTabLabel = computed(() => {
+  const tab = tabs.find(t => t.value === activeTab.value)
+  return tab?.label ?? ''
+})
 
 const groupedWindows = computed(() =>
   tabs.reduce(
@@ -47,8 +54,12 @@ function selectWindow(window: WindowItem) {
 <template>
   <section class="window-selector" aria-labelledby="window-selector-title">
     <div class="window-selector__header">
-      <h2 id="window-selector-title" class="window-selector__title">产品窗口</h2>
-      <span class="window-selector__count">{{ windowStore.windows.length }} 个窗口</span>
+      <h2 id="window-selector-title" class="window-selector__title">
+        {{ activeTabLabel }}窗口
+      </h2>
+      <span class="window-selector__count">
+        {{ groupedWindows[activeTab]?.length ?? 0 }} 个窗口
+      </span>
     </div>
 
     <t-tabs v-model="activeTab">
