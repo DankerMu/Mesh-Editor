@@ -48,6 +48,16 @@ class AuditLog(Base):
     created_at = Column(DateTime, server_default=func.now())
 
 
+class ConfigSnapshot(Base):
+    __tablename__ = "config_snapshot"
+
+    snapshot_id = Column(String, primary_key=True)
+    config_type = Column(String, nullable=False)
+    config_json = Column(Text, nullable=False)
+    changed_by = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
+
+
 class ForecastCase(Base):
     __tablename__ = "forecast_case"
     case_id = Column(String(10), primary_key=True)
