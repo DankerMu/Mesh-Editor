@@ -138,7 +138,10 @@ describe('ReviewCenterView', () => {
 
     expect(reviewStore.fetchReviewDetail).toHaveBeenCalledWith('review-success')
     expect(wrapper.find('[data-test="review-detail"]').text()).toContain('review-success')
-    expect(wrapper.find('[data-test="review-image"]').attributes('src')).toBe('/images/review.png')
+    const imageButton = wrapper.find('[data-test="review-image"]')
+    expect(imageButton.exists()).toBe(true)
+    expect(imageButton.element.tagName).toBe('BUTTON')
+    expect(imageButton.find('img').attributes('src')).toBe('/images/review.png')
   })
 
   it('9.T3 failed review shows regenerate button and click triggers generateReview', async () => {

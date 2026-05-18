@@ -36,6 +36,8 @@ const reasonLabels: Record<string, string> = {
   dimension_mismatch: '维度不匹配',
 }
 
+const previewImage = ref<string | null>(null)
+
 const currentReview = computed(() => reviewStore.currentReview)
 const canRegenerate = computed(() =>
   ['failed', 'partial_success'].includes(String(currentReview.value?.plot_status ?? '')),
@@ -118,6 +120,18 @@ function parseMissingFields(value: ReviewProductDetail['missing_fields_json']): 
   }
 }
 
+function openPreview(src: string | null) {
+  if (src) previewImage.value = src
+}
+
+function closePreview() {
+  previewImage.value = null
+}
+
+function onPreviewKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') closePreview()
+}
+
 function updateFilter(key: 'case_id' | 'window_id' | 'plot_status', value: string | undefined) {
   reviewStore.setFilter(key, value)
   void reviewStore.fetchReviews()
@@ -174,6 +188,7 @@ function syncPolling() {
 }
 
 onMounted(async () => {
+  window.addEventListener('keydown', onPreviewKeydown)
   await reviewStore.fetchReviews()
 })
 
@@ -186,13 +201,14 @@ watch(
 
 onBeforeUnmount(() => {
   reviewStore.stopPolling()
+  window.removeEventListener('keydown', onPreviewKeydown)
 })
 </script>
 
 <template>
   <AppHeader />
   <t-layout class="review-center">
-    <t-aside class="review-center__list-panel">
+    <t-aside class="review-center__left">
       <t-card class="review-center__filters" bordered>
         <t-space direction="vertical" size="small">
           <t-select
@@ -250,145 +266,189 @@ onBeforeUnmount(() => {
       </t-loading>
     </t-aside>
 
-    <t-content class="review-center__detail-panel">
+    <t-content class="review-center__center">
       <div v-if="reviewStore.error" class="review-center__error" data-test="review-error">
         {{ reviewStore.error }}
       </div>
-
-      <section v-if="currentReview" class="review-detail" data-test="review-detail">
-        <header class="review-detail__header">
-          <div>
-            <h1>{{ currentReview.review_id }}</h1>
-            <p>{{ currentReview.window_id }} / {{ currentReview.version_id }}</p>
-          </div>
-          <t-tag :theme="statusTheme(String(currentReview.plot_status))" variant="light" data-test="detail-status">
-            {{ statusLabel(String(currentReview.plot_status)) }}
-          </t-tag>
-        </header>
-
-        <div class="review-detail__actions">
-          <t-button
-            v-if="canRegenerate"
-            theme="warning"
-            data-test="regenerate-button"
-            @click="regenerateSelected"
-          >
-            重新生成
-          </t-button>
-          <t-button
-            v-if="canExport"
-            theme="primary"
-            data-test="export-button"
-            @click="exportSelected"
-          >
-            导出复盘包
-          </t-button>
-        </div>
-
+      <template v-if="currentReview">
         <t-card title="复盘合成图" bordered>
-          <t-image
+          <button
             v-if="currentReview.image_path"
-            class="review-detail__image"
-            :src="currentReview.image_path"
-            fit="contain"
+            class="review-center__image-button"
+            type="button"
             data-test="review-image"
-          />
+            @click="openPreview(currentReview.image_path)"
+          >
+            <t-image
+              class="review-detail__image"
+              :src="currentReview.image_path"
+              fit="contain"
+            />
+          </button>
           <t-empty v-else description="复盘图尚未生成" data-test="image-empty" />
         </t-card>
-
-        <div class="review-detail__grid">
-          <t-card title="面板统计" bordered>
-            <dl class="review-detail__stats" data-test="panel-summary">
-              <div>
-                <dt>总面板</dt>
-                <dd>{{ currentReview.total_panels ?? '-' }}</dd>
-              </div>
-              <div>
-                <dt>成功</dt>
-                <dd>{{ currentReview.success_panels ?? '-' }}</dd>
-              </div>
-              <div>
-                <dt>跳过</dt>
-                <dd>{{ currentReview.skipped_panels ?? '-' }}</dd>
-              </div>
-            </dl>
-          </t-card>
-
-          <t-card title="绘图耗时" bordered>
-            <dl class="review-detail__timing" data-test="plot-timing">
-              <div>
-                <dt>开始</dt>
-                <dd>{{ formatDate(currentReview.plot_started_at) }}</dd>
-              </div>
-              <div>
-                <dt>结束</dt>
-                <dd>{{ formatDate(currentReview.plot_finished_at) }}</dd>
-              </div>
-              <div>
-                <dt>耗时</dt>
-                <dd>{{ durationText }}</dd>
-              </div>
-            </dl>
-          </t-card>
-        </div>
-
-        <t-card v-if="missingFields.length > 0" title="缺失字段" bordered>
-          <table class="review-detail__missing" data-test="missing-fields">
-            <thead>
-              <tr>
-                <th>变量</th>
-                <th>层次</th>
-                <th>时效</th>
-                <th>原因</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="field in missingFields" :key="`${field.variable_name ?? field.name}-${field.lead_hour}-${field.reason}`">
-                <td>{{ field.variable_name ?? field.name }}</td>
-                <td>{{ levelText(field) }}</td>
-                <td>{{ field.lead_hour ?? '-' }}</td>
-                <td>{{ reasonLabel(field.reason) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </t-card>
-
-        <t-card v-if="currentReview.error_log_path" title="错误日志" bordered>
-          <a class="review-detail__log-link" :href="currentReview.error_log_path" target="_blank" rel="noreferrer">
-            {{ currentReview.error_log_path }}
-          </a>
-        </t-card>
-      </section>
+      </template>
 
       <t-empty v-else description="请选择左侧复盘任务" data-test="empty-detail" />
     </t-content>
+
+    <t-aside class="review-center__right">
+      <template v-if="currentReview">
+        <section class="review-detail" data-test="review-detail">
+          <header class="review-detail__header">
+            <div>
+              <h1>{{ currentReview.review_id }}</h1>
+              <p>{{ currentReview.window_id }} / {{ currentReview.version_id }}</p>
+            </div>
+            <t-tag :theme="statusTheme(String(currentReview.plot_status))" variant="light" data-test="detail-status">
+              {{ statusLabel(String(currentReview.plot_status)) }}
+            </t-tag>
+          </header>
+
+          <div class="review-detail__grid">
+            <t-card title="面板统计" bordered>
+              <dl class="review-detail__stats" data-test="panel-summary">
+                <div>
+                  <dt>总面板</dt>
+                  <dd>{{ currentReview.total_panels ?? '-' }}</dd>
+                </div>
+                <div>
+                  <dt>成功</dt>
+                  <dd>{{ currentReview.success_panels ?? '-' }}</dd>
+                </div>
+                <div>
+                  <dt>跳过</dt>
+                  <dd>{{ currentReview.skipped_panels ?? '-' }}</dd>
+                </div>
+              </dl>
+            </t-card>
+
+            <t-card title="绘图耗时" bordered>
+              <dl class="review-detail__timing" data-test="plot-timing">
+                <div>
+                  <dt>开始</dt>
+                  <dd>{{ formatDate(currentReview.plot_started_at) }}</dd>
+                </div>
+                <div>
+                  <dt>结束</dt>
+                  <dd>{{ formatDate(currentReview.plot_finished_at) }}</dd>
+                </div>
+                <div>
+                  <dt>耗时</dt>
+                  <dd>{{ durationText }}</dd>
+                </div>
+              </dl>
+            </t-card>
+          </div>
+
+          <t-card v-if="missingFields.length > 0" title="缺失字段" bordered>
+            <table class="review-detail__missing" data-test="missing-fields">
+              <thead>
+                <tr>
+                  <th>变量</th>
+                  <th>层次</th>
+                  <th>时效</th>
+                  <th>原因</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="field in missingFields" :key="`${field.variable_name ?? field.name}-${field.lead_hour}-${field.reason}`">
+                  <td>{{ field.variable_name ?? field.name }}</td>
+                  <td>{{ levelText(field) }}</td>
+                  <td>{{ field.lead_hour ?? '-' }}</td>
+                  <td>{{ reasonLabel(field.reason) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </t-card>
+
+          <t-card v-if="currentReview.error_log_path" title="错误日志" bordered>
+            <a class="review-detail__log-link" :href="currentReview.error_log_path" target="_blank" rel="noreferrer">
+              {{ currentReview.error_log_path }}
+            </a>
+          </t-card>
+
+          <div class="review-detail__actions">
+            <t-button
+              v-if="canRegenerate"
+              theme="warning"
+              data-test="regenerate-button"
+              @click="regenerateSelected"
+            >
+              重新生成
+            </t-button>
+            <t-button
+              v-if="canExport"
+              theme="primary"
+              data-test="export-button"
+              @click="exportSelected"
+            >
+              导出复盘包
+            </t-button>
+          </div>
+        </section>
+      </template>
+    </t-aside>
+
   </t-layout>
+  <div
+    v-if="previewImage"
+    class="review-preview"
+    data-test="review-preview"
+    role="dialog"
+    aria-modal="true"
+    @click.self="closePreview"
+  >
+    <button class="review-preview__close" type="button" data-test="review-preview-close" @click="closePreview">
+      关闭
+    </button>
+    <img :src="previewImage" alt="复盘合成图" data-test="review-preview-img">
+  </div>
 </template>
 
 <style scoped>
 .review-center {
   display: grid;
-  grid-template-columns: 380px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr) 340px;
   min-width: 980px;
   min-height: calc(100vh - var(--top-nav-height));
   background: var(--page-bg);
 }
 
-.review-center__list-panel,
-.review-center__detail-panel {
+.review-center__left,
+.review-center__center,
+.review-center__right {
   min-height: 0;
   background: var(--card-bg);
 }
 
-.review-center__list-panel {
+.review-center__left {
   border-right: 1px solid var(--color-border);
   padding: 16px;
   overflow: auto;
 }
 
-.review-center__detail-panel {
+.review-center__center {
+  display: grid;
+  gap: 16px;
+  align-content: start;
   padding: 20px 24px;
   overflow: auto;
+}
+
+.review-center__right {
+  border-left: 1px solid var(--color-border);
+  padding: 20px 16px;
+  overflow: auto;
+}
+
+.review-center__image-button {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
 }
 
 .review-center__filters {
@@ -500,7 +560,7 @@ onBeforeUnmount(() => {
 
 .review-detail__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -556,5 +616,33 @@ onBeforeUnmount(() => {
   color: var(--color-primary);
   font-size: 14px;
   word-break: break-all;
+}
+
+.review-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.82);
+  padding: 32px;
+}
+
+.review-preview__close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.48);
+  padding: 6px 12px;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.review-preview img {
+  max-width: min(1120px, 92vw);
+  max-height: 88vh;
+  object-fit: contain;
 }
 </style>
