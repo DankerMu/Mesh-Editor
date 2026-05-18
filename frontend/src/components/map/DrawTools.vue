@@ -597,10 +597,10 @@ defineExpose({
 
 .draw-tools__button {
   min-height: 34px;
-  border: 1px solid #c9cdd4;
-  border-radius: 6px;
-  background: #ffffff;
-  color: #1d2129;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--card-bg);
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 20px;
   cursor: pointer;
@@ -611,20 +611,20 @@ defineExpose({
 }
 
 .draw-tools__button:hover:not(:disabled) {
-  border-color: #165dff;
-  color: #165dff;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .draw-tools__button:disabled {
-  color: #86909c;
-  background: #f2f3f5;
+  color: var(--text-placeholder);
+  background: var(--color-neutral-bg);
   cursor: not-allowed;
 }
 
 .draw-tools__button--active {
-  border-color: #165dff;
-  background: #e8f3ff;
-  color: #165dff;
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -638,7 +638,7 @@ defineExpose({
   justify-content: space-between;
   gap: 10px;
   min-height: 34px;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 20px;
 }
@@ -646,10 +646,10 @@ defineExpose({
 .draw-tools__number {
   width: 84px;
   height: 30px;
-  border: 1px solid #c9cdd4;
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
   padding: 0 8px;
-  color: #1d2129;
+  color: var(--text-primary);
 }
 
 .draw-tools__brush-cursor {
@@ -657,8 +657,8 @@ defineExpose({
   top: 0;
   left: 0;
   pointer-events: none;
-  border: 1px solid #165dff;
+  border: 1px solid var(--color-primary);
   border-radius: 50%;
-  background: rgb(22 93 255 / 12%);
+  background: var(--map-polygon-fill);
 }
 </style>

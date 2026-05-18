@@ -166,13 +166,13 @@ async function redo(): Promise<void> {
 
 .operation-history__empty {
   margin: 0;
-  border: 1px dashed #d9e1ec;
-  border-radius: 6px;
-  background: #f7f8fa;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-neutral-bg);
   padding: 18px 12px;
-  color: #86909c;
-  font-size: 14px;
-  line-height: 22px;
+  color: var(--text-placeholder);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
   text-align: center;
 }
 
@@ -191,16 +191,16 @@ async function redo(): Promise<void> {
   grid-template-columns: 28px 1fr;
   gap: 8px;
   min-height: 58px;
-  border: 1px solid #e5e6eb;
-  border-radius: 6px;
-  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--card-bg);
   padding: 9px 10px;
-  color: #1d2129;
+  color: var(--text-primary);
 }
 
 .operation-history__item--undone {
-  background: #f7f8fa;
-  color: #86909c;
+  background: var(--color-neutral-bg);
+  color: var(--text-placeholder);
 }
 
 .operation-history__item--undone .operation-history__title {
@@ -213,15 +213,15 @@ async function redo(): Promise<void> {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 6px;
-  background: #e8f1ff;
-  color: #1664ff;
+  border-radius: var(--radius-control);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
   font-size: 16px;
 }
 
 .operation-history__item--undone .operation-history__icon {
-  background: #f2f3f5;
-  color: #86909c;
+  background: var(--color-neutral-bg);
+  color: var(--text-placeholder);
 }
 
 .operation-history__content {
@@ -242,21 +242,21 @@ async function redo(): Promise<void> {
 
 .operation-history__sequence {
   flex: 0 0 auto;
-  color: #1664ff;
-  font-size: 12px;
-  line-height: 18px;
+  color: var(--color-primary);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
   font-weight: 600;
 }
 
 .operation-history__item--undone .operation-history__sequence {
-  color: #86909c;
+  color: var(--text-placeholder);
 }
 
 .operation-history__title {
   min-width: 0;
   overflow: hidden;
-  font-size: 14px;
-  line-height: 22px;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -265,12 +265,12 @@ async function redo(): Promise<void> {
 .operation-history__meta {
   flex-wrap: wrap;
   gap: 6px 10px;
-  color: #4e5969;
-  font-size: 12px;
-  line-height: 18px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
 }
 
 .operation-history__item--undone .operation-history__meta {
-  color: #86909c;
+  color: var(--text-placeholder);
 }
 </style>

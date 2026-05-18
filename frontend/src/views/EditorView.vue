@@ -460,7 +460,7 @@ onBeforeUnmount(disposeLayers)
   min-width: 960px;
   height: 100vh;
   overflow: hidden;
-  background: #eef2f7;
+  background: var(--page-bg);
 }
 
 .editor-view__topbar {
@@ -471,8 +471,8 @@ onBeforeUnmount(disposeLayers)
   gap: 16px;
   height: 56px;
   padding: 0 16px;
-  border-bottom: 1px solid #d9e1ec;
-  background: #ffffff;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--card-bg);
 }
 
 .editor-view__context,
@@ -484,13 +484,13 @@ onBeforeUnmount(disposeLayers)
 }
 
 .editor-view__context {
-  color: #1d2129;
-  font-size: 14px;
-  line-height: 22px;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
 }
 
 .editor-view__loading-session {
-  color: #0052d9;
+  color: var(--color-primary);
 }
 
 .editor-view__body {
@@ -504,19 +504,19 @@ onBeforeUnmount(disposeLayers)
   position: relative;
   flex: 0 0 auto;
   min-height: 0;
-  border-right: 1px solid #d9e1ec;
-  background: #ffffff;
+  border-right: 1px solid var(--color-border);
+  background: var(--card-bg);
   transition: width 0.2s ease;
 }
 
 .editor-view__sidebar--left {
-  width: 260px;
+  width: var(--left-sidebar-width);
 }
 
 .editor-view__sidebar--right {
-  width: 340px;
+  width: var(--right-sidebar-width);
   border-right: 0;
-  border-left: 1px solid #d9e1ec;
+  border-left: 1px solid var(--color-border);
 }
 
 .editor-view__sidebar--collapsed {
@@ -531,10 +531,10 @@ onBeforeUnmount(disposeLayers)
   z-index: 2;
   min-width: 44px;
   height: 28px;
-  border: 1px solid #c9cdd4;
-  border-radius: 4px;
-  background: #ffffff;
-  color: #4e5969;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--card-bg);
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
@@ -567,13 +567,13 @@ onBeforeUnmount(disposeLayers)
   gap: 8px;
   min-height: 34px;
   padding: 6px 4px;
-  color: #1d2129;
-  font-size: 14px;
-  line-height: 22px;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
 }
 
 .view-mode-option small {
-  color: #86909c;
+  color: var(--color-neutral);
   font-size: 12px;
 }
 
@@ -582,7 +582,7 @@ onBeforeUnmount(disposeLayers)
   flex: 1 0 600px;
   min-width: 600px;
   min-height: 0;
-  background: #dfe7f1;
+  background: var(--page-bg);
 }
 
 .editor-view__selector,
@@ -595,7 +595,7 @@ onBeforeUnmount(disposeLayers)
 .editor-view__selector {
   overflow: auto;
   padding: 16px;
-  background: #f5f7fa;
+  background: var(--page-bg);
 }
 
 .editor-view__map-shell {
@@ -616,19 +616,19 @@ onBeforeUnmount(disposeLayers)
   justify-content: center;
   gap: 10px;
   background: rgb(255 255 255 / 70%);
-  color: #1d2129;
-  font-size: 14px;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
 }
 
 .editor-view__error {
   top: 16px;
   left: 16px;
   max-width: min(520px, calc(100% - 32px));
-  border: 1px solid #f5c6c3;
-  border-radius: 6px;
-  background: #fff2f0;
+  border: 1px solid var(--color-danger-bg);
+  border-radius: var(--radius-control);
+  background: var(--color-danger-bg);
   padding: 10px 12px;
-  color: #d54941;
+  color: var(--color-danger);
   font-size: 14px;
   line-height: 22px;
 }
@@ -637,11 +637,11 @@ onBeforeUnmount(disposeLayers)
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  border: 1px solid #d9e1ec;
-  border-radius: 4px;
-  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--card-bg);
   padding: 6px 10px;
-  color: #4e5969;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
@@ -652,7 +652,7 @@ onBeforeUnmount(disposeLayers)
 .editor-tab--disabled {
   display: grid;
   gap: 10px;
-  color: #86909c;
+  color: var(--color-neutral);
 }
 
 .editor-tab--locked {
@@ -662,15 +662,15 @@ onBeforeUnmount(disposeLayers)
 .editor-tab__hint,
 .editor-tab__empty {
   margin: 0 0 10px;
-  color: #86909c;
-  font-size: 14px;
-  line-height: 22px;
+  color: var(--color-neutral);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
 }
 
 .editor-view__statusbar {
-  flex: 0 0 36px;
-  height: 36px;
-  border-top: 1px solid #d9e1ec;
-  background: #f8fafc;
+  flex: 0 0 var(--bottom-status-height);
+  height: var(--bottom-status-height);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-neutral-bg);
 }
 </style>

@@ -235,9 +235,9 @@ onBeforeUnmount(() => {
   width: 100%;
   min-height: 320px;
   overflow: hidden;
-  border: 1px solid #d9e1ec;
-  border-radius: 8px;
-  background: #f7f8fa;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-neutral-bg);
 }
 
 .version-field-map__overlay,
@@ -249,11 +249,11 @@ onBeforeUnmount(() => {
   place-items: center;
   gap: 8px;
   background: rgba(255, 255, 255, 0.78);
-  color: #4e5969;
-  font-size: 14px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
 }
 
 .version-field-map__error {
-  color: #d54941;
+  color: var(--color-danger);
 }
 </style>
