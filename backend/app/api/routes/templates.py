@@ -25,6 +25,7 @@ from app.schemas.m6 import (
 )
 from app.services.review_templates import (
     ReviewTemplate,
+    _template_from_dict,
     list_templates,
     load_template,
     save_template,
@@ -154,10 +155,10 @@ async def update_template(
 
     template_payload = payload.model_dump()
     template_payload["template_id"] = template_id
-    template = save_template(template_id, template_payload)
+    temp_template = _template_from_dict(template_id, template_payload)
     snapshot_id = str(uuid4())
     created_at = datetime.now(UTC).replace(tzinfo=None)
-    config_json = json.dumps(template_to_dict(template), ensure_ascii=False, indent=2)
+    config_json = json.dumps(template_to_dict(temp_template), ensure_ascii=False, indent=2)
     try:
         await config_snapshot_repo.create(
             db,
@@ -187,6 +188,7 @@ async def update_template(
     except Exception:
         await db.rollback()
         raise
+    save_template(template_id, template_payload)
     return ApiResponse(
         message="模板更新成功",
         data=ReviewTemplateUpdateResponse(

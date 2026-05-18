@@ -41,6 +41,12 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    from app.services.review_templates import reload_templates
+
+    try:
+        reload_templates()
+    except Exception:
+        logger.warning("Failed to load persisted review templates, using defaults")
     yield
     from app.db.session import engine
 

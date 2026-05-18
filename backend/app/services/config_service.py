@@ -21,7 +21,6 @@ from app.repositories.config_snapshot_repo import (
 CONFIG_FILE_MAP: dict[str, Path] = {
     "product_config": Path("schemas/product_config.json"),
     "plot_config": Path("schemas/plot_config.json"),
-    "template_config": Path("schemas/review_templates.json"),
 }
 
 
@@ -55,20 +54,20 @@ class ConfigService:
         if not path.exists():
             raise _domain_error(
                 "CONFIG_NOT_FOUND",
-                {"config_type": config_type, "path": str(path)},
+                {"config_type": config_type},
             )
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
             raise _domain_error(
                 "CONFIG_VALIDATION_FAILED",
-                {"config_type": config_type, "path": str(path)},
+                {"config_type": config_type},
                 "配置文件不是合法 JSON",
             ) from exc
         if not isinstance(payload, dict):
             raise _domain_error(
                 "CONFIG_VALIDATION_FAILED",
-                {"config_type": config_type, "path": str(path)},
+                {"config_type": config_type},
                 "配置内容必须是 JSON 对象",
             )
         return payload
@@ -91,14 +90,6 @@ class ConfigService:
 
         path = self._config_path(config_type)
         payload = json.dumps(config_json, ensure_ascii=False, indent=2, sort_keys=True)
-        try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(payload + "\n", encoding="utf-8")
-        except OSError as exc:
-            raise _domain_error(
-                "FILE_WRITE_FAILED",
-                {"config_type": config_type, "path": str(path)},
-            ) from exc
 
         snapshot_id = str(uuid4())
         created_at = datetime.now(UTC).replace(tzinfo=None)
@@ -131,6 +122,16 @@ class ConfigService:
         except Exception:
             await db.rollback()
             raise
+
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(payload + "\n", encoding="utf-8")
+        except OSError as exc:
+            raise _domain_error(
+                "FILE_WRITE_FAILED",
+                {"config_type": config_type},
+            ) from exc
+
         await db.refresh(snapshot)
         return snapshot
 
