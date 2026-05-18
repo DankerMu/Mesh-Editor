@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type Map from 'ol/Map'
 import { MessagePlugin } from 'tdesign-vue-next'
+import AppHeader from '@/components/AppHeader.vue'
 import VersionFieldMap from '@/components/approval/VersionFieldMap.vue'
 import { useLinkedMaps } from '@/composables/useLinkedMaps'
 import { useAuthStore } from '@/stores/authStore'
@@ -227,6 +228,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <AppHeader />
   <t-layout class="approval-view">
     <t-aside class="approval-view__list-panel">
       <div class="approval-view__filters">
@@ -461,7 +463,7 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
   min-width: 960px;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--top-nav-height));
   background: var(--page-bg);
 }
 

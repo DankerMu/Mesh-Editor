@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Map from 'ol/Map'
+import AppHeader from '@/components/AppHeader.vue'
 import BaseMap from '@/components/map/BaseMap.vue'
 import DrawTools from '@/components/map/DrawTools.vue'
 import GridTooltip from '@/components/map/GridTooltip.vue'
@@ -318,8 +319,10 @@ onBeforeUnmount(disposeLayers)
 </script>
 
 <template>
-  <div class="editor-view">
-    <header class="editor-view__topbar" style="height: 56px" data-test="editor-topbar">
+  <div class="editor-view-wrapper">
+    <AppHeader />
+    <div class="editor-view">
+      <header class="editor-view__topbar" style="height: 56px" data-test="editor-topbar">
       <div class="editor-view__context">
         <span v-if="editorStore.loadingSession" class="editor-view__loading-session">
           正在加载会话...
@@ -451,14 +454,22 @@ onBeforeUnmount(disposeLayers)
       <GridTooltip :payload="hoverPayload" :loading="editorStore.loadingFields" />
     </footer>
   </div>
+  </div>
 </template>
 
 <style scoped>
+.editor-view-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
 .editor-view {
   display: flex;
   flex-direction: column;
   min-width: 960px;
-  height: 100vh;
+  height: calc(100vh - var(--top-nav-height));
   overflow: hidden;
   background: var(--page-bg);
 }
