@@ -67,7 +67,7 @@ def lasso_to_mask(
     geometry: Polygon | MultiPolygon = polygon
     if not geometry.is_valid:
         fixed = geometry.buffer(0)
-        if fixed.is_empty or not isinstance(fixed, (Polygon, MultiPolygon)):
+        if fixed.is_empty or not fixed.is_valid or not isinstance(fixed, (Polygon, MultiPolygon)):
             raise MaskError("MASK_INVALID_GEOMETRY", "lasso 自交叉修复失败")
         geometry = fixed
 
