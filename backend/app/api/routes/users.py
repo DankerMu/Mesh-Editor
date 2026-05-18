@@ -50,9 +50,9 @@ def _user_response(user: AppUser) -> UserResponse:
         display_name=str(user.display_name),
         role=str(user.role),
         is_active=bool(user.is_active),
-        created_at=user.created_at,
-        updated_at=user.updated_at,
-        last_login_at=user.last_login_at,
+        created_at=user.created_at,  # type: ignore[arg-type]
+        updated_at=user.updated_at,  # type: ignore[arg-type]
+        last_login_at=user.last_login_at,  # type: ignore[arg-type]
     )
 
 
