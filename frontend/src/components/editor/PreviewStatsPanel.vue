@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { MessagePlugin } from 'tdesign-vue-next'
 import { useEditorStore } from '@/stores/editorStore'
 
 type PtypeValue = 0 | 1 | 2 | 3
@@ -62,7 +63,7 @@ function formatValue(value: number | null, key: string): string {
   }
 
   if (key === 'count') {
-    return `${Math.round(value)}`
+    return Math.round(value).toLocaleString('en-US')
   }
 
   if (key === 'area_km2') {
@@ -96,12 +97,21 @@ async function applyPreview(): Promise<void> {
     return
   }
 
-  await editorStore.applyEdit()
+  try {
+    await editorStore.applyEdit()
+  } catch (error) {
+    MessagePlugin.error(error instanceof Error ? error.message : '应用失败')
+  }
 }
 
 async function confirmApplyWithPtype(): Promise<void> {
-  await editorStore.applyEdit(selectedTargetPtype.value)
-  ptypeDialogVisible.value = false
+  try {
+    await editorStore.applyEdit(selectedTargetPtype.value)
+    ptypeDialogVisible.value = false
+  } catch (error) {
+    ptypeDialogVisible.value = false
+    MessagePlugin.error(error instanceof Error ? error.message : '应用失败')
+  }
 }
 </script>
 
@@ -110,7 +120,7 @@ async function confirmApplyWithPtype(): Promise<void> {
     <div class="preview-stats-panel__header">
       <h3 class="preview-stats-panel__title">预览统计</h3>
       <div class="preview-stats-panel__summary" data-test="preview-summary">
-        <span>{{ preview.affected_grid_count }} 格点</span>
+        <span>{{ formatValue(preview.affected_grid_count, 'count') }} 格点</span>
         <span>{{ formatValue(preview.affected_area_km2, 'area_km2') }} km²</span>
       </div>
     </div>
@@ -157,7 +167,11 @@ async function confirmApplyWithPtype(): Promise<void> {
         <tbody>
           <tr v-for="row in matrixRows" :key="row.value">
             <th>{{ row.label }}</th>
-            <td v-for="cell in row.cells" :key="cell.to">
+            <td
+              v-for="cell in row.cells"
+              :key="cell.to"
+              :class="{ 'preview-stats-panel__matrix-highlight': cell.count > 0 }"
+            >
               {{ cell.count }}
             </td>
           </tr>
@@ -176,14 +190,14 @@ async function confirmApplyWithPtype(): Promise<void> {
         应用
       </t-button>
       <t-button :disabled="applying" data-test="preview-cancel-button" @click="editorStore.clearPreview()">
-        取消
+        取消预览
       </t-button>
     </div>
 
     <t-dialog
       v-if="needsTargetPtype"
       v-model:visible="ptypeDialogVisible"
-      header="新增降水落区相态选择"
+      header="新降水需要指定降水类型"
       :close-on-overlay-click="false"
       data-test="target-ptype-dialog"
     >
@@ -344,6 +358,11 @@ async function confirmApplyWithPtype(): Promise<void> {
 .preview-stats-panel__matrix th:first-child {
   width: 76px;
   text-align: left;
+}
+
+.preview-stats-panel__matrix-highlight {
+  background: var(--color-primary-bg);
+  font-weight: 600;
 }
 
 .preview-stats-panel__actions {

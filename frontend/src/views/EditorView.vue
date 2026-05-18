@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { MessagePlugin } from 'tdesign-vue-next'
 import Map from 'ol/Map'
 import AppHeader from '@/components/AppHeader.vue'
 import BaseMap from '@/components/map/BaseMap.vue'
@@ -14,13 +15,16 @@ import PreviewStatsPanel from '@/components/editor/PreviewStatsPanel.vue'
 import { GRID_COLS } from '@/constants/precipColors'
 import WindowSelector from '@/components/WindowSelector.vue'
 import { useEditorStore } from '@/stores/editorStore'
+import { useVersionStore } from '@/stores/versionStore'
 import { useWindowStore } from '@/stores/windowStore'
+import type { EditOperation } from '@/api/edit'
 import type { GridHoverPayload, ViewMode } from '@/types/editor'
 import type { WindowItem } from '@/api/data'
 
 const route = useRoute()
 const router = useRouter()
 const editorStore = useEditorStore()
+const versionStore = useVersionStore()
 const windowStore = useWindowStore()
 
 const leftCollapsed = ref(false)
@@ -72,8 +76,129 @@ const parsedWindow = computed(() => parseWindowId(currentWindowId.value ?? edito
 
 const hasWindowId = computed(() => currentWindowId.value !== null)
 const drawToolsDisabled = computed(() => editorStore.sessionId === null)
-const editPanelsDisabled = computed(() => editorStore.currentMaskGeometry === null)
+const editPanelsDisabled = computed(() =>
+  editorStore.sessionId === null || editorStore.currentMaskGeometry === null,
+)
+const maskTool = computed(() => {
+  const geom = editorStore.currentMaskGeometry
+  return geom?.type ?? 'polygon'
+})
+const panelBusy = computed(() => editorStore.previewLoading || editorStore.applyLoading)
 const selectedMode = computed(() => viewModes.find((mode) => mode.value === editorStore.selectedViewMode))
+
+// QPF panel state
+const qpfOperation = ref<EditOperation | ''>('set_value')
+const qpfValue = ref<number>(0)
+const qpfOperationOptions = [
+  { value: 'set_value', label: '设值' },
+  { value: 'increase', label: '增加' },
+  { value: 'decrease', label: '减少' },
+  { value: 'multiply', label: '乘以' },
+  { value: 'clear', label: '清除' },
+  { value: 'screen_clear', label: '筛除清零' },
+]
+const qpfValueHidden = computed(() => qpfOperation.value === 'clear' || qpfOperation.value === 'screen_clear')
+const qpfPreviewDisabled = computed(() => {
+  if (editPanelsDisabled.value || panelBusy.value) return true
+  if (!qpfOperation.value) return true
+  const op = qpfOperation.value
+  if (op === 'clear' || op === 'screen_clear') return false
+  return !Number.isFinite(qpfValue.value)
+})
+
+// Ptype panel state
+const ptypeTarget = ref<number | null>(null)
+const ptypePreviewDisabled = computed(
+  () => editPanelsDisabled.value || ptypeTarget.value === null || panelBusy.value,
+)
+
+// Submit dialog
+const submitDialogVisible = ref(false)
+
+function getQpfParams(): Record<string, unknown> {
+  const op = qpfOperation.value
+  if (op === 'clear' || op === 'screen_clear') return {}
+  if (op === 'set_value') return { value: qpfValue.value }
+  if (op === 'increase' || op === 'decrease') return { delta_mm: qpfValue.value }
+  if (op === 'multiply') return { factor: qpfValue.value }
+  return { value: qpfValue.value }
+}
+
+async function handleQpfPreview(): Promise<void> {
+  if (!qpfOperation.value || !editorStore.currentMaskGeometry) return
+  const op = qpfOperation.value
+  if (op !== 'clear' && op !== 'screen_clear' && !Number.isFinite(qpfValue.value)) return
+  try {
+    await editorStore.requestPreview(
+      maskTool.value,
+      'qpf',
+      qpfOperation.value as EditOperation,
+      editorStore.currentMaskGeometry as unknown as Record<string, unknown>,
+      getQpfParams(),
+    )
+  } catch {
+    if (editorStore.previewError) {
+      MessagePlugin.error(editorStore.previewError)
+    }
+  }
+}
+
+async function handlePtypePreview(): Promise<void> {
+  if (ptypeTarget.value === null || !editorStore.currentMaskGeometry) return
+  try {
+    await editorStore.requestPreview(
+      maskTool.value,
+      'ptype',
+      'set_ptype',
+      editorStore.currentMaskGeometry as unknown as Record<string, unknown>,
+      { target_ptype: ptypeTarget.value },
+    )
+  } catch {
+    if (editorStore.previewError) {
+      MessagePlugin.error(editorStore.previewError)
+    }
+  }
+}
+
+async function handleSubmit(): Promise<void> {
+  submitDialogVisible.value = true
+}
+
+async function confirmSubmit(): Promise<void> {
+  if (!editorStore.currentVersionId) return
+  try {
+    await versionStore.submitVersion(editorStore.currentVersionId)
+    submitDialogVisible.value = false
+    MessagePlugin.success('版本已提交审核')
+  } catch (error) {
+    MessagePlugin.error(error instanceof Error ? error.message : '提交失败')
+  }
+}
+
+async function handleSave(): Promise<void> {
+  try {
+    await editorStore.saveVersion()
+    MessagePlugin.success('版本已保存')
+  } catch (error) {
+    MessagePlugin.error(error instanceof Error ? error.message : '保存失败')
+  }
+}
+
+async function handleUndo(): Promise<void> {
+  try {
+    await editorStore.undoEdit()
+  } catch (error) {
+    MessagePlugin.error(error instanceof Error ? error.message : '撤销失败')
+  }
+}
+
+async function handleRedo(): Promise<void> {
+  try {
+    await editorStore.redoEdit()
+  } catch (error) {
+    MessagePlugin.error(error instanceof Error ? error.message : '重做失败')
+  }
+}
 
 const topBarInfo = computed(() => {
   const window = currentWindow.value
@@ -335,10 +460,42 @@ onBeforeUnmount(disposeLayers)
         </template>
       </div>
       <div class="editor-view__actions">
-        <t-button data-test="undo-button" disabled>撤销</t-button>
-        <t-button data-test="redo-button" disabled>重做</t-button>
-        <t-button data-test="save-button" disabled>保存</t-button>
-        <t-button data-test="submit-button" disabled>提交</t-button>
+        <t-button
+          data-test="undo-button"
+          :disabled="!editorStore.canUndo || editorStore.applyLoading || editorStore.previewLoading"
+          :loading="editorStore.applyLoading"
+          @click="handleUndo()"
+        >
+          撤销
+        </t-button>
+        <t-button
+          data-test="redo-button"
+          :disabled="!editorStore.canRedo || editorStore.applyLoading || editorStore.previewLoading"
+          :loading="editorStore.applyLoading"
+          @click="handleRedo()"
+        >
+          重做
+        </t-button>
+        <t-button
+          data-test="save-button"
+          :disabled="!editorStore.dirty || editorStore.saveLoading"
+          :loading="editorStore.saveLoading"
+          @click="handleSave()"
+        >
+          保存
+        </t-button>
+        <t-tooltip
+          :content="editorStore.dirty ? '有未保存的更改，请先保存' : '请先保存版本'"
+          :disabled="!!editorStore.currentVersionId && !editorStore.dirty"
+        >
+          <t-button
+            data-test="submit-button"
+            :disabled="!editorStore.currentVersionId || editorStore.dirty"
+            @click="handleSubmit()"
+          >
+            提交
+          </t-button>
+        </t-tooltip>
       </div>
     </header>
 
@@ -416,27 +573,67 @@ onBeforeUnmount(disposeLayers)
             </t-tab-panel>
             <t-tab-panel value="qpf" label="降水调整">
               <div
-                class="editor-tab editor-tab--disabled"
+                class="editor-tab"
                 :class="{ 'editor-tab--locked': editPanelsDisabled }"
                 data-test="qpf-panel"
               >
                 <p v-if="editPanelsDisabled" class="editor-tab__hint">请先选择编辑区域</p>
-                <p v-else class="editor-tab__hint">降水调整将在 M3 开放</p>
-                <t-button data-test="preview-button" disabled>预览</t-button>
-                <t-button data-test="apply-button" disabled>应用</t-button>
+                <template v-else>
+                  <div class="editor-tab__control">
+                    <label class="editor-tab__label">操作类型</label>
+                    <t-select
+                      v-model="qpfOperation"
+                      :options="qpfOperationOptions"
+                      :disabled="panelBusy || editPanelsDisabled"
+                      placeholder="选择操作"
+                      data-test="qpf-operation"
+                    />
+                  </div>
+                  <div v-if="!qpfValueHidden" class="editor-tab__control">
+                    <label class="editor-tab__label">数值</label>
+                    <t-input-number
+                      v-model="qpfValue"
+                      :disabled="panelBusy || editPanelsDisabled"
+                      data-test="qpf-value"
+                    />
+                  </div>
+                  <t-button
+                    data-test="preview-button"
+                    :disabled="qpfPreviewDisabled"
+                    :loading="editorStore.previewLoading"
+                    @click="handleQpfPreview()"
+                  >
+                    预览
+                  </t-button>
+                </template>
                 <PreviewStatsPanel />
               </div>
             </t-tab-panel>
             <t-tab-panel value="ptype" label="相态调整">
               <div
-                class="editor-tab editor-tab--disabled"
+                class="editor-tab"
                 :class="{ 'editor-tab--locked': editPanelsDisabled }"
                 data-test="ptype-panel"
               >
                 <p v-if="editPanelsDisabled" class="editor-tab__hint">请先选择编辑区域</p>
-                <p v-else class="editor-tab__hint">相态调整将在 M3 开放</p>
-                <t-button data-test="ptype-preview-button" disabled>预览</t-button>
-                <t-button data-test="ptype-apply-button" disabled>应用</t-button>
+                <template v-else>
+                  <div class="editor-tab__control">
+                    <label class="editor-tab__label">目标相态</label>
+                    <t-radio-group v-model="ptypeTarget" :disabled="panelBusy || editPanelsDisabled" data-test="ptype-radio">
+                      <t-radio-button :value="1">雨</t-radio-button>
+                      <t-radio-button :value="2">雪</t-radio-button>
+                      <t-radio-button :value="3">雨夹雪</t-radio-button>
+                    </t-radio-group>
+                  </div>
+                  <t-button
+                    data-test="ptype-preview-button"
+                    :disabled="ptypePreviewDisabled"
+                    :loading="editorStore.previewLoading"
+                    @click="handlePtypePreview()"
+                  >
+                    预览
+                  </t-button>
+                </template>
                 <PreviewStatsPanel />
               </div>
             </t-tab-panel>
@@ -454,6 +651,19 @@ onBeforeUnmount(disposeLayers)
       <GridTooltip :payload="hoverPayload" :loading="editorStore.loadingFields" />
     </footer>
   </div>
+
+  <t-dialog
+    v-model:visible="submitDialogVisible"
+    header="确认提交"
+    data-test="submit-dialog"
+    :close-on-overlay-click="false"
+  >
+    <p>确认提交该版本进行审核？</p>
+    <template #footer>
+      <t-button data-test="submit-cancel" @click="submitDialogVisible = false">取消</t-button>
+      <t-button theme="primary" data-test="submit-confirm" @click="confirmSubmit()">确认</t-button>
+    </template>
+  </t-dialog>
   </div>
 </template>
 
@@ -676,6 +886,18 @@ onBeforeUnmount(disposeLayers)
   color: var(--color-neutral);
   font-size: var(--font-size-body);
   line-height: var(--line-height-body);
+}
+
+.editor-tab__control {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.editor-tab__label {
+  color: var(--text-secondary);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
 }
 
 .editor-view__statusbar {

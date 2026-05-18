@@ -239,6 +239,7 @@ export const useEditorStore = defineStore('editor', () => {
     mask: Record<string, unknown>,
     parameters: Record<string, unknown>,
   ) {
+    if (previewLoading.value) return
     const activeSessionId = requireSessionId()
     previewLoading.value = true
     previewError.value = null
@@ -270,6 +271,7 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   async function applyEdit(targetPtype?: number) {
+    if (applyLoading.value) return
     const activeSessionId = requireSessionId()
     if (previewResult.value === null) {
       throw new Error('Missing preview result')
@@ -308,6 +310,7 @@ export const useEditorStore = defineStore('editor', () => {
       const response = await editUndo({ session_id: activeSessionId })
       canUndo.value = response.can_undo
       canRedo.value = response.can_redo
+      dirty.value = true
       clearPreview()
       await refreshAfterEditFields()
       await fetchOperations()
@@ -329,6 +332,7 @@ export const useEditorStore = defineStore('editor', () => {
       const response = await editRedo({ session_id: activeSessionId })
       canUndo.value = response.can_undo
       canRedo.value = response.can_redo
+      dirty.value = true
       clearPreview()
       await refreshAfterEditFields()
       await fetchOperations()

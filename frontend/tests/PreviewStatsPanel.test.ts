@@ -109,7 +109,7 @@ describe('PreviewStatsPanel', () => {
 
     await wrapper.find('[data-test="preview-apply-button"]').trigger('click')
 
-    expect(wrapper.find('[data-test="target-ptype-dialog"]').text()).toContain('新增降水落区相态选择')
+    expect(wrapper.find('[data-test="target-ptype-dialog"]').text()).toContain('新降水需要指定降水类型')
     expect(wrapper.find('[data-test="target-ptype-radio"]').text()).toContain('雨(1)')
     expect(wrapper.find('[data-test="target-ptype-radio"]').text()).toContain('雪(2)')
     expect(wrapper.find('[data-test="target-ptype-radio"]').text()).toContain('雨夹雪(3)')
