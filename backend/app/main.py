@@ -13,6 +13,8 @@ from app.api.routes.auth import public_router as auth_public_router
 from app.api.routes.data_scan import router as data_scan_router
 from app.api.routes.edit import router as edit_router
 from app.api.routes.health import router as health_router
+from app.api.routes.reviews import list_router as reviews_list_router
+from app.api.routes.reviews import router as review_router
 from app.api.routes.session import router as session_router
 from app.api.routes.session import window_router as session_window_router
 from app.api.routes.versions import list_router as version_list_router
@@ -116,6 +118,8 @@ api_router.include_router(session_router)
 api_router.include_router(session_window_router)
 api_router.include_router(version_router)
 api_router.include_router(version_list_router)
+api_router.include_router(review_router)
+api_router.include_router(reviews_list_router)
 api_router.include_router(windows_router)
 
 app.include_router(public_api_router)
