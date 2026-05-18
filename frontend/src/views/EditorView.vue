@@ -166,8 +166,38 @@ async function handleSubmit(): Promise<void> {
 
 async function confirmSubmit(): Promise<void> {
   if (!editorStore.currentVersionId) return
-  await versionStore.submitVersion(editorStore.currentVersionId)
-  submitDialogVisible.value = false
+  try {
+    await versionStore.submitVersion(editorStore.currentVersionId)
+    submitDialogVisible.value = false
+    MessagePlugin.success('版本已提交审核')
+  } catch (error) {
+    MessagePlugin.error(error instanceof Error ? error.message : '提交失败')
+  }
+}
+
+async function handleSave(): Promise<void> {
+  try {
+    await editorStore.saveVersion()
+    MessagePlugin.success('版本已保存')
+  } catch (error) {
+    MessagePlugin.error(error instanceof Error ? error.message : '保存失败')
+  }
+}
+
+async function handleUndo(): Promise<void> {
+  try {
+    await editorStore.undoEdit()
+  } catch (error) {
+    MessagePlugin.error(error instanceof Error ? error.message : '撤销失败')
+  }
+}
+
+async function handleRedo(): Promise<void> {
+  try {
+    await editorStore.redoEdit()
+  } catch (error) {
+    MessagePlugin.error(error instanceof Error ? error.message : '重做失败')
+  }
 }
 
 const topBarInfo = computed(() => {
@@ -434,7 +464,7 @@ onBeforeUnmount(disposeLayers)
           data-test="undo-button"
           :disabled="!editorStore.canUndo || editorStore.applyLoading || editorStore.previewLoading"
           :loading="editorStore.applyLoading"
-          @click="editorStore.undoEdit()"
+          @click="handleUndo()"
         >
           撤销
         </t-button>
@@ -442,7 +472,7 @@ onBeforeUnmount(disposeLayers)
           data-test="redo-button"
           :disabled="!editorStore.canRedo || editorStore.applyLoading || editorStore.previewLoading"
           :loading="editorStore.applyLoading"
-          @click="editorStore.redoEdit()"
+          @click="handleRedo()"
         >
           重做
         </t-button>
@@ -450,7 +480,7 @@ onBeforeUnmount(disposeLayers)
           data-test="save-button"
           :disabled="!editorStore.dirty || editorStore.saveLoading"
           :loading="editorStore.saveLoading"
-          @click="editorStore.saveVersion()"
+          @click="handleSave()"
         >
           保存
         </t-button>

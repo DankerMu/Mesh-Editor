@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { MessagePlugin } from 'tdesign-vue-next'
 import { useEditorStore } from '@/stores/editorStore'
 
 type PtypeValue = 0 | 1 | 2 | 3
@@ -96,12 +97,21 @@ async function applyPreview(): Promise<void> {
     return
   }
 
-  await editorStore.applyEdit()
+  try {
+    await editorStore.applyEdit()
+  } catch (error) {
+    MessagePlugin.error(error instanceof Error ? error.message : '应用失败')
+  }
 }
 
 async function confirmApplyWithPtype(): Promise<void> {
-  await editorStore.applyEdit(selectedTargetPtype.value)
-  ptypeDialogVisible.value = false
+  try {
+    await editorStore.applyEdit(selectedTargetPtype.value)
+    ptypeDialogVisible.value = false
+  } catch (error) {
+    ptypeDialogVisible.value = false
+    MessagePlugin.error(error instanceof Error ? error.message : '应用失败')
+  }
 }
 </script>
 
