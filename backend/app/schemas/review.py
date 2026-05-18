@@ -37,6 +37,10 @@ class ReviewGenerateResponse(BaseModel):
     message: str
 
 
+class ReviewExportRequest(BaseModel):
+    review_id: str
+
+
 class ReviewProductDetail(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -77,3 +81,17 @@ class ReviewProductListItem(BaseModel):
     success_panels: int | None = None
     skipped_panels: int | None = None
     created_at: datetime
+
+
+class ReviewProductListResponse(BaseModel):
+    items: list[ReviewProductListItem]
+    total: int
+    page: int
+    page_size: int
+
+
+class ReviewProductVersionItem(ReviewProductListItem):
+    version_no: int | None = None
+    version_status: str | None = None
+    version_created_by: str | None = None
+    version_created_at: datetime | None = None
