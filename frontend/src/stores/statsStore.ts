@@ -85,7 +85,7 @@ export const useStatsStore = defineStore('stats', {
       this.error = null
 
       try {
-        const { accum_hours: _accumHours, ...query } = toQuery(this.filters)
+        const { accum_hours: _, ...query } = toQuery(this.filters)
         const response = await getPtypeTransitions(query)
         this.ptypeTransitions = response.data
         return response.data
