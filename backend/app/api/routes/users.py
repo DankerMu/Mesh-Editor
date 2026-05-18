@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from app.api.dependencies import require_role
 from app.core.error_registry import get_error
@@ -43,7 +44,16 @@ def _domain_error(code: str, detail: dict[str, Any] | None = None) -> DomainErro
 
 
 def _user_response(user: AppUser) -> UserResponse:
-    return UserResponse.model_validate(user)
+    return UserResponse(
+        id=int(user.id),
+        username=str(user.username),
+        display_name=str(user.display_name),
+        role=str(user.role),
+        is_active=bool(user.is_active),
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+        last_login_at=user.last_login_at,
+    )
 
 
 async def _write_user_audit(
@@ -121,27 +131,33 @@ async def create_user(
     if existing is not None:
         raise _domain_error("USER_ALREADY_EXISTS", {"username": payload.username})
 
-    user = await user_repo.create(
-        db,
-        username=payload.username,
-        password_hash=pwd_context.hash(payload.password),
-        display_name=payload.display_name,
-        role=payload.role,
-    )
-    await _write_user_audit(
-        db,
-        actor=current_user,
-        target_user=user,
-        operation="create",
-        changes={
-            "username": payload.username,
-            "display_name": payload.display_name,
-            "role": payload.role,
-            "is_active": True,
-        },
-        request=request,
-    )
-    await db.commit()
+    try:
+        user = await user_repo.create(
+            db,
+            username=payload.username,
+            password_hash=pwd_context.hash(payload.password),
+            display_name=payload.display_name,
+            role=payload.role,
+        )
+        await _write_user_audit(
+            db,
+            actor=current_user,
+            target_user=user,
+            operation="create",
+            changes={
+                "username": payload.username,
+                "display_name": payload.display_name,
+                "role": payload.role,
+                "is_active": True,
+            },
+            request=request,
+        )
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise _domain_error(
+            "USER_ALREADY_EXISTS", {"username": payload.username}
+        ) from exc
     await db.refresh(user)
     return ApiResponse(
         message="用户创建成功",

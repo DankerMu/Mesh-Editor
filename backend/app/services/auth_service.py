@@ -1,4 +1,5 @@
 import json
+from datetime import UTC, datetime
 from typing import Any
 
 from passlib.context import CryptContext  # type: ignore[import-untyped]
@@ -81,6 +82,10 @@ class AuthService:
             result="success",
             ip_address=ip_address,
         )
+        user.last_login_at = datetime.now(UTC)
+        db.add(user)
+        await db.flush()
+        await db.commit()
         token, expires_at = create_access_token(
             user_id=int(user.id),
             username=str(user.username),

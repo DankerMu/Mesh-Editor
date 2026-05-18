@@ -12,10 +12,14 @@ AuditAction = Literal[
     "session_start",
     "session_discard",
     "save",
+    "version_save",
     "submit",
+    "version_submit",
     "approve",
     "reject",
+    "version_review",
     "release",
+    "version_release",
     "scan",
     "export",
     "config_change",
@@ -48,6 +52,7 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    last_login_at: datetime | None = None
 
 
 class UserListResponse(BaseModel):

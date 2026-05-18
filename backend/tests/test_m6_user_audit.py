@@ -259,6 +259,13 @@ def test_1_t2_migration_v009_creates_config_snapshot_table(tmp_path: Path) -> No
         assert not columns["config_type"]["nullable"]
         assert not columns["config_json"]["nullable"]
         assert not columns["created_at"]["nullable"]
+
+        app_user_columns = {
+            column["name"]: column for column in inspector.get_columns("app_user")
+        }
+        assert "last_login_at" in app_user_columns
+        assert isinstance(app_user_columns["last_login_at"]["type"], sa.DateTime)
+        assert app_user_columns["last_login_at"]["nullable"]
     finally:
         engine.dispose()
 
@@ -358,6 +365,8 @@ def test_2_t3_post_users_admin_creates_user_without_password_hash(
     assert body["data"]["username"] == "zhangsan"
     assert body["data"]["role"] == "forecaster"
     assert body["data"]["is_active"] is True
+    assert "last_login_at" in body["data"]
+    assert body["data"]["last_login_at"] is None
     assert "password_hash" not in json.dumps(body, ensure_ascii=False)
     logs = asyncio.run(_audit_logs(m6_client.session_factory, "user_manage"))
     assert len(logs) == 1
@@ -394,6 +403,31 @@ def test_2_t5_post_users_viewer_denied(m6_client: M6Client) -> None:
 
     assert response.status_code == 403
     assert response.json()["code"] == "PERMISSION_DENIED"
+
+
+def test_2_t5b_post_users_duplicate_username_integrity_error_returns_409(
+    m6_client: M6Client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.api.routes import users as users_route
+
+    async def missing_precheck(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(users_route.user_repo, "get_by_username", missing_precheck)
+    response = m6_client.client.post(
+        "/api/users",
+        headers=_bearer(m6_client.tokens["admin"]),
+        json={
+            "username": "viewer",
+            "display_name": "竞态重复用户",
+            "role": "viewer",
+            "password": "secure123",
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "USER_ALREADY_EXISTS"
 
 
 def test_2_t6_put_users_admin_disables_user_and_writes_audit(
@@ -556,3 +590,21 @@ def test_3_t7_get_audit_logs_invalid_action_returns_422(
 
     assert response.status_code == 422
     assert response.json()["code"] == "VALIDATION_ERROR"
+
+
+def test_3_t8_get_audit_logs_accepts_version_action_names(
+    m6_client: M6Client,
+) -> None:
+    for action in [
+        "version_save",
+        "version_submit",
+        "version_review",
+        "version_release",
+    ]:
+        response = m6_client.client.get(
+            f"/api/audit/logs?action={action}",
+            headers=_bearer(m6_client.tokens["viewer"]),
+        )
+
+        assert response.status_code == 200
+        assert response.json()["data"]["total"] == 0

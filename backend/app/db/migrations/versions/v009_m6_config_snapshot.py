@@ -27,7 +27,9 @@ def upgrade() -> None:
             "created_at", sa.DateTime(), nullable=False, server_default=sa.func.now()
         ),
     )
+    op.add_column("app_user", sa.Column("last_login_at", sa.DateTime(), nullable=True))
 
 
 def downgrade() -> None:
+    op.drop_column("app_user", "last_login_at")
     op.drop_table("config_snapshot")

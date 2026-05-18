@@ -29,6 +29,7 @@ class AppUser(Base):
     is_active = Column(Boolean, nullable=False, server_default=func.true())
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    last_login_at = Column(DateTime, nullable=True)
 
 
 class AuditLog(Base):
