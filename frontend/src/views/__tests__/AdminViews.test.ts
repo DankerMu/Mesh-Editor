@@ -81,13 +81,33 @@ function ok<T>(data: T): ApiResponse<T> {
   return { code: 'OK', message: '成功', data, trace_id: 'trace-1' }
 }
 
+/** Minimal t-table stub that renders scoped slots for each row */
+const TTableStub = {
+  name: 'TTable',
+  props: ['data', 'columns', 'rowKey'],
+  template: `
+    <div v-bind="$attrs">
+      <template v-for="(row, i) in (data || [])" :key="row[rowKey] || i">
+        <template v-for="col in (columns || [])" :key="col.colKey">
+          <template v-if="col.cell && $slots[col.cell]">
+            <span><slot :name="col.cell" :row="row" :col="col" /></span>
+          </template>
+          <template v-else>
+            <span>{{ row[col.colKey] }}</span>
+          </template>
+        </template>
+      </template>
+    </div>
+  `,
+}
+
 function mountWithPinia(component: object) {
   const pinia = createPinia()
   setActivePinia(pinia)
   return mount(component, {
     global: {
       plugins: [pinia],
-      stubs: { AppHeader: true },
+      stubs: { AppHeader: true, 't-table': TTableStub },
     },
   })
 }
@@ -143,8 +163,8 @@ describe('Admin views', () => {
 
     const tables = wrapper.findAll('[data-test="user-table"]')
     expect(tables).toHaveLength(1)
-    // No t-table component rendered
-    expect(wrapper.findAll('t-table-stub').length).toBe(0)
+    // No raw HTML <table> element — only t-table component
+    expect(wrapper.findAll('table').length).toBe(0)
   })
 
   it('10.T1c role tags use correct semantic colors', async () => {

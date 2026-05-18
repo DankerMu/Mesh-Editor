@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { MessagePlugin } from 'tdesign-vue-next'
+import type { BaseTableCol } from 'tdesign-vue-next'
 import AppHeader from '@/components/AppHeader.vue'
 import { useAdminStore } from '@/stores/adminStore'
 import type { UserItem, UserRole } from '@/api/admin'
@@ -21,6 +22,15 @@ const roleOptions = [
   { label: '审核员', value: 'reviewer' },
   { label: '预报员', value: 'forecaster' },
   { label: '观察员', value: 'viewer' },
+]
+
+const userColumns: BaseTableCol[] = [
+  { colKey: 'username', title: '用户名' },
+  { colKey: 'display_name', title: '显示名' },
+  { colKey: 'role', title: '角色', cell: 'role' },
+  { colKey: 'is_active', title: '状态', cell: 'is_active' },
+  { colKey: 'last_login_at', title: '最近登录', cell: 'last_login_at' },
+  { colKey: 'op', title: '操作', cell: 'op' },
 ]
 
 const dialogTitle = computed(() => (editingUser.value ? '编辑用户' : '创建用户'))
@@ -117,40 +127,31 @@ onMounted(async () => {
           </t-button>
         </div>
 
-        <table class="admin-table" data-test="user-table">
-          <thead>
-            <tr>
-              <th>用户名</th>
-              <th>显示名</th>
-              <th>角色</th>
-              <th>状态</th>
-              <th>最近登录</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="user in adminStore.users" :key="user.id">
-              <td>{{ user.username }}</td>
-              <td>{{ user.display_name }}</td>
-              <td>
-                <t-tag :theme="roleTheme(user.role)" variant="light">{{ roleLabel(user.role) }}</t-tag>
-              </td>
-              <td>
-                <t-switch
-                  :model-value="user.is_active"
-                  :data-test="`user-active-${user.id}`"
-                  @update:model-value="toggleActive(user, Boolean($event))"
-                />
-              </td>
-              <td>{{ formatDate(user.last_login_at) }}</td>
-              <td>
-                <t-button :data-test="`edit-user-${user.id}`" @click="openEditDialog(user)">
-                  编辑
-                </t-button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <t-table
+          :data="adminStore.users"
+          :columns="userColumns"
+          row-key="id"
+          data-test="user-table"
+        >
+          <template #role="{ row }">
+            <t-tag :theme="roleTheme(row.role)" variant="light">{{ roleLabel(row.role) }}</t-tag>
+          </template>
+          <template #is_active="{ row }">
+            <t-switch
+              :model-value="row.is_active"
+              :data-test="`user-active-${row.id}`"
+              @update:model-value="toggleActive(row, Boolean($event))"
+            />
+          </template>
+          <template #last_login_at="{ row }">
+            {{ formatDate(row.last_login_at) }}
+          </template>
+          <template #op="{ row }">
+            <t-button :data-test="`edit-user-${row.id}`" @click="openEditDialog(row)">
+              编辑
+            </t-button>
+          </template>
+        </t-table>
       </section>
     </main>
 

@@ -24,16 +24,21 @@ function formatDate(value: string) {
   return new Date(value).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })
 }
 
-async function loadConfig(type?: ConfigType) {
-  if (type && type !== activeType.value && isDirty.value) {
+function handleTabChange(newType: string | number) {
+  if (isDirty.value) {
     const ok = window.confirm('当前配置有未保存的修改，切换后将丢失，是否继续？')
     if (!ok) return
   }
-  if (type) activeType.value = type
+  activeType.value = newType as ConfigType
+  loadConfig(newType as ConfigType)
+}
+
+async function loadConfig(type?: ConfigType) {
+  const targetType = type ?? activeType.value
   error.value = ''
   const [configResponse, historyResponse] = await Promise.all([
-    getConfig(activeType.value),
-    getConfigHistory(activeType.value, { limit: 20 }),
+    getConfig(targetType),
+    getConfigHistory(targetType, { limit: 20 }),
   ])
   const text = JSON.stringify(configResponse.data, null, 2)
   editorText.value = text
@@ -80,7 +85,7 @@ onMounted(async () => {
           </div>
         </div>
 
-        <t-tabs v-model="activeType" data-test="config-tabs" @update:model-value="loadConfig">
+        <t-tabs :model-value="activeType" data-test="config-tabs" @update:model-value="handleTabChange">
           <t-tab-panel
             v-for="item in configTypes"
             :key="item.value"
