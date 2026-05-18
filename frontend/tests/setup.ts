@@ -41,7 +41,7 @@ config.global.stubs = {
     props: ['modelValue', 'maxlength', 'placeholder', 'type'],
     emits: ['update:modelValue', 'blur'],
     template:
-      '<input :value="modelValue" :maxlength="maxlength" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)" @blur="$emit(\'blur\')" />',
+      '<span class="t-input-stub"><input :value="modelValue" :type="type" :maxlength="maxlength" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)" @blur="$emit(\'blur\')" /><slot name="suffixIcon" /></span>',
   },
   't-date-range-picker': {
     props: ['modelValue'],
