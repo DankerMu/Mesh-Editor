@@ -230,7 +230,7 @@ onBeforeUnmount(() => {
 <template>
   <AppHeader />
   <t-layout class="approval-view">
-    <t-aside class="approval-view__list-panel">
+    <t-aside class="approval-view__left">
       <div class="approval-view__filters">
         <t-tabs :model-value="activeStatus" @update:model-value="applyFilters">
           <t-tab-panel
@@ -270,38 +270,13 @@ onBeforeUnmount(() => {
       </t-list>
     </t-aside>
 
-    <t-content class="approval-view__detail-panel">
+    <t-content class="approval-view__center">
       <div v-if="versionStore.error" class="approval-view__error" data-test="version-error">
         {{ versionStore.error }}
       </div>
 
-      <section v-if="selectedVersion" class="approval-detail" data-test="version-detail">
-        <header class="approval-detail__header">
-          <div>
-            <h1>{{ selectedVersion.version_id }}</h1>
-            <p>{{ selectedVersion.created_by ?? '未知用户' }} / {{ formatDate(selectedVersion.created_at) }}</p>
-          </div>
-          <t-tag :theme="statusTheme(selectedVersion.status)" variant="light">
-            {{ statusLabel(selectedVersion.status) }}
-          </t-tag>
-        </header>
-
-        <t-descriptions bordered :column="2">
-          <t-descriptions-item label="版本号">
-            {{ selectedVersion.version_no }}
-          </t-descriptions-item>
-          <t-descriptions-item label="窗口">
-            {{ selectedVersion.window_id }}
-          </t-descriptions-item>
-          <t-descriptions-item label="操作数">
-            {{ selectedVersion.operation_summary.operation_count }}
-          </t-descriptions-item>
-          <t-descriptions-item label="影响格点">
-            {{ selectedVersion.operation_summary.affected_grid_count }}
-          </t-descriptions-item>
-        </t-descriptions>
-
-        <section class="approval-detail__section">
+      <template v-if="selectedVersion">
+        <section class="approval-detail__section" data-test="field-map-section">
           <h2>地图对比</h2>
           <div v-if="!hasFieldUrls" class="approval-detail__field-empty" data-test="field-data-empty">
             字段数据不可用
@@ -373,52 +348,83 @@ onBeforeUnmount(() => {
             </article>
           </div>
         </section>
+      </template>
 
-        <section class="approval-detail__section">
-          <h2>审核历史</h2>
-          <t-timeline v-if="selectedVersion.approval_history.length > 0">
-            <t-timeline-item
-              v-for="item in selectedVersion.approval_history"
-              :key="item.approval_id"
-              :label="formatDate(item.reviewed_at)"
-            >
-              {{ item.reviewer_id }} {{ item.action === 'approve' ? '通过' : '退回' }}
-              <span v-if="item.comment">：{{ item.comment }}</span>
-            </t-timeline-item>
-          </t-timeline>
-          <p v-else class="approval-detail__empty">暂无审核记录</p>
-        </section>
-
-        <footer class="approval-detail__actions">
-          <t-button
-            v-if="showReviewActions"
-            theme="success"
-            data-test="approve-button"
-            @click="approveSelected"
-          >
-            通过
-          </t-button>
-          <t-button
-            v-if="showReviewActions"
-            theme="danger"
-            data-test="reject-button"
-            @click="openRejectDialog"
-          >
-            退回
-          </t-button>
-          <t-button
-            v-if="showReleaseAction"
-            theme="primary"
-            data-test="release-button"
-            @click="openReleaseDialog"
-          >
-            发布
-          </t-button>
-        </footer>
-      </section>
-
-      <div v-else class="approval-view__empty" data-test="empty-detail">请选择左侧版本</div>
+      <t-empty v-else description="请选择左侧版本查看详情" data-test="empty-detail" />
     </t-content>
+
+    <t-aside class="approval-view__right">
+      <template v-if="selectedVersion">
+        <section class="approval-detail" data-test="version-detail">
+          <header class="approval-detail__header">
+            <div>
+              <h1>{{ selectedVersion.version_id }}</h1>
+              <p>{{ selectedVersion.created_by ?? '未知用户' }} / {{ formatDate(selectedVersion.created_at) }}</p>
+            </div>
+            <t-tag :theme="statusTheme(selectedVersion.status)" variant="light">
+              {{ statusLabel(selectedVersion.status) }}
+            </t-tag>
+          </header>
+
+          <t-descriptions bordered :column="1">
+            <t-descriptions-item label="版本号">
+              {{ selectedVersion.version_no }}
+            </t-descriptions-item>
+            <t-descriptions-item label="窗口">
+              {{ selectedVersion.window_id }}
+            </t-descriptions-item>
+            <t-descriptions-item label="操作数">
+              {{ selectedVersion.operation_summary.operation_count }}
+            </t-descriptions-item>
+            <t-descriptions-item label="影响格点">
+              {{ selectedVersion.operation_summary.affected_grid_count }}
+            </t-descriptions-item>
+          </t-descriptions>
+
+          <section class="approval-detail__section">
+            <h2>审核历史</h2>
+            <t-timeline v-if="selectedVersion.approval_history.length > 0">
+              <t-timeline-item
+                v-for="item in selectedVersion.approval_history"
+                :key="item.approval_id"
+                :label="formatDate(item.reviewed_at)"
+              >
+                {{ item.reviewer_id }} {{ item.action === 'approve' ? '通过' : '退回' }}
+                <span v-if="item.comment">：{{ item.comment }}</span>
+              </t-timeline-item>
+            </t-timeline>
+            <t-empty v-else description="暂无审核记录" data-test="empty-history" />
+          </section>
+
+          <footer class="approval-detail__actions">
+            <t-button
+              v-if="showReviewActions"
+              theme="success"
+              data-test="approve-button"
+              @click="approveSelected"
+            >
+              通过
+            </t-button>
+            <t-button
+              v-if="showReviewActions"
+              theme="danger"
+              data-test="reject-button"
+              @click="openRejectDialog"
+            >
+              退回
+            </t-button>
+            <t-button
+              v-if="showReleaseAction"
+              theme="primary"
+              data-test="release-button"
+              @click="openReleaseDialog"
+            >
+              发布
+            </t-button>
+          </footer>
+        </section>
+      </template>
+    </t-aside>
 
     <t-dialog :visible="rejectDialogVisible" header="退回版本" @update:visible="rejectDialogVisible = $event">
       <t-textarea v-model="rejectComment" placeholder="请输入退回意见" data-test="reject-comment" />
@@ -461,26 +467,33 @@ onBeforeUnmount(() => {
 <style scoped>
 .approval-view {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr) 340px;
   min-width: 960px;
   min-height: calc(100vh - var(--top-nav-height));
   background: var(--page-bg);
 }
 
-.approval-view__list-panel,
-.approval-view__detail-panel {
+.approval-view__left,
+.approval-view__center,
+.approval-view__right {
   min-height: 0;
   background: var(--card-bg);
 }
 
-.approval-view__list-panel {
+.approval-view__left {
   border-right: 1px solid var(--color-border);
   padding: 16px;
   overflow: auto;
 }
 
-.approval-view__detail-panel {
+.approval-view__center {
   padding: 20px 24px;
+  overflow: auto;
+}
+
+.approval-view__right {
+  border-left: 1px solid var(--color-border);
+  padding: 20px 16px;
   overflow: auto;
 }
 
@@ -551,9 +564,7 @@ onBeforeUnmount(() => {
   line-height: var(--line-height-title);
 }
 
-.approval-detail__header p,
-.approval-detail__empty,
-.approval-view__empty {
+.approval-detail__header p {
   margin: 0;
   color: var(--color-neutral);
   font-size: 14px;
