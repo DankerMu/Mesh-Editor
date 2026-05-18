@@ -35,7 +35,7 @@ openspec/changes/    ← 变更管理
 
 ## 当前阶段
 
-**阶段：M3 完成，准备进入 M4 版本保存与审核**
+**阶段：M5 全部完成，准备进入 M6 运维/统计/配置**
 
 ### 已完成里程碑
 
@@ -58,8 +58,8 @@ openspec/changes/    ← 变更管理
 
 ### 后续里程碑
 
-- [ ] M4：版本保存、审核与发布
-- [ ] M5：复盘中心与绘图任务队列
+- [x] M4：版本保存、审核与发布
+- [x] M5：复盘中心与绘图任务队列（9 模块全部完成：DB/Plotter/Templates/ReviewService/PlotTaskService/API/前端，14 plotter tests + 全量测试通过）
 - [ ] M6：运维、统计、配置与试运行
 
 ### 阻塞项
@@ -70,6 +70,8 @@ openspec/changes/    ← 变更管理
 
 | 日期 | 变更 |
 |---|---|
+| 2026-05-18 | M5 收尾：确认 plotter/templates（模块 2/3/4）代码和测试已实现，补勾 tasks.md 和 #61 checklist，M5 全部完成 |
+| 2026-05-18 | Issue #64 完成：新增 reviewApi、reviewStore、ReviewCenterView、/review 路由与导航入口，前端目标测试和全量 vitest 通过 |
 | 2026-05-17 | **M3 Epic #35 关闭**：5 个 PR merged，编辑引擎全链路闭环（选区→编辑→预览→应用→撤销/重做→操作留痕→前端面板），304 tests 全绿 |
 | 2026-05-17 | M2 全部完成并关闭 Epic #23：Session API + 前端地图/选区/EditorView + post-merge 修复 |
 | 2026-05-17 | M1 全部完成并关闭 Epic #12：数据摄入+窗口选择全链路就绪 |
