@@ -98,9 +98,13 @@ const qpfOperationOptions = [
   { value: 'screen_clear', label: '筛除清零' },
 ]
 const qpfValueHidden = computed(() => qpfOperation.value === 'clear' || qpfOperation.value === 'screen_clear')
-const qpfPreviewDisabled = computed(
-  () => editPanelsDisabled.value || !qpfOperation.value || panelBusy.value,
-)
+const qpfPreviewDisabled = computed(() => {
+  if (editPanelsDisabled.value || panelBusy.value) return true
+  if (!qpfOperation.value) return true
+  const op = qpfOperation.value
+  if (op === 'clear' || op === 'screen_clear') return false
+  return !Number.isFinite(qpfValue.value)
+})
 
 // Ptype panel state
 const ptypeTarget = ref<number | null>(null)
@@ -122,6 +126,8 @@ function getQpfParams(): Record<string, unknown> {
 
 async function handleQpfPreview(): Promise<void> {
   if (!qpfOperation.value || !editorStore.currentMaskGeometry) return
+  const op = qpfOperation.value
+  if (op !== 'clear' && op !== 'screen_clear' && !Number.isFinite(qpfValue.value)) return
   try {
     await editorStore.requestPreview(
       maskTool.value,
@@ -426,7 +432,7 @@ onBeforeUnmount(disposeLayers)
       <div class="editor-view__actions">
         <t-button
           data-test="undo-button"
-          :disabled="!editorStore.canUndo || editorStore.applyLoading"
+          :disabled="!editorStore.canUndo || editorStore.applyLoading || editorStore.previewLoading"
           :loading="editorStore.applyLoading"
           @click="editorStore.undoEdit()"
         >
@@ -434,7 +440,7 @@ onBeforeUnmount(disposeLayers)
         </t-button>
         <t-button
           data-test="redo-button"
-          :disabled="!editorStore.canRedo || editorStore.applyLoading"
+          :disabled="!editorStore.canRedo || editorStore.applyLoading || editorStore.previewLoading"
           :loading="editorStore.applyLoading"
           @click="editorStore.redoEdit()"
         >

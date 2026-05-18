@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { useEditorStore } from '@/stores/editorStore'
+import { editUndo, editRedo } from '@/api/edit'
 import EditorView from '@/views/EditorView.vue'
 
 vi.mock('vue-router', async (importOriginal) => {
@@ -47,7 +48,11 @@ vi.mock('@/api/sessions', () => ({
       invalid_mask: '/f/invalid_mask',
     },
   }),
-  fetchField: vi.fn().mockResolvedValue({ buffer: new ArrayBuffer(8) }),
+  fetchField: vi.fn().mockImplementation((url: string) => {
+    const isFloat = url.includes('qpf_')
+    const size = isFloat ? 501 * 821 * 4 : 501 * 821
+    return Promise.resolve({ buffer: new ArrayBuffer(size) })
+  }),
 }))
 
 vi.mock('@/api/edit', () => ({
@@ -261,5 +266,97 @@ describe('EditorView – top bar buttons', () => {
 
     const btn = wrapper.find('[data-test="redo-button"]')
     expect(btn.attributes('disabled')).toBeUndefined()
+  })
+
+  it('undo button disabled during previewLoading', async () => {
+    const wrapper = mountEditor()
+    const store = useEditorStore()
+    store.sessionId = 's-1'
+    store.canUndo = true
+    store.applyLoading = false
+    store.previewLoading = true
+    await wrapper.vm.$nextTick()
+
+    const btn = wrapper.find('[data-test="undo-button"]')
+    expect(btn.attributes('disabled')).toBeDefined()
+  })
+
+  it('redo button disabled during previewLoading', async () => {
+    const wrapper = mountEditor()
+    const store = useEditorStore()
+    store.sessionId = 's-1'
+    store.canRedo = true
+    store.applyLoading = false
+    store.previewLoading = true
+    await wrapper.vm.$nextTick()
+
+    const btn = wrapper.find('[data-test="redo-button"]')
+    expect(btn.attributes('disabled')).toBeDefined()
+  })
+})
+
+describe('EditorView – undo/redo marks dirty', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('undo marks session as dirty after save', async () => {
+    const wrapper = mountEditor()
+    const store = useEditorStore()
+    await flushPromises()
+
+    // Simulate saved state: dirty=false, currentVersionId set
+    store.sessionId = 's-1'
+    store.currentVersionId = 'v-1'
+    store.dirty = false
+    store.canUndo = true
+    await wrapper.vm.$nextTick()
+
+    // Mock editUndo to return success
+    const mockedEditUndo = vi.mocked(editUndo)
+    mockedEditUndo.mockResolvedValueOnce({
+      can_undo: false,
+      can_redo: true,
+      operation_count: 0,
+    })
+
+    // Trigger undo via store (same as button click)
+    await store.undoEdit()
+    await flushPromises()
+
+    expect(store.dirty).toBe(true)
+
+    // Submit button should be disabled because dirty=true
+    await wrapper.vm.$nextTick()
+    const submitBtn = wrapper.find('[data-test="submit-button"]')
+    expect(submitBtn.attributes('disabled')).toBeDefined()
+  })
+
+  it('redo marks session as dirty after save', async () => {
+    const wrapper = mountEditor()
+    const store = useEditorStore()
+    await flushPromises()
+
+    store.sessionId = 's-1'
+    store.currentVersionId = 'v-1'
+    store.dirty = false
+    store.canRedo = true
+    await wrapper.vm.$nextTick()
+
+    const mockedEditRedo = vi.mocked(editRedo)
+    mockedEditRedo.mockResolvedValueOnce({
+      can_undo: true,
+      can_redo: false,
+      operation_count: 1,
+    })
+
+    await store.redoEdit()
+    await flushPromises()
+
+    expect(store.dirty).toBe(true)
+
+    await wrapper.vm.$nextTick()
+    const submitBtn = wrapper.find('[data-test="submit-button"]')
+    expect(submitBtn.attributes('disabled')).toBeDefined()
   })
 })

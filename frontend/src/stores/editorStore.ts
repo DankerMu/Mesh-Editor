@@ -310,6 +310,7 @@ export const useEditorStore = defineStore('editor', () => {
       const response = await editUndo({ session_id: activeSessionId })
       canUndo.value = response.can_undo
       canRedo.value = response.can_redo
+      dirty.value = true
       clearPreview()
       await refreshAfterEditFields()
       await fetchOperations()
@@ -331,6 +332,7 @@ export const useEditorStore = defineStore('editor', () => {
       const response = await editRedo({ session_id: activeSessionId })
       canUndo.value = response.can_undo
       canRedo.value = response.can_redo
+      dirty.value = true
       clearPreview()
       await refreshAfterEditFields()
       await fetchOperations()
