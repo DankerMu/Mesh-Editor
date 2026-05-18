@@ -5,7 +5,7 @@ import pytest
 from app.storage.path_builder import PathBuilder
 
 
-def test_path_builder_eight_methods_return_paths(tmp_path: Path) -> None:
+def test_path_builder_methods_return_paths(tmp_path: Path) -> None:
     data_source_root = tmp_path / "source"
     builder = PathBuilder(base_dir=tmp_path, data_source_root=data_source_root)
 
@@ -18,7 +18,8 @@ def test_path_builder_eight_methods_return_paths(tmp_path: Path) -> None:
         builder.version_root("window_001", "v001"),
         builder.review_root("window_001", "review_001"),
         builder.release_root("window_001", "v001"),
-        builder.data_source_dir("2024051608"),
+        builder.tp_source_dir("2024051608"),
+        builder.ptype_source_dir("2024051608"),
         builder.window_original_dir("2024051608", "2024051608_W024_000_024"),
         builder.tp_file_path("2024051608", 24),
         builder.ptype_file_path("2024051608", 24),
@@ -28,7 +29,12 @@ def test_path_builder_eight_methods_return_paths(tmp_path: Path) -> None:
     assert "20240101_rain" in builder.case_root("20240101_rain").parts
     assert "window_001" in builder.window_root("window_001").parts
     assert builder.preview_file("session_001", "preview_001").name == "preview_001.npz"
-    assert builder.data_source_dir("2024051608") == data_source_root / "2024051608"
+    assert builder.tp_source_dir("2024051608") == (
+        data_source_root / "deeplearning" / "20240516"
+    )
+    assert builder.ptype_source_dir("2024051608") == (
+        data_source_root / "statistics" / "ptype_deeplearning" / "20240516"
+    )
     assert builder.window_original_dir("2024051608", "2024051608_W024_000_024") == (
         tmp_path
         / "cases"
@@ -37,13 +43,11 @@ def test_path_builder_eight_methods_return_paths(tmp_path: Path) -> None:
         / "2024051608_W024_000_024"
         / "original"
     )
-    assert (
-        builder.tp_file_path("2024051608", 24)
-        == data_source_root / "2024051608" / "tp_024.txt"
+    assert builder.tp_file_path("2024051608", 24) == (
+        data_source_root / "deeplearning" / "20240516" / "tp_999_deeplearning_2024051608_024.txt"
     )
-    assert (
-        builder.ptype_file_path("2024051608", 24)
-        == data_source_root / "2024051608" / "ptype_024.txt"
+    assert builder.ptype_file_path("2024051608", 24) == (
+        data_source_root / "statistics" / "ptype_deeplearning" / "20240516" / "ptype_999_revised_2024051608_024.txt"
     )
 
 
@@ -54,10 +58,3 @@ def test_path_builder_rejects_traversal_payloads(tmp_path: Path, bad_id: str) ->
     builder = PathBuilder(base_dir=tmp_path)
     with pytest.raises(ValueError, match="非法路径片段"):
         builder.case_root(bad_id)
-
-
-def test_path_builder_rejects_bad_data_source_case_id(tmp_path: Path) -> None:
-    builder = PathBuilder(base_dir=tmp_path, data_source_root=tmp_path / "source")
-
-    with pytest.raises(ValueError, match="非法路径片段"):
-        builder.data_source_dir("../2024051608")

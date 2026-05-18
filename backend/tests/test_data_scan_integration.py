@@ -204,7 +204,7 @@ async def test_concurrent_scan_rejected(
             ForecastCase(
                 case_id=CASE_ID,
                 init_time=datetime(2026, 5, 16, 8, tzinfo=UTC),
-                data_source_path=str(path_builder.data_source_dir(CASE_ID)),
+                data_source_path=str(path_builder.tp_source_dir(CASE_ID)),
                 scan_count=1,
                 last_scan_at=datetime.now(UTC),
             )

@@ -13,6 +13,9 @@ def _safe_segment(value: str) -> str:
 
 
 class PathBuilder:
+    TP_SUBDIR = "deeplearning"
+    PTYPE_SUBDIR = Path("statistics") / "ptype_deeplearning"
+
     def __init__(
         self, base_dir: Path | None = None, data_source_root: Path | None = None
     ) -> None:
@@ -68,8 +71,14 @@ class PathBuilder:
     def release_temp_dir(self, window_id: str, version_id: str) -> Path:
         return self.base_dir / "tmp" / f"release_{_safe_segment(version_id)}"
 
-    def data_source_dir(self, case_id: str) -> Path:
-        return self.data_source_root / _safe_segment(case_id)
+    def _case_date(self, case_id: str) -> str:
+        return _safe_segment(case_id[:8])
+
+    def tp_source_dir(self, case_id: str) -> Path:
+        return self.data_source_root / self.TP_SUBDIR / self._case_date(case_id)
+
+    def ptype_source_dir(self, case_id: str) -> Path:
+        return self.data_source_root / self.PTYPE_SUBDIR / self._case_date(case_id)
 
     def window_original_dir(self, case_id: str, window_id: str) -> Path:
         return (
@@ -77,10 +86,10 @@ class PathBuilder:
         )
 
     def tp_file_path(self, case_id: str, lead: int) -> Path:
-        return self.data_source_dir(case_id) / f"tp_{lead:03d}.txt"
+        return self.tp_source_dir(case_id) / f"tp_999_deeplearning_{_safe_segment(case_id)}_{lead:03d}.txt"
 
     def ptype_file_path(self, case_id: str, lead: int) -> Path:
-        return self.data_source_dir(case_id) / f"ptype_{lead:03d}.txt"
+        return self.ptype_source_dir(case_id) / f"ptype_999_revised_{_safe_segment(case_id)}_{lead:03d}.txt"
 
 
 path_builder = PathBuilder()

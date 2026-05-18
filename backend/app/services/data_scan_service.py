@@ -257,7 +257,8 @@ class DataScanService:
     ) -> str:
         init_time = validate_case_id(case_id, self.config)
         scan_id = scan_id or str(uuid4())
-        case_dir = self.path_builder.data_source_dir(case_id)
+        tp_dir = self.path_builder.tp_source_dir(case_id)
+        ptype_dir = self.path_builder.ptype_source_dir(case_id)
         windows_created = 0
         windows_updated = 0
         window_errors: list[dict[str, Any]] = []
@@ -272,12 +273,12 @@ class DataScanService:
             ):
                 raise _domain_error("SCAN_ALREADY_RUNNING", {"case_id": case_id})
 
-            await self.forecast_cases.create_or_update(db, case_id, init_time, case_dir)
+            await self.forecast_cases.create_or_update(db, case_id, init_time, tp_dir)
             if existing_scan is None:
                 await self.scan_logs.create(db, scan_id, case_id, datetime.now(UTC))
             await db.commit()
 
-        if not case_dir.exists() or not case_dir.is_dir():
+        if not tp_dir.is_dir():
             async with session_factory() as db:
                 await self._fail_scan(
                     db,
@@ -286,7 +287,7 @@ class DataScanService:
                     error={
                         "code": "CASE_DIR_NOT_FOUND",
                         "message": get_error("CASE_DIR_NOT_FOUND")[0],
-                        "path": str(case_dir),
+                        "path": str(tp_dir),
                     },
                 )
                 await db.commit()
@@ -329,8 +330,8 @@ class DataScanService:
                     scan_id,
                     "completed",
                     datetime.now(UTC),
-                    _count_files(case_dir, "tp_*.txt"),
-                    _count_files(case_dir, "ptype_*.txt"),
+                    _count_files(tp_dir, f"tp_999_deeplearning_{case_id}_*.txt"),
+                    _count_files(ptype_dir, f"ptype_999_revised_{case_id}_*.txt"),
                     windows_created,
                     windows_updated,
                     window_errors or None,

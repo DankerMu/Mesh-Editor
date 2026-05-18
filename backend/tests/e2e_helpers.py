@@ -103,8 +103,7 @@ def write_window_originals(
 
 
 def write_source_tp_files(builder: PathBuilder, *, include_next: bool) -> None:
-    case_dir = builder.data_source_dir(CASE_ID)
-    case_dir.mkdir(parents=True, exist_ok=True)
+    builder.tp_source_dir(CASE_ID).mkdir(parents=True, exist_ok=True)
     shape = (NY, NX)
     for lead, value in [(0, 0.0), (24, 1.0)]:
         np.savetxt(builder.tp_file_path(CASE_ID, lead), np.full(shape, value), delimiter=",")
@@ -113,7 +112,7 @@ def write_source_tp_files(builder: PathBuilder, *, include_next: bool) -> None:
 
 
 def write_source_ifs_files(builder: PathBuilder) -> None:
-    ifs_dir = builder.data_source_dir(CASE_ID) / "ifs"
+    ifs_dir = builder.tp_source_dir(CASE_ID).parent / "ifs"
     for variable_name in ["z500", "t850", "rh700", "u850", "v850"]:
         path = ifs_dir / variable_name / f"{CASE_ID[2:]}.012.npz"
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -136,7 +135,7 @@ async def seed_window(
             ForecastCase(
                 case_id=CASE_ID,
                 init_time=init_time,
-                data_source_path=str(builder.data_source_dir(CASE_ID)),
+                data_source_path=str(builder.tp_source_dir(CASE_ID)),
                 scan_count=1,
                 status="partial" if status == "partial" else "complete",
             )

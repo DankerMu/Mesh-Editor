@@ -81,7 +81,7 @@ async def post_scan(
         db,
         payload.case_id,
         init_time,
-        path_builder.data_source_dir(payload.case_id),
+        path_builder.tp_source_dir(payload.case_id),
     )
     await data_scan_log_repo.create(
         db, scan_id, payload.case_id, datetime.now(init_time.tzinfo)

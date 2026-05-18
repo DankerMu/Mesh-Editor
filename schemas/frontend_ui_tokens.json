@@ -58,5 +58,9 @@
     "previewFill": "rgba(123,97,255,0.22)",
     "touchedStroke": "#7B61FF",
     "changedStroke": "#E34D59"
+  },
+  "shadows": {
+    "shadowCard": "0 4px 16px rgba(29,33,41,0.06)",
+    "shadowPopover": "0 8px 24px rgba(29,33,41,0.12)"
   }
 }

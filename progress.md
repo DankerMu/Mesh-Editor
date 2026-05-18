@@ -15,10 +15,12 @@ docs/01-09           ← 业务方案与功能设计
 docs/10-21           ← 工程开发设计与阶段 PRD
 docs/22-26           ← 前端 UI/UX 规格与效果图落地规范
 schemas/             ← error_codes.json、product_config.json、frontend_ui_tokens.json
-backend/             ← FastAPI 后端（204 tests）
-frontend/            ← Vue 3 前端（100 tests）
+backend/             ← FastAPI 后端（392 tests）
+frontend/            ← Vue 3 前端（146 tests）
 .github/workflows/   ← CI pipeline（6 jobs）
 openspec/changes/    ← 变更管理
+checklists/          ← E2E 测试清单与结果
+data/source/         ← 样例数据符号链接（→ data/量级/ + data/phase/）
 ```
 
 ## 关键设计决策
@@ -35,45 +37,77 @@ openspec/changes/    ← 变更管理
 
 ## 当前阶段
 
-**阶段：M6 OpenSpec 设计完成，Epic #70 + 5 子 issue 已创建，准备开发**
+**M0-M6 全部完成 → UI 视觉对齐阶段；lasso-smooth-tool OpenSpec 审核中**
 
-### 已完成里程碑
+### 里程碑总览
 
-| 里程碑 | 完成日期 | Epic | 摘要 |
-|---|---|---|---|
-| M0 工程骨架 | 2026-05-16 | #1 ✅ | 后端 FastAPI+SQLAlchemy+Alembic+JWT、前端 Vue3+TDesign+Pinia、CI 六 job |
-| M1 数据摄入与窗口 | 2026-05-17 | #12 ✅ | grid_io/qpf/ptype/archive engines、DataScanService+worker、windows API+JWT 权限、前端窗口选择器 |
-| M2 地图与编辑工作台 | 2026-05-17 | #23 ✅ | Session API、editorStore、OpenLayers BaseMap+WebGL DataTile、选区工具、EditorView 五区工作台 |
-| M3 编辑引擎与操作留痕 | 2026-05-17 | #35 ✅ | MaskBuilder+EditOps+Stats+Preview+Replay、Edit API 5端点、前端 editApi/Store/PreviewStatsPanel/OperationHistory |
-
-### M3 交付物
-
-| PR | 内容 | 测试 |
+| 里程碑 | 完成日期 | 摘要 |
 |---|---|---|
-| #41 | shapely + edit_operation 迁移/模型/Repo | 8 后端 |
-| #42 | 编辑引擎核心 5 模块（纯函数） | 57 后端 |
-| #43 | Edit API（preview/apply/undo/redo/operations） | 11 集成 |
-| #44 | 前端 editApi + editorStore 扩展 | 6 store |
-| #45 | PreviewStatsPanel + OperationHistory | 8 组件 |
+| M0 工程骨架 | 2026-05-16 | FastAPI+SQLAlchemy+Alembic+JWT、Vue3+TDesign+Pinia、CI 六 job |
+| M1 数据摄入与窗口 | 2026-05-17 | grid_io/qpf/ptype/archive engines、DataScan worker、windows API、前端窗口选择器 |
+| M2 地图与编辑工作台 | 2026-05-17 | Session API、editorStore、OpenLayers BaseMap+WebGL DataTile、选区工具、EditorView |
+| M3 编辑引擎与操作留痕 | 2026-05-17 | MaskBuilder+EditOps+Stats+Preview+Replay、Edit API 5 端点、前端编辑面板 |
+| M4 版本保存、审核与发布 | 2026-05-18 | 版本快照、审核流程、发布管理全链路 |
+| M5 复盘中心与绘图任务队列 | 2026-05-18 | Plotter/Templates/ReviewService/PlotTaskService/API/前端 |
+| M6 运维、统计、配置与试运行 | 2026-05-18 | User/Audit/Config/Template/Monitor/Stats API + 管理页 + E2E 试运行 |
 
-### 后续里程碑
+**测试：backend 392 tests + frontend 146 tests 全部通过**
 
-- [x] M4：版本保存、审核与发布
-- [x] M5：复盘中心与绘图任务队列（9 模块全部完成：DB/Plotter/Templates/ReviewService/PlotTaskService/API/前端，14 plotter tests + 全量测试通过）
-- [ ] M6：运维、统计、配置与试运行
+### E2E 测试执行结果（2026-05-18）
+
+用 agent-browser 对真实样例数据（case_id=2025122208，53 tp + 53 ptype 文件）执行前 3 类 E2E 测试：
+- 认证与权限：13/13 通过（4 种角色路由守卫、登录/登出/Token 保持全部正确）
+- 数据扫描与窗口：14/14 通过（23 窗口=5 available+4 partial+14 invalid，三 Tab 分组正确）
+- 编辑器工作台：8/8 通过（会话/字段加载/7 视图模式/地图渲染/preview/apply/undo/redo/save）
+- 附加编辑操作：8/8 通过（QPF increase/新降水 ptype 弹窗/一致性拦截/版本保存）
+
+### 已修复的 Bug
+
+| Bug | 修复 | 文件 |
+|---|---|---|
+| TDesign 全局注册失败 | `app.use(TDesign)` 无参 + ConfigProvider locale | `main.ts`、`App.vue` |
+| HomeView 窗口点击无跳转 | 添加 watch selectedWindowId → router.push | `HomeView.vue` |
+| frontend_ui_tokens.json 缺 shadow | 补充 shadows 分类 | `frontend_ui_tokens.json` |
+
+### UI 视觉对齐（进行中）
+
+**OpenSpec Change**: `openspec/changes/ui-visual-alignment/`（4/4 artifacts complete）
+- proposal.md — 7 个 capability
+- design.md — 5 个技术决策（白底 Header、CSS 变量、登录左右分栏、编辑面板复用、底部状态栏）
+- specs/ — 7 个 spec，127 个 WHEN/THEN scenario
+- tasks.md — 7 组 46 个 task
+
+**Codex 3 路并行审核** → 发现 12 个 P0 → 全部修复：
+- AppHeader 背景色：蓝→白底（对齐效果图）
+- 菜单项：4→5（加"系统管理"顶级菜单，"统计分析"→"历史分析"）
+- 审核/复盘页：两栏→三栏（左列表+中内容+右信息）
+- 新降水对话框触发：422 错误→preview 响应 new_precip_needs_ptype
+- 角色 Tag 颜色统一到 docs/22 语义色
+- Admin spec 补全 Config/Template/Storage 覆盖
+
+**GitHub Issues**: Epic #81 + 子 issue #82-#88
+- #82 Global Theme Tokens（基础，最先做）
+- #83 AppHeader Navigation（依赖 #82）
+- #84-#88 各页面视觉打磨（依赖 #83）
 
 ### 阻塞项
 
-- 无
+- lasso-smooth-tool OpenSpec 存在 P0 契约缺口，需修正后再进入实现
 
-## 最近变更记录
+### 样例数据
 
-| 日期 | 变更 |
-|---|---|
-| 2026-05-18 | M6 Stage Change Pipeline 完成：OpenSpec 4 artifact + 3 路 Codex 审核 + P0 修复 + Epic #70 + 5 子 issue (#71-#75) 创建 |
-| 2026-05-18 | M5 收尾：确认 plotter/templates（模块 2/3/4）代码和测试已实现，补勾 tasks.md 和 #61 checklist，M5 全部完成 |
-| 2026-05-18 | Issue #64 完成：新增 reviewApi、reviewStore、ReviewCenterView、/review 路由与导航入口，前端目标测试和全量 vitest 通过 |
-| 2026-05-17 | **M3 Epic #35 关闭**：5 个 PR merged，编辑引擎全链路闭环（选区→编辑→预览→应用→撤销/重做→操作留痕→前端面板），304 tests 全绿 |
-| 2026-05-17 | M2 全部完成并关闭 Epic #23：Session API + 前端地图/选区/EditorView + post-merge 修复 |
-| 2026-05-17 | M1 全部完成并关闭 Epic #12：数据摄入+窗口选择全链路就绪 |
-| 2026-05-16 | M0 全部完成并关闭 Epic #1：后端骨架/DB/认证/前端骨架/DevOps CI |
+- `data/量级/20251222/` — tp 53 文件（case_id=2025122208，0-156h 每 3h）
+- `data/phase/20251222/` — ptype 53 文件
+- `data/source/` — 符号链接映射到后端期望路径结构
+- 启动后端需设 `DATA_SOURCE_ROOT=/path/to/data/source`
+
+### 最近变更记录
+
+- 2026-05-18：审核 lasso-smooth-tool tasks.md 可执行性，输出 P0/P1 与 spec→task 覆盖映射
+- 2026-05-18：完成 lasso-smooth-tool OpenSpec 设计一致性审核，发现 API 契约与异常类型等 P0/P1 风险
+- 2026-05-18：创建 E2E 测试清单（12 大类 ~120 用例）+ 执行前 3 类（43 通过/0 失败）
+- 2026-05-18：修复 TDesign 注册 bug + HomeView 跳转 + 数据源路径配置，推送 a66e049
+- 2026-05-18：完成 ui-visual-alignment OpenSpec Change（proposal/design/7 specs/tasks）
+- 2026-05-18：Codex 3 路并行审核，发现 12 个 P0，全部修复
+- 2026-05-18：创建 GitHub Epic #81 + 7 个子 issue #82-#88
+- 2026-05-18：审核 lasso-smooth-tool 4 个 spec，发现 API/geometry/smooth/交互兼容性 P0 缺口
