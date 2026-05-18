@@ -109,7 +109,7 @@ onMounted(async () => {
       <section class="workspace-panel">
         <div class="workspace-panel__header">
           <div>
-            <h1 class="workspace-title">统计分析</h1>
+            <h1 class="workspace-title">历史分析</h1>
             <p class="workspace-desc">按时间、用户、窗口和累计长度查看编辑操作统计。</p>
           </div>
           <t-button theme="primary" data-test="stats-export" @click="statsStore.exportStats">

@@ -21,7 +21,7 @@ const activeMenu = computed(() => {
 
   const adminMatch = ADMIN_NAV_ITEMS.find((item) => item.path === path)
   if (adminMatch) {
-    return 'system-admin'
+    return adminMatch.path
   }
 
   if (path === '/' || path.startsWith('/editor')) {
