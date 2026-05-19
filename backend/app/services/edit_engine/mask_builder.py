@@ -124,7 +124,8 @@ def brush_path_to_mask(
 def smooth_mask(mask: np.ndarray, sigma: float, valid_mask: np.ndarray) -> np.ndarray:
     if sigma == 0:
         return mask
-    if sigma < 0.5 or sigma > 5.0:
+    import math
+    if not math.isfinite(sigma) or sigma < 0.5 or sigma > 5.0:
         raise MaskError("SMOOTH_SIGMA_OUT_OF_RANGE", "sigma 必须在 0.5 到 5.0 之间")
 
     float_mask = mask.astype(np.float64)
