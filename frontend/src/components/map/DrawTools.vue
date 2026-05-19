@@ -54,6 +54,49 @@
   </section>
 </template>
 
+<script lang="ts">
+export type LonLat = [number, number]
+
+export function perpendicularDistance(point: LonLat, lineStart: LonLat, lineEnd: LonLat): number {
+  const dx = lineEnd[0] - lineStart[0]
+  const dy = lineEnd[1] - lineStart[1]
+  const length = Math.hypot(dx, dy)
+
+  if (length === 0) {
+    return Math.hypot(point[0] - lineStart[0], point[1] - lineStart[1])
+  }
+
+  return Math.abs(dx * (lineStart[1] - point[1]) - dy * (lineStart[0] - point[0])) / length
+}
+
+export function simplifyDouglasPeucker(points: LonLat[], tolerance: number): LonLat[] {
+  if (points.length <= 2) {
+    return points
+  }
+
+  let maxDist = 0
+  let maxIndex = 0
+  const first = points[0]
+  const last = points[points.length - 1]
+
+  for (let index = 1; index < points.length - 1; index += 1) {
+    const dist = perpendicularDistance(points[index], first, last)
+    if (dist > maxDist) {
+      maxDist = dist
+      maxIndex = index
+    }
+  }
+
+  if (maxDist > tolerance) {
+    const left = simplifyDouglasPeucker(points.slice(0, maxIndex + 1), tolerance)
+    const right = simplifyDouglasPeucker(points.slice(maxIndex), tolerance)
+    return [...left.slice(0, -1), ...right]
+  }
+
+  return [first, last]
+}
+</script>
+
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import Draw from 'ol/interaction/Draw'
@@ -67,14 +110,20 @@ import LineString from 'ol/geom/LineString'
 import Polygon from 'ol/geom/Polygon'
 import { unByKey } from 'ol/Observable'
 import { useEditorStore } from '@/stores/editorStore'
-import type { BrushPathGeometry, LineBufferGeometry, MaskGeometry, PolygonGeometry, ToolType } from '@/types/editor'
-
-type LonLat = [number, number]
+import type {
+  BrushPathGeometry,
+  LassoGeometry,
+  LineBufferGeometry,
+  MaskGeometry,
+  PolygonGeometry,
+  ToolType,
+} from '@/types/editor'
 
 const DRAW_TOOLS: Array<{ value: ToolType; label: string }> = [
   { value: 'polygon', label: '多边形' },
   { value: 'line_buffer', label: '线缓冲' },
   { value: 'brush_path', label: '画刷' },
+  { value: 'lasso', label: '套索' },
 ]
 
 const props = withDefaults(
@@ -95,6 +144,7 @@ const editorStore = useEditorStore()
 const widthGrid = ref(5)
 const radiusGrid = ref(3)
 const isBrushing = ref(false)
+const isLassoing = ref(false)
 const brushCursor = reactive({
   visible: false,
   x: 0,
@@ -106,9 +156,13 @@ let drawInteraction: Draw | null = null
 let drawInteractionMap: Map | null = null
 let drawEndKey: EventsKey | null = null
 let brushEventKeys: EventsKey[] = []
+let lassoEventKeys: EventsKey[] = []
 let brushPoints: LonLat[] = []
+let lassoPoints: LonLat[] = []
 let lastBrushPixel: Pixel | null = null
+let lastLassoPixel: Pixel | null = null
 let lastBrushPointAt = 0
+let lastLassoPointAt = 0
 let wheelTarget: HTMLElement | null = null
 let contextMenuTarget: HTMLElement | null = null
 
@@ -196,6 +250,49 @@ function emitBrushPath(): void {
   emitMask(geometry)
 }
 
+function updateLassoOverlay(points: LonLat[] = lassoPoints): void {
+  const geometry: LassoGeometry = {
+    type: 'lasso',
+    coordinates: [...points],
+  }
+
+  editorStore.setMaskGeometry(geometry)
+}
+
+function completeLasso(points: LonLat[]): boolean {
+  if (points.length < 10) {
+    console.warn('套索至少需要10个点，请拖拽更大的区域')
+    return false
+  }
+
+  const openPoints = sameCoordinate(points[0], points[points.length - 1]) ? points.slice(0, -1) : [...points]
+  const simplified = simplifyDouglasPeucker(openPoints, 0.005)
+  const coordinates = sameCoordinate(simplified[0], simplified[simplified.length - 1])
+    ? simplified
+    : [...simplified, simplified[0]]
+
+  if (coordinates.length < 4) {
+    console.warn('套索至少需要10个点，请拖拽更大的区域')
+    return false
+  }
+
+  const geometry: LassoGeometry = {
+    type: 'lasso',
+    coordinates,
+  }
+
+  emitMask(geometry)
+  return true
+}
+
+function emitLassoPath(): boolean {
+  if (lassoPoints.length === 0) {
+    return false
+  }
+
+  return completeLasso(lassoPoints)
+}
+
 function onWidthInput(event: Event): void {
   const target = event.target as HTMLInputElement
   widthGrid.value = clampGridValue(Number(target.value), 1, 50)
@@ -281,6 +378,15 @@ function removeBrushHandlers(): void {
   brushCursor.visible = false
 }
 
+function removeLassoHandlers(): void {
+  if (lassoEventKeys.length > 0) {
+    unByKey(lassoEventKeys)
+    lassoEventKeys = []
+  }
+
+  isLassoing.value = false
+}
+
 function getOriginalEvent(event: unknown): Event | null {
   return typeof event === 'object' && event !== null && 'originalEvent' in event
     ? ((event as { originalEvent?: Event }).originalEvent ?? null)
@@ -334,6 +440,23 @@ function appendBrushPoint(event: unknown): boolean {
   return true
 }
 
+function appendLassoPoint(event: unknown): boolean {
+  if (lassoPoints.length >= 500) {
+    return false
+  }
+
+  const coordinate = getMapCoordinate(event)
+  if (!coordinate) {
+    return false
+  }
+
+  lassoPoints.push(coordinate)
+  lastLassoPixel = getMapPixel(event)
+  lastLassoPointAt = Date.now()
+  updateLassoOverlay()
+  return true
+}
+
 function shouldAppendBrushPoint(event: unknown): boolean {
   if (brushPoints.length === 0) {
     return true
@@ -350,6 +473,28 @@ function shouldAppendBrushPoint(event: unknown): boolean {
   }
 
   return Math.hypot(pixel[0] - lastBrushPixel[0], pixel[1] - lastBrushPixel[1]) >= 4
+}
+
+function shouldAppendLassoPoint(event: unknown): boolean {
+  if (lassoPoints.length === 0) {
+    return true
+  }
+
+  if (lassoPoints.length >= 500) {
+    return false
+  }
+
+  const now = Date.now()
+  if (now - lastLassoPointAt >= 16) {
+    return true
+  }
+
+  const pixel = getMapPixel(event)
+  if (!pixel || !lastLassoPixel) {
+    return false
+  }
+
+  return Math.hypot(pixel[0] - lastLassoPixel[0], pixel[1] - lastLassoPixel[1]) >= 4
 }
 
 function isPrimaryPointerEvent(event: unknown): boolean {
@@ -396,6 +541,39 @@ function onBrushPointerUp(event: unknown): void {
   emitBrushPath()
 }
 
+function onLassoPointerDown(event: unknown): void {
+  if (activeTool.value !== 'lasso' || !isPrimaryPointerEvent(event)) {
+    return
+  }
+
+  clearLassoPath()
+  isLassoing.value = true
+  appendLassoPoint(event)
+}
+
+function onLassoPointerDrag(event: unknown): void {
+  if (!isLassoing.value || activeTool.value !== 'lasso') {
+    return
+  }
+
+  if (shouldAppendLassoPoint(event)) {
+    appendLassoPoint(event)
+  }
+}
+
+function onLassoPointerUp(event: unknown): void {
+  if (!isLassoing.value || activeTool.value !== 'lasso') {
+    return
+  }
+
+  appendLassoPoint(event)
+  isLassoing.value = false
+
+  if (!emitLassoPath()) {
+    editorStore.clearMask()
+  }
+}
+
 function adjustBrushRadius(delta: number): void {
   radiusGrid.value = clampGridValue(radiusGrid.value + delta, 1, 30)
 }
@@ -427,11 +605,27 @@ function setupBrushHandlers(): void {
   wheelTarget.addEventListener('wheel', onBrushWheel, { passive: false })
 }
 
+function setupLassoHandlers(): void {
+  if (!props.map) {
+    return
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OL runtime dispatches these events but TS defs omit them
+  const mapAny = props.map as any
+  lassoEventKeys = [
+    mapAny.on('pointerdown', onLassoPointerDown),
+    mapAny.on('pointerdrag', onLassoPointerDrag),
+    mapAny.on('pointerup', onLassoPointerUp),
+  ]
+}
+
 function cancelDrawing(): void {
   drawInteraction?.abortDrawing()
   removeDrawInteraction()
   removeBrushHandlers()
+  removeLassoHandlers()
   isBrushing.value = false
+  isLassoing.value = false
 }
 
 function clearBrushPath(): void {
@@ -442,10 +636,33 @@ function clearBrushPath(): void {
   brushCursor.visible = false
 }
 
+function clearLassoPath(): void {
+  lassoPoints = []
+  lastLassoPixel = null
+  lastLassoPointAt = 0
+  isLassoing.value = false
+}
+
+function isEditableShortcutTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  const tagName = target.tagName.toLowerCase()
+  return target.isContentEditable || tagName === 'input' || tagName === 'textarea' || tagName === 'select'
+}
+
 function onKeydown(event: KeyboardEvent): void {
   if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'a') {
     event.preventDefault()
     clearSelection()
+    return
+  }
+
+  if (!props.disabled && !isEditableShortcutTarget(event.target) && event.key.toLowerCase() === 'l') {
+    event.preventDefault()
+    cancelDrawing()
+    editorStore.setActiveTool('lasso')
     return
   }
 
@@ -457,6 +674,9 @@ function onKeydown(event: KeyboardEvent): void {
     event.preventDefault()
     if (activeTool.value === 'brush_path') {
       clearBrushPath()
+      editorStore.clearMask()
+    } else if (activeTool.value === 'lasso') {
+      clearLassoPath()
       editorStore.clearMask()
     } else {
       drawInteraction?.abortDrawing()
@@ -505,6 +725,7 @@ watch(
   (tool) => {
     cancelDrawing()
     clearBrushPath()
+    clearLassoPath()
 
     if (tool === 'polygon' || tool === 'line_buffer') {
       setupDrawInteraction(tool)
@@ -512,6 +733,10 @@ watch(
 
     if (tool === 'brush_path') {
       setupBrushHandlers()
+    }
+
+    if (tool === 'lasso') {
+      setupLassoHandlers()
     }
   },
 )
@@ -528,6 +753,10 @@ watch(
 
     if (activeTool.value === 'brush_path') {
       setupBrushHandlers()
+    }
+
+    if (activeTool.value === 'lasso') {
+      setupLassoHandlers()
     }
   },
 )
@@ -567,14 +796,21 @@ function completeBrushStrokeForTest(points: LonLat[]): void {
   emitBrushPath()
 }
 
+function completeLassoForTest(points: LonLat[]): void {
+  completeLasso(points)
+}
+
 defineExpose({
   activateTool,
   adjustBrushRadius,
   cancelDrawing,
+  clearLassoPath,
   clearSelection,
   completeBrushStrokeForTest,
+  completeLassoForTest,
   completeLineBufferForTest,
   completePolygonForTest,
+  isLassoing,
   radiusGrid,
   widthGrid,
 })

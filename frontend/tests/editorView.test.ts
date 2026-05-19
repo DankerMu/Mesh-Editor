@@ -202,7 +202,7 @@ describe('EditorView', () => {
     await flushPromises()
 
     const drawButtons = wrapper.findAll('.draw-tools__button')
-    expect(drawButtons).toHaveLength(4)
+    expect(drawButtons).toHaveLength(5)
     expect(drawButtons.every((button) => button.attributes('disabled') !== undefined)).toBe(true)
 
     expect(wrapper.find('[data-test="qpf-panel"]').text()).toContain('请先选择编辑区域')
