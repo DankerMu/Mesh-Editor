@@ -37,7 +37,7 @@ data/source/         ← 样例数据符号链接（→ data/量级/ + data/phas
 
 ## 当前阶段
 
-**M0-M6 全部完成 → UI 视觉对齐阶段；PR #101 Round 1 lasso 后端修复完成；Issue #91 mask smooth 后端完成**
+**M0-M6 全部完成 → UI 视觉对齐阶段；Issue #92 lasso 前端完成；下一步 smooth 控件前端**
 
 ### 里程碑总览
 
@@ -51,7 +51,7 @@ data/source/         ← 样例数据符号链接（→ data/量级/ + data/phas
 | M5 复盘中心与绘图任务队列 | 2026-05-18 | Plotter/Templates/ReviewService/PlotTaskService/API/前端 |
 | M6 运维、统计、配置与试运行 | 2026-05-18 | User/Audit/Config/Template/Monitor/Stats API + 管理页 + E2E 试运行 |
 
-**测试：backend 392 tests + frontend 146 tests 全部通过；PR #101 targeted 32 tests 通过；Issue #91 targeted 38 tests 通过**
+**测试：backend 392 tests + frontend 365 tests 全部通过；Issue #92 frontend vitest/vue-tsc 通过**
 
 ### E2E 测试执行结果（2026-05-18）
 
@@ -92,7 +92,7 @@ data/source/         ← 样例数据符号链接（→ data/量级/ + data/phas
 
 ### 阻塞项
 
-- lasso-smooth-tool 仍需完成前端套索交互与 smooth 控件/参数传递任务
+- lasso-smooth-tool 仍需完成 smooth 控件/参数传递前端任务（tasks.md 第 4 节）
 
 ### 样例数据
 
@@ -103,6 +103,7 @@ data/source/         ← 样例数据符号链接（→ data/量级/ + data/phas
 
 ### 最近变更记录
 
+- 2026-05-19：完成 Issue #92 lasso 前端：DrawTools 套索交互、SelectionOverlay 渲染、类型/API 接入，frontend 365 tests + vue-tsc 通过
 - 2026-05-19：完成 Issue #91 mask smooth 后端：smooth_mask/scipy/smooth_sigma preview 接入，targeted 38 tests 通过
 - 2026-05-18：完成 PR #101 Round 1 修复：保留 MultiPolygon 全几何、lasso 10000 点上限、补 apply/回归测试
 - 2026-05-18：完成 Issue #90 套索 mask 后端：lasso_to_mask、自交叉 buffer(0) 修复、API/schema/enums 接入与 targeted tests

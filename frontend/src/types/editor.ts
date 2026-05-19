@@ -1,4 +1,4 @@
-export type ToolType = 'polygon' | 'line_buffer' | 'brush_path'
+export type ToolType = 'polygon' | 'line_buffer' | 'brush_path' | 'lasso'
 export type ViewMode = 'before' | 'after' | 'delta' | 'change' | 'touched' | 'changed' | 'review'
 
 export interface PolygonGeometry {
@@ -18,7 +18,12 @@ export interface BrushPathGeometry {
   radius_grid: number
 }
 
-export type MaskGeometry = PolygonGeometry | LineBufferGeometry | BrushPathGeometry
+export interface LassoGeometry {
+  type: 'lasso'
+  coordinates: [number, number][]
+}
+
+export type MaskGeometry = PolygonGeometry | LineBufferGeometry | BrushPathGeometry | LassoGeometry
 
 export interface EditorState {
   sessionId: string | null

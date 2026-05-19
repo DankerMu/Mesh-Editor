@@ -54,6 +54,11 @@ export class SelectionOverlay {
       return
     }
 
+    if (geom.type === 'lasso') {
+      this.addPolygon(geom.coordinates)
+      return
+    }
+
     for (const point of geom.points) {
       this.source.addFeature(new Feature(new Circle(point, geom.radius_grid * GRID_STEP)))
     }

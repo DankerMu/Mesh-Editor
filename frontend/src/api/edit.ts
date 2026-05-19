@@ -7,7 +7,7 @@ interface ApiResponse<T> {
   trace_id: string
 }
 
-export type EditTool = 'polygon' | 'line_buffer' | 'brush_path'
+export type EditTool = 'polygon' | 'line_buffer' | 'brush_path' | 'lasso'
 export type EditVariable = 'qpf' | 'ptype'
 export type EditOperation =
   | 'set_value'

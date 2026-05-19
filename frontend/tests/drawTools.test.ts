@@ -5,7 +5,7 @@ import DrawTools from '@/components/map/DrawTools.vue'
 import { useEditorStore } from '@/stores/editorStore'
 
 type DrawToolsVm = InstanceType<typeof DrawTools> & {
-  activateTool: (tool: 'polygon' | 'line_buffer' | 'brush_path') => void
+  activateTool: (tool: 'polygon' | 'line_buffer' | 'brush_path' | 'lasso') => void
   completePolygonForTest: (points: [number, number][]) => void
   completeLineBufferForTest: (points: [number, number][]) => void
   completeBrushStrokeForTest: (points: [number, number][]) => void
@@ -29,7 +29,7 @@ describe('DrawTools', () => {
     const wrapper = mountDrawTools(true)
 
     const buttons = wrapper.findAll('button')
-    expect(buttons).toHaveLength(4)
+    expect(buttons).toHaveLength(5)
     expect(buttons.every((button) => button.attributes('disabled') !== undefined)).toBe(true)
   })
 
