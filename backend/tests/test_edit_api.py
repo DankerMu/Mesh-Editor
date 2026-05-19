@@ -250,6 +250,21 @@ def test_preview_valid_polygon_qpf_increase_returns_stats(
     assert data["op_ptype_transition"]["1_to_1"] > 0
 
 
+def test_preview_with_smooth_sigma(edit_api_client: EditApiClient) -> None:
+    session_id = _start_session(edit_api_client.client)
+    payload = _polygon_payload(session_id)
+    parameters = payload["parameters"]
+    assert isinstance(parameters, dict)
+    parameters["smooth_sigma"] = 1.0
+
+    data = _preview(edit_api_client.client, session_id, payload)
+
+    assert data["preview_id"]
+    assert data["affected_grid_count"] > 0
+    assert data["affected_area_km2"] > 0
+    assert data["after_stats"]["mean"] > data["before_stats"]["mean"]
+
+
 def test_preview_valid_lasso_qpf_increase_returns_stats(
     edit_api_client: EditApiClient,
 ) -> None:

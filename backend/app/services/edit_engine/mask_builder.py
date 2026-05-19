@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
+from scipy.ndimage import gaussian_filter
 from shapely import covers, points  # type: ignore[import-untyped]
 from shapely.geometry import LineString, MultiPolygon, Polygon  # type: ignore[import-untyped]
 from shapely.prepared import prep  # type: ignore[import-untyped]
@@ -118,6 +119,18 @@ def brush_path_to_mask(
         mask[row_min : row_max + 1, col_min : col_max + 1] |= local_mask
 
     return _finalize_mask(mask, valid_mask)
+
+
+def smooth_mask(mask: np.ndarray, sigma: float, valid_mask: np.ndarray) -> np.ndarray:
+    if sigma == 0:
+        return mask
+    if sigma < 0.5 or sigma > 5.0:
+        raise MaskError("SMOOTH_SIGMA_OUT_OF_RANGE", "sigma 必须在 0.5 到 5.0 之间")
+
+    float_mask = mask.astype(np.float64)
+    smoothed = gaussian_filter(float_mask, sigma=sigma)
+    result = smoothed >= 0.5
+    return _finalize_mask(result, valid_mask)
 
 
 def _clamp_points(coordinates: Sequence[Sequence[float]]) -> list[tuple[float, float]]:

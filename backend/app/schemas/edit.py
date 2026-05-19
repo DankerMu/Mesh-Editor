@@ -27,6 +27,7 @@ class EditParameters(BaseModel):
     target_ptype: int | None = None
     only_nonzero: bool = False
     threshold: float | None = None
+    smooth_sigma: float = 0
 
 
 class EditPreviewRequest(BaseModel):
