@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
-import { resolve } from 'path'
+import { readFileSync, readdirSync, statSync } from 'fs'
+import { extname, join, resolve } from 'path'
 
 const cssContent = readFileSync(resolve(__dirname, '../style.css'), 'utf-8')
 
@@ -24,6 +24,7 @@ const TYPOGRAPHY_VARS = [
   '--font-family',
   '--font-size-title-lg', '--font-size-title', '--font-size-body', '--font-size-caption',
   '--line-height-title-lg', '--line-height-title', '--line-height-body', '--line-height-caption',
+  '--font-weight-title-lg', '--font-weight-title', '--font-weight-body', '--font-weight-caption',
 ]
 
 const SHADOW_VARS = ['--shadow-card', '--shadow-popover']
@@ -37,6 +38,7 @@ const MAP_VARS = [
 const TDESIGN_VARS = [
   '--td-brand-color', '--td-brand-color-hover', '--td-brand-color-active',
   '--td-brand-color-light', '--td-warning-color', '--td-error-color', '--td-success-color',
+  '--td-success-color-light', '--td-warning-color-light', '--td-error-color-light',
 ]
 
 // Extract :root block
@@ -48,6 +50,19 @@ function expectVarDefined(varName: string) {
   expect(rootBlock).toMatch(regex)
 }
 
+function collectVueFiles(dir: string): string[] {
+  const result: string[] = []
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry)
+    if (statSync(full).isDirectory()) {
+      if (entry !== 'node_modules' && entry !== '__tests__') result.push(...collectVueFiles(full))
+    } else if (extname(full) === '.vue') {
+      result.push(full)
+    }
+  }
+  return result
+}
+
 describe('Global Theme Tokens', () => {
   describe('color tokens (17)', () => {
     it.each(COLOR_VARS)('%s is defined in :root', (v) => expectVarDefined(v))
@@ -57,7 +72,7 @@ describe('Global Theme Tokens', () => {
     it.each(LAYOUT_VARS)('%s is defined in :root', (v) => expectVarDefined(v))
   })
 
-  describe('typography tokens (9)', () => {
+  describe('typography tokens (13)', () => {
     it.each(TYPOGRAPHY_VARS)('%s is defined in :root', (v) => expectVarDefined(v))
   })
 
@@ -69,7 +84,7 @@ describe('Global Theme Tokens', () => {
     it.each(MAP_VARS)('%s is defined in :root', (v) => expectVarDefined(v))
   })
 
-  describe('TDesign overrides (7)', () => {
+  describe('TDesign overrides (10)', () => {
     it.each(TDESIGN_VARS)('%s is defined in :root', (v) => expectVarDefined(v))
   })
 
@@ -99,5 +114,58 @@ describe('Global Theme Tokens', () => {
     expect(cssContent).toContain('--right-sidebar-width: 340px')
     expect(cssContent).toContain('--bottom-status-height: 36px')
     expect(cssContent).toContain('--radius-card: 8px')
+  })
+})
+
+describe('JSON sync validation', () => {
+  const tokens = JSON.parse(readFileSync(resolve(__dirname, '../../../schemas/frontend_ui_tokens.json'), 'utf-8'))
+
+  it('all color tokens from JSON exist in CSS', () => {
+    const colorMap: Record<string, string> = {
+      primary: '--color-primary', primaryHover: '--color-primary-hover', primaryBg: '--color-primary-bg',
+      success: '--color-success', successBg: '--color-success-bg',
+      warning: '--color-warning', warningBg: '--color-warning-bg',
+      danger: '--color-danger', dangerBg: '--color-danger-bg',
+      neutral: '--color-neutral', neutralBg: '--color-neutral-bg',
+      pageBg: '--page-bg', cardBg: '--card-bg', border: '--color-border',
+      textPrimary: '--text-primary', textSecondary: '--text-secondary', textPlaceholder: '--text-placeholder',
+    }
+    for (const [jsonKey, cssVar] of Object.entries(colorMap)) {
+      expect(tokens.colors[jsonKey], `JSON key colors.${jsonKey} exists`).toBeDefined()
+      expect(rootBlock, `CSS var ${cssVar} defined`).toMatch(new RegExp(`${cssVar.replace(/[-]/g, '\\-')}\\s*:`))
+    }
+  })
+
+  it('all typography tokens from JSON exist in CSS', () => {
+    for (const level of ['titleLg', 'title', 'body', 'caption']) {
+      const t = tokens.typography[level]
+      expect(t.size).toBeDefined()
+      expect(t.lineHeight).toBeDefined()
+      expect(t.weight).toBeDefined()
+    }
+  })
+
+  it('all shadow tokens from JSON exist in CSS', () => {
+    expect(tokens.shadows.shadowCard).toBeDefined()
+    expect(tokens.shadows.shadowPopover).toBeDefined()
+  })
+
+  it('all map tokens from JSON exist in CSS', () => {
+    for (const key of ['polygonStroke', 'polygonFill', 'previewStroke', 'previewFill', 'touchedStroke', 'changedStroke']) {
+      expect(tokens.map[key]).toBeDefined()
+    }
+  })
+})
+
+describe('no hardcoded token hex in Vue SFC styles', () => {
+  const srcDir = resolve(__dirname, '..')
+  const vueFiles = collectVueFiles(srcDir)
+  const OLD_TDESIGN_BLUE = /#0052d9/gi
+
+  it('no #0052d9 (old TDesign blue) in any Vue file', () => {
+    for (const file of vueFiles) {
+      const content = readFileSync(file, 'utf-8')
+      expect(content, `Found #0052d9 in ${file}`).not.toMatch(OLD_TDESIGN_BLUE)
+    }
   })
 })
