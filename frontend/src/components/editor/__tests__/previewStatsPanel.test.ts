@@ -54,6 +54,25 @@ describe('PreviewStatsPanel', () => {
     expect(summary.text()).toContain('309')
   })
 
+  it('smooth badge shown when smoothEnabled and preview active', async () => {
+    const { wrapper, store } = mountPanel(PREVIEW)
+    store.smoothEnabled = true
+    store.smoothSigma = 2.5
+    await wrapper.vm.$nextTick()
+
+    const badge = wrapper.find('[data-test="smooth-badge"]')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('已平滑 σ=2.5')
+  })
+
+  it('smooth badge hidden when smoothEnabled is false', () => {
+    const { wrapper, store } = mountPanel(PREVIEW)
+    store.smoothEnabled = false
+    store.smoothSigma = 2.5
+
+    expect(wrapper.find('[data-test="smooth-badge"]').exists()).toBe(false)
+  })
+
   it('renders before/after stats table', () => {
     const { wrapper } = mountPanel(PREVIEW)
     const table = wrapper.find('[data-test="stats-table"]')
