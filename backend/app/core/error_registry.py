@@ -47,6 +47,7 @@ ERROR_INFO: dict[str, ErrorInfo] = {
     "PREVIEW_SESSION_MISMATCH": ErrorInfo("preview 不属于 session", 400),
     "MASK_INVALID_GEOMETRY": ErrorInfo("mask 几何参数非法", 422),
     "MASK_OUT_OF_BOUNDS": ErrorInfo("mask 超出网格范围", 422),
+    "SMOOTH_SIGMA_OUT_OF_RANGE": ErrorInfo("smooth_sigma 必须在 0.5 到 5.0 之间", 422),
     "MASK_EMPTY": ErrorInfo(
         "mask 栅格化后无有效格点（mask 本身为空、全部落在 invalid_mask 上、或经 only_nonzero 过滤后无有效格点）",
         422,
