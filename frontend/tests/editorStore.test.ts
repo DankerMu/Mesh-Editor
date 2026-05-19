@@ -286,7 +286,7 @@ describe('editorStore', () => {
       variable: 'qpf',
       operation: 'increase',
       mask: { coordinates: [[100, 30]] },
-      parameters: { delta_mm: 2 },
+      parameters: { delta_mm: 2, smooth_sigma: 0 },
     })
     expect(store.previewResult).toEqual(PREVIEW_RESPONSE)
     expect(store.previewId).toBe('preview-1')

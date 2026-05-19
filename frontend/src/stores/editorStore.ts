@@ -65,6 +65,8 @@ export const useEditorStore = defineStore('editor', () => {
   const selectedViewMode = ref<ViewMode>('after')
   const previewId = ref<string | null>(null)
   const previewResult = ref<EditPreviewResponse | null>(null)
+  const smoothEnabled = ref(false)
+  const smoothSigma = ref(1.0)
   const operations = ref<OperationItem[]>([])
   const canUndo = ref(false)
   const canRedo = ref(false)
@@ -87,6 +89,11 @@ export const useEditorStore = defineStore('editor', () => {
     invalidMask.value = null
   }
 
+  function resetSmoothState() {
+    smoothEnabled.value = false
+    smoothSigma.value = 1.0
+  }
+
   function reset() {
     sessionId.value = null
     windowId.value = null
@@ -98,6 +105,7 @@ export const useEditorStore = defineStore('editor', () => {
     selectedViewMode.value = 'after'
     previewId.value = null
     previewResult.value = null
+    resetSmoothState()
     operations.value = []
     canUndo.value = false
     canRedo.value = false
@@ -133,6 +141,7 @@ export const useEditorStore = defineStore('editor', () => {
     loadingFields.value = true
     fieldLoadError.value = null
     clearArrays()
+    resetSmoothState()
 
     try {
       const session = await loadSessionApi(sessionIdToLoad)
@@ -252,7 +261,10 @@ export const useEditorStore = defineStore('editor', () => {
         variable,
         operation,
         mask,
-        parameters,
+        parameters: {
+          ...parameters,
+          smooth_sigma: smoothEnabled.value ? smoothSigma.value : 0,
+        },
       })
       previewResult.value = result
       previewId.value = result.preview_id
@@ -385,6 +397,14 @@ export const useEditorStore = defineStore('editor', () => {
     activeTool.value = null
   }
 
+  function setSmoothEnabled(enabled: boolean): void {
+    smoothEnabled.value = enabled
+  }
+
+  function setSmoothSigma(sigma: number): void {
+    smoothSigma.value = sigma
+  }
+
   return {
     sessionId,
     windowId,
@@ -402,6 +422,8 @@ export const useEditorStore = defineStore('editor', () => {
     selectedViewMode,
     previewId,
     previewResult,
+    smoothEnabled,
+    smoothSigma,
     operations,
     canUndo,
     canRedo,
@@ -426,6 +448,8 @@ export const useEditorStore = defineStore('editor', () => {
     setActiveTool,
     setMaskGeometry,
     clearMask,
+    setSmoothEnabled,
+    setSmoothSigma,
     reset,
   }
 })

@@ -12,6 +12,7 @@ const ptypeDialogVisible = ref(false)
 const preview = computed(() => editorStore.previewResult)
 const needsTargetPtype = computed(() => preview.value?.new_precip_needs_ptype === true)
 const applying = computed(() => editorStore.applyLoading)
+const smoothActive = computed(() => editorStore.smoothEnabled && editorStore.smoothSigma > 0 && preview.value !== null)
 
 const statRows = [
   { key: 'min', label: '最小值', unit: 'mm' },
@@ -124,6 +125,14 @@ async function confirmApplyWithPtype(): Promise<void> {
         <span>{{ formatValue(preview.affected_area_km2, 'area_km2') }} km²</span>
       </div>
     </div>
+
+    <span
+      v-if="smoothActive"
+      class="preview-stats-panel__badge"
+      data-test="smooth-badge"
+    >
+      已平滑 σ={{ editorStore.smoothSigma.toFixed(1) }}
+    </span>
 
     <div v-if="preview.warnings.length > 0" class="preview-stats-panel__warnings" data-test="preview-warnings">
       <p v-for="warning in preview.warnings" :key="warning.code">
@@ -273,6 +282,17 @@ async function confirmApplyWithPtype(): Promise<void> {
   background: var(--color-primary-bg);
   padding: 2px 6px;
   color: var(--color-primary);
+}
+
+.preview-stats-panel__badge {
+  display: inline-block;
+  border-radius: 4px;
+  background: var(--color-success-bg, #e3f9e9);
+  padding: 2px 8px;
+  color: var(--color-success, #00a870);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
 }
 
 .preview-stats-panel__warnings,

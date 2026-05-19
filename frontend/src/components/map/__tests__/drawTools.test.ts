@@ -65,6 +65,29 @@ describe('DrawTools lasso', () => {
     expect(toolButtons.map((button) => button.text())).toEqual(['多边形', '线缓冲', '画刷', '套索'])
   })
 
+  test('smooth toggle changes editorStore.smoothEnabled', async () => {
+    const store = useEditorStore()
+    const wrapper = mountDrawTools()
+
+    expect(store.smoothEnabled).toBe(false)
+    await wrapper.find('[data-test="smooth-toggle"]').setValue(true)
+
+    expect(store.smoothEnabled).toBe(true)
+  })
+
+  test('sigma slider updates editorStore.smoothSigma', async () => {
+    const store = useEditorStore()
+    store.setSmoothEnabled(true)
+    const wrapper = mountDrawTools()
+    await wrapper.vm.$nextTick()
+
+    const input = wrapper.find('[data-test="smooth-sigma-input"]')
+    expect(input.exists()).toBe(true)
+    await input.setValue('3')
+
+    expect(store.smoothSigma).toBe(3)
+  })
+
   test('lasso tool activates on click', async () => {
     const store = useEditorStore()
     store.sessionId = 'session-1'

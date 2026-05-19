@@ -51,6 +51,31 @@
       :style="brushCursorStyle"
       aria-hidden="true"
     />
+
+    <div class="draw-tools__smooth" data-test="smooth-controls">
+      <label class="draw-tools__smooth-toggle">
+        <span>边缘平滑</span>
+        <input
+          type="checkbox"
+          :checked="smoothEnabled"
+          data-test="smooth-toggle"
+          @change="onSmoothToggle"
+        >
+      </label>
+      <label v-if="smoothEnabled" class="draw-tools__field">
+        <span>平滑半径</span>
+        <input
+          :value="smoothSigma"
+          class="draw-tools__number"
+          type="number"
+          min="0.5"
+          max="5"
+          step="0.5"
+          data-test="smooth-sigma-input"
+          @input="onSigmaInput"
+        >
+      </label>
+    </div>
   </section>
 </template>
 
@@ -167,6 +192,8 @@ let wheelTarget: HTMLElement | null = null
 let contextMenuTarget: HTMLElement | null = null
 
 const activeTool = computed(() => editorStore.activeTool)
+const smoothEnabled = computed(() => editorStore.smoothEnabled)
+const smoothSigma = computed(() => editorStore.smoothSigma)
 const brushCursorStyle = computed(() => {
   const diameter = radiusGrid.value * 2 * 6
 
@@ -296,6 +323,19 @@ function emitLassoPath(): boolean {
 function onWidthInput(event: Event): void {
   const target = event.target as HTMLInputElement
   widthGrid.value = clampGridValue(Number(target.value), 1, 50)
+}
+
+function onSmoothToggle(event: Event): void {
+  const target = event.target as HTMLInputElement
+  editorStore.setSmoothEnabled(target.checked)
+}
+
+function onSigmaInput(event: Event): void {
+  const target = event.target as HTMLInputElement
+  const value = parseFloat(target.value)
+  if (Number.isFinite(value) && value >= 0.5 && value <= 5.0) {
+    editorStore.setSmoothSigma(value)
+  }
 }
 
 function activateTool(tool: ToolType): void {
@@ -877,6 +917,30 @@ defineExpose({
   color: var(--text-secondary);
   font-size: 13px;
   line-height: 20px;
+}
+
+.draw-tools__smooth {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+
+.draw-tools__smooth-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 30px;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.draw-tools__smooth-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
 }
 
 .draw-tools__number {
