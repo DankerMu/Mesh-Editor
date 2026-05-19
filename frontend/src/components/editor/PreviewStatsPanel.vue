@@ -287,9 +287,9 @@ async function confirmApplyWithPtype(): Promise<void> {
 .preview-stats-panel__badge {
   display: inline-block;
   border-radius: 4px;
-  background: var(--color-success-bg, #e3f9e9);
+  background: var(--color-success-bg);
   padding: 2px 8px;
-  color: var(--color-success, #00a870);
+  color: var(--color-success);
   font-size: 12px;
   font-weight: 600;
   line-height: 20px;

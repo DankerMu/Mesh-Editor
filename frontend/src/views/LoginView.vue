@@ -123,7 +123,7 @@ const onSubmit: FormProps['onSubmit'] = async ({ validateResult }) => {
   flex: 0 0 50%;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1664FF 0%, #4080FF 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   padding: 40px;
 }
 

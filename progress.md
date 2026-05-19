@@ -37,7 +37,7 @@ data/source/         ← 样例数据符号链接（→ data/量级/ + data/phas
 
 ## 当前阶段
 
-**M0-M6 全部完成 → UI 视觉对齐阶段；Issue #93 smooth 控件前端完成；下一步 lasso-smooth-tool 收尾验收**
+**M0-M6 + Epic #81 全部完成 → UI 视觉深度对齐阶段；Issue #109 CSS Token 系统完成**
 
 ### 里程碑总览
 
@@ -69,26 +69,20 @@ data/source/         ← 样例数据符号链接（→ data/量级/ + data/phas
 | HomeView 窗口点击无跳转 | 添加 watch selectedWindowId → router.push | `HomeView.vue` |
 | frontend_ui_tokens.json 缺 shadow | 补充 shadows 分类 | `frontend_ui_tokens.json` |
 
-### UI 视觉对齐（进行中）
+### UI 视觉深度对齐（进行中）
 
-**OpenSpec Change**: `openspec/changes/ui-visual-alignment/`（4/4 artifacts complete）
-- proposal.md — 7 个 capability
-- design.md — 5 个技术决策（白底 Header、CSS 变量、登录左右分栏、编辑面板复用、底部状态栏）
-- specs/ — 7 个 spec，127 个 WHEN/THEN scenario
-- tasks.md — 7 组 46 个 task
+**Phase 1 已完成**: Epic #81 + #82-#88（全部 CLOSED）— 基础 Token/Header/登录/面板骨架
 
-**Codex 3 路并行审核** → 发现 12 个 P0 → 全部修复：
-- AppHeader 背景色：蓝→白底（对齐效果图）
-- 菜单项：4→5（加"系统管理"顶级菜单，"统计分析"→"历史分析"）
-- 审核/复盘页：两栏→三栏（左列表+中内容+右信息）
-- 新降水对话框触发：422 错误→preview 响应 new_precip_needs_ptype
-- 角色 Tag 颜色统一到 docs/22 语义色
-- Admin spec 补全 Config/Template/Storage 覆盖
+**Phase 2 — 4 个新 Change + 4 Epic + 12 子 issue**：
 
-**GitHub Issues**: Epic #81 + 子 issue #82-#88
-- #82 Global Theme Tokens（基础，最先做）
-- #83 AppHeader Navigation（依赖 #82）
-- #84-#88 各页面视觉打磨（依赖 #83）
+| Epic | Change | 子 Issue | 范围 |
+|------|--------|----------|------|
+| #105 全局基底 | `ui-global-foundation` | #109 #110 #111 | Token 补全/Header 子菜单/Admin 统一 |
+| #106 首页重做 | `home-page-redesign` | #112 #113 #114 | 三栏布局/筛选/表格/详情 |
+| #107 编辑器对齐 | `editor-visual-polish` | #115 #116 #117 | 左栏/面板激活/状态栏/预览 |
+| #108 审核+复盘 | `approval-review-redesign` | #118 #119 #120 | 三栏/版本对比/操作面板/复盘图 |
+
+**Codex 4×3 路审核 + P0 修复完成**：API 契约/Store 方法名/状态枚举/字段名全部对齐现有代码
 
 ### 阻塞项
 
@@ -103,6 +97,8 @@ data/source/         ← 样例数据符号链接（→ data/量级/ + data/phas
 
 ### 最近变更记录
 
+- 2026-05-19：完成 Issue #109 CSS Token 补全：font-weight/TDesign light 覆盖/Login 渐变 token 化/JSON 同步测试，frontend vitest 384 passed / 1 skipped
+- 2026-05-19：Stage Change Pipeline 完成 — 4 个 OpenSpec Change + Codex 12 路审核 + P0 修复 + 4 Epic(#105-#108) + 12 子 issue(#109-#120) 创建
 - 2026-05-19：完成 Issue #93 smooth 控件前端：DrawTools toggle/sigma、editorStore smooth_sigma、PreviewStats badge，frontend vitest/vue-tsc 通过
 - 2026-05-19：完成 Issue #92 lasso 前端：DrawTools 套索交互、SelectionOverlay 渲染、类型/API 接入，frontend 365 tests + vue-tsc 通过
 - 2026-05-19：完成 Issue #91 mask smooth 后端：smooth_mask/scipy/smooth_sigma preview 接入，targeted 38 tests 通过
