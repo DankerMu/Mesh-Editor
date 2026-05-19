@@ -9,6 +9,7 @@ from app.services.edit_engine.mask_builder import (
     lasso_to_mask,
     line_buffer_to_mask,
     polygon_to_mask,
+    smooth_mask,
 )
 
 
@@ -200,3 +201,54 @@ def test_mask_empty_when_all_invalid_for_all_types() -> None:
         with pytest.raises(MaskError) as exc_info:
             fn(*args)
         assert exc_info.value.code == "MASK_EMPTY"
+
+
+def test_smooth_mask_sigma_zero_returns_original() -> None:
+    mask = np.zeros((8, 8), dtype=bool)
+    mask[2:6, 2:6] = True
+
+    result = smooth_mask(mask, 0, np.zeros_like(mask, dtype=bool))
+
+    assert np.array_equal(result, mask)
+
+
+def test_smooth_mask_valid_sigma_smooths_edges() -> None:
+    mask = np.zeros((24, 24), dtype=bool)
+    mask[6:18, 6:18] = True
+
+    result = smooth_mask(mask, 1.0, np.ones_like(mask, dtype=bool))
+
+    assert int(np.count_nonzero(result)) > 0
+    assert not np.array_equal(result, mask)
+
+
+def test_smooth_mask_sigma_below_range() -> None:
+    mask = np.zeros((8, 8), dtype=bool)
+    mask[3:5, 3:5] = True
+
+    with pytest.raises(MaskError) as exc_info:
+        smooth_mask(mask, 0.3, np.ones_like(mask, dtype=bool))
+
+    assert exc_info.value.code == "SMOOTH_SIGMA_OUT_OF_RANGE"
+
+
+def test_smooth_mask_sigma_above_range() -> None:
+    mask = np.zeros((8, 8), dtype=bool)
+    mask[3:5, 3:5] = True
+
+    with pytest.raises(MaskError) as exc_info:
+        smooth_mask(mask, 6.0, np.ones_like(mask, dtype=bool))
+
+    assert exc_info.value.code == "SMOOTH_SIGMA_OUT_OF_RANGE"
+
+
+def test_smooth_mask_empty_after_smooth() -> None:
+    mask = np.zeros((16, 16), dtype=bool)
+    mask[8, 8] = True
+    valid_mask = np.zeros_like(mask, dtype=bool)
+    valid_mask[8, 8] = True
+
+    with pytest.raises(MaskError) as exc_info:
+        smooth_mask(mask, 5.0, valid_mask)
+
+    assert exc_info.value.code == "MASK_EMPTY"

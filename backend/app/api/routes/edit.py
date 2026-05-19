@@ -312,6 +312,14 @@ async def preview_edit(
 
     _, qpf_current, _, ptype_current, valid_mask = _load_session_fields(payload.session_id)
     operation_mask = _build_mask(payload, valid_mask)
+    smooth_sigma = payload.parameters.smooth_sigma or 0
+    if smooth_sigma != 0:
+        try:
+            operation_mask = mask_builder.smooth_mask(
+                operation_mask, smooth_sigma, valid_mask
+            )
+        except MaskError as exc:
+            raise _domain_error(exc.code, {"detail": exc.detail}) from exc
     ctx = EditContext(
         qpf_before=qpf_current,
         ptype_before=ptype_current,
